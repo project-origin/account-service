@@ -7,10 +7,7 @@ DEBUG = os.environ.get('DEBUG') in ('1', 't', 'true', 'yes')
 # -- Project -----------------------------------------------------------------
 
 PROJECT_NAME = 'Project Origin AccountService'
-
-PROJECT_URL = os.environ.get(
-    'PROJECT_URL', 'http://127.0.0.1:8085')
-
+PROJECT_URL = os.environ['PROJECT_URL']
 LOGIN_CALLBACK_URL = f'{PROJECT_URL}/auth/login/callback'
 
 
@@ -29,14 +26,12 @@ ALEMBIC_CONFIG_PATH = os.path.join(MIGRATIONS_DIR, 'alembic.ini')
 # -- Database ----------------------------------------------------------------
 
 SQL_ALCHEMY_SETTINGS = {
-    'echo': DEBUG and 0,
+    'echo': DEBUG,
     'pool_pre_ping': True,
-    'pool_size': 20,
+    'pool_size': int(os.environ['DATABASE_CONN_POLL_SIZE']),
 }
-SQLITE_PATH = os.path.join(VAR_DIR, 'db.sqlite')
-TEST_SQLITE_PATH = os.path.join(VAR_DIR, 'db.test.sqlite')
-# DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///%s' % SQLITE_PATH)
-DATABASE_URI = os.environ.get('DATABASE_URI', 'postgresql://postgres:1234@172.17.0.2/account')
+
+DATABASE_URI = os.environ['DATABASE_URI']
 
 USING_POSTGRES = DATABASE_URI.startswith('postgresql://')
 USING_SQLITE = DATABASE_URI.startswith('sqlite://')
@@ -44,11 +39,8 @@ USING_SQLITE = DATABASE_URI.startswith('sqlite://')
 
 # -- Services ----------------------------------------------------------------
 
-DATAHUB_SERVICE_URL = os.environ.get(
-    'DATAHUB_SERVICE_URL', 'http://127.0.0.1:8089')
-
-LEDGER_URL = os.environ.get(
-    'LEDGER_URL', 'http://127.0.0.1:8008')
+DATAHUB_SERVICE_URL = ['DATAHUB_SERVICE_URL']
+LEDGER_URL = os.environ['LEDGER_URL']
 
 
 # -- Auth/tokens -------------------------------------------------------------
@@ -59,10 +51,10 @@ TOKEN_HEADER = 'Authorization'
 # is less than this:
 TOKEN_REFRESH_AT = timedelta(minutes=60 * 24)
 
-HYDRA_URL = os.environ.get('HYDRA_URL', 'https://localhost:9100')
-HYDRA_INTROSPECT_URL = os.environ.get('HYDRA_INTROSPECT_URL', 'https://localhost:9101/oauth2/introspect')
-HYDRA_CLIENT_ID = os.environ.get('HYDRA_CLIENT_ID', 'account_service')
-HYDRA_CLIENT_SECRET = os.environ.get('HYDRA_CLIENT_SECRET', 'some-secret')
+HYDRA_URL = os.environ['HYDRA_URL']
+HYDRA_INTROSPECT_URL = os.environ['HYDRA_INTROSPECT_URL']
+HYDRA_CLIENT_ID = os.environ['HYDRA_CLIENT_ID']
+HYDRA_CLIENT_SECRET = os.environ['HYDRA_CLIENT_SECRET']
 HYDRA_AUTH_ENDPOINT = f'{HYDRA_URL}/oauth2/auth'
 HYDRA_TOKEN_ENDPOINT = f'{HYDRA_URL}/oauth2/token'
 HYDRA_USER_ENDPOINT = f'{HYDRA_URL}/userinfo'
@@ -81,13 +73,13 @@ HYDRA_WANTED_SCOPES = (
 
 # -- Task broker and locking -------------------------------------------------
 
-REDIS_HOST = os.environ.get('REDIS_HOST', '172.17.0.3')
-REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
-REDIS_USERNAME = os.environ.get('REDIS_USERNAME', '')
-REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', '')
-REDIS_CACHE_DB = int(os.environ.get('REDIS_CACHE_DB', 3))
-REDIS_BROKER_DB = int(os.environ.get('REDIS_BROKER_DB', 4))
-REDIS_BACKEND_DB = int(os.environ.get('REDIS_BACKEND_DB', 5))
+REDIS_HOST = os.environ['REDIS_HOST']
+REDIS_PORT = int(os.environ['REDIS_PORT'])
+REDIS_USERNAME = os.environ['REDIS_USERNAME']
+REDIS_PASSWORD = os.environ['REDIS_PASSWORD']
+REDIS_CACHE_DB = int(os.environ['REDIS_CACHE_DB'])
+REDIS_BROKER_DB = int(os.environ['REDIS_BROKER_DB'])
+REDIS_BACKEND_DB = int(os.environ['REDIS_BACKEND_DB'])
 
 REDIS_URL = 'redis://%s:%s@%s:%d' % (
     REDIS_USERNAME, REDIS_PASSWORD, REDIS_HOST, REDIS_PORT)
