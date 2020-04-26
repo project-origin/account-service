@@ -296,7 +296,7 @@ class RetireTransaction(Transaction):
     )
 
     # The begin of the measurement
-    begin = sa.Column(sa.DateTime())
+    begin = sa.Column(sa.DateTime(timezone=True))
 
     # The meteringpoint which the measurement were published to
     meteringpoint_id = sa.Column(sa.Integer(), sa.ForeignKey('accounts_meteringpoint.id'))
