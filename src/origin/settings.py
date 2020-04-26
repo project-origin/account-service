@@ -39,7 +39,7 @@ USING_SQLITE = DATABASE_URI.startswith('sqlite://')
 
 # -- Services ----------------------------------------------------------------
 
-DATAHUB_SERVICE_URL = ['DATAHUB_SERVICE_URL']
+DATAHUB_SERVICE_URL = os.environ['DATAHUB_SERVICE_URL']
 LEDGER_URL = os.environ['LEDGER_URL']
 
 
