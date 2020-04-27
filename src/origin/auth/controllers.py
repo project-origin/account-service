@@ -73,6 +73,11 @@ class LoginCallback(Controller):
 
         # Extract data from token
         id_token = backend.get_id_token(token)
+
+        # No id_token means the user declined to give consent
+        if id_token is None:
+            return self.redirect_to_failure(return_url)
+
         expires = datetime \
             .fromtimestamp(token['expires_at']) \
             .replace(tzinfo=timezone.utc)

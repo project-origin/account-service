@@ -69,7 +69,10 @@ class AuthBackend(object):
         :param collections.abc.Mapping token:
         :rtype: collections.abc.Mapping
         """
-        return jwt.decode(token['id_token'], key=self.get_jwks())
+        if 'id_token' in token:
+            return jwt.decode(token['id_token'], key=self.get_jwks())
+        else:
+            return None
 
     def get_jwks(self):
         """
