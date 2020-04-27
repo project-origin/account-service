@@ -7,6 +7,7 @@ from origin.settings import (
     LOGIN_CALLBACK_URL,
     HYDRA_AUTH_ENDPOINT,
     HYDRA_TOKEN_ENDPOINT,
+    HYDRA_WELLKNOWN_ENDPOINT,
     HYDRA_CLIENT_ID,
     HYDRA_CLIENT_SECRET,
     HYDRA_WANTED_SCOPES,
@@ -80,5 +81,5 @@ class AuthBackend(object):
 
         :rtype: str
         """
-        jwks_response = requests.get('https://localhost:9100/.well-known/jwks.json', verify=not DEBUG)
+        jwks_response = requests.get(url=HYDRA_WELLKNOWN_ENDPOINT, verify=not DEBUG)
         return jwks_response.content.decode()
