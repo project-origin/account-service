@@ -69,6 +69,7 @@ class LoginCallback(Controller):
         try:
             token = backend.fetch_token(request.code, request.state)
         except:
+            raise
             return self.redirect_to_failure(return_url)
 
         # Extract data from token
@@ -76,7 +77,7 @@ class LoginCallback(Controller):
 
         # No id_token means the user declined to give consent
         if id_token is None:
-            return self.redirect_to_failure(return_url)
+            return self.redirect_to_failure(return_url, 'No ID token from Hydra')
 
         expires = datetime \
             .fromtimestamp(token['expires_at']) \
@@ -127,12 +128,12 @@ class LoginCallback(Controller):
         user.refresh_token = token['refresh_token']
         user.token_expire = expires
 
-    def redirect_to_failure(self, return_url):
+    def redirect_to_failure(self, return_url, msg=''):
         """
         :param str return_url:
         :rtype: flask.Response
         """
-        return redirect(f'{return_url}?success=0', code=303)
+        return redirect(f'{return_url}?success=0&msg={msg}', code=303)
 
 
 class OnMeteringPointsAvailableWebhook(Controller):
