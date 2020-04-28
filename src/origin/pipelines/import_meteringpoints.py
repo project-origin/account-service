@@ -32,7 +32,7 @@ def import_meteringpoints_and_insert_to_db(user_id, session):
     :param int user_id:
     :param Session session:
     """
-    logging.info('--- fetch_meteringpoints_and_insert_to_db, user_id=%d' % user_id)
+    logging.info('--- import_meteringpoints.import_meteringpoints_and_insert_to_db, user_id=%d' % user_id)
 
     user = UserQuery(session) \
         .has_id(user_id) \
