@@ -9,7 +9,7 @@ DEBUG = os.environ.get('DEBUG') in ('1', 't', 'true', 'yes')
 PROJECT_NAME = 'Project Origin AccountService'
 SECRET = os.environ['SECRET']
 PROJECT_URL = os.environ['PROJECT_URL']
-LOGIN_CALLBACK_URL = f'{PROJECT_URL}/auth/login/callback'
+LOGIN_CALLBACK_URL = f'{PROJECT_URL.replace('http:', 'https:')}/auth/login/callback'
 CORS_ORIGINS = os.environ['CORS_ORIGINS']
 
 
