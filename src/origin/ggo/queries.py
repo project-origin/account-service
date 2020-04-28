@@ -8,7 +8,6 @@ from dateutil.relativedelta import relativedelta
 
 from origin.auth import User
 from origin.common import DateTimeRange
-from origin.settings import USING_POSTGRES, USING_SQLITE
 from origin.ledger import SplitTarget, SplitTransaction
 
 from .models import Ggo, SummaryGroup, GgoFilters, SummaryResolution, RetireFilters
@@ -392,7 +391,7 @@ class GgoSummary(object):
         SummaryResolution.YEAR: 'YYYY',
     }
 
-    RESOLUTIONS_SQLITE = {
+    RESOLUTIONS_PYTHON = {
         SummaryResolution.HOUR: '%Y-%m-%d %H:00',
         SummaryResolution.DAY: '%Y-%m-%d',
         SummaryResolution.MONTH: '%Y-%m',
@@ -422,20 +421,6 @@ class GgoSummary(object):
         self.grouping = grouping
         self.fill_range = None
 
-    def format_resolution(self, field):
-        """
-        TODO
-
-        :param field:
-        :return:
-        """
-        if USING_POSTGRES:
-            return func.to_char(field, self.RESOLUTIONS_POSTGRES[self.resolution])
-        elif USING_SQLITE:
-            return func.strftime(self.RESOLUTIONS_SQLITE[self.resolution], field)
-        else:
-            raise RuntimeError('Only postgres and SQLite are supported')
-
     def fill(self, fill_range):
         """
         :param DateTimeRange fill_range:
@@ -452,8 +437,7 @@ class GgoSummary(object):
         if self.fill_range is None:
             return sorted(set(label for label, *g, amount in self.raw_results))
         else:
-            # SQLite formats happens to be the same as Pythons strftime format
-            format = self.RESOLUTIONS_SQLITE[self.resolution]
+            format = self.RESOLUTIONS_PYTHON[self.resolution]
             step = self.LABEL_STEP[self.resolution]
             begin = self.fill_range.begin
             labels = []
@@ -497,7 +481,7 @@ class GgoSummary(object):
         if self.resolution == SummaryResolution.ALL:
             select.append(bindparam('label', self.ALL_TIME_LABEL))
         else:
-            select.append(self.format_resolution(q.c.begin).label('resolution'))
+            select.append(func.to_char(q.c.begin, self.RESOLUTIONS_POSTGRES[self.resolution]).label('resolution'))
             groups.append('resolution')
 
         # -- Grouping ------------------------------------------------------------
