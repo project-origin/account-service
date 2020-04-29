@@ -1,3 +1,4 @@
+from origin import logger
 from origin.db import atomic
 from origin.ggo import GgoQuery, Ggo
 from origin.common import DateTimeRange
@@ -18,8 +19,27 @@ class GgoIssueController(object):
         :param datetime.datetime begin_to:
         :rtype: list[Ggo]
         """
+        logger.info(f'Importing GGOs for GSRN: {gsrn}', extra={
+            'gsrn': gsrn,
+            'subject': user.sub,
+            'begin_from': str(begin_from),
+            'begin_to': str(begin_to),
+            'pipeline': 'import_ggos',
+            'task': 'import_ggos_and_insert_to_db',
+        })
+
         imported_ggos = self.fetch_ggos(user, gsrn, begin_from, begin_to)
         issued_ggos = self.insert_to_db(user, imported_ggos)
+
+        logger.info(f'Imported {len(issued_ggos)} GGOs for GSRN: {gsrn}', extra={
+            'gsrn': gsrn,
+            'subject': user.sub,
+            'begin_from': str(begin_from),
+            'begin_to': str(begin_to),
+            'pipeline': 'import_ggos',
+            'task': 'import_ggos_and_insert_to_db',
+        })
+
         return issued_ggos
 
     def fetch_ggos(self, user, gsrn, begin_from, begin_to):

@@ -6,7 +6,7 @@ DEBUG = os.environ.get('DEBUG') in ('1', 't', 'true', 'yes')
 
 # -- Project -----------------------------------------------------------------
 
-PROJECT_NAME = 'AccountService'
+PROJECT_NAME = 'Account Service'
 SECRET = os.environ['SECRET']
 PROJECT_URL = os.environ['PROJECT_URL']
 HTTPS_PROJECT_URL = PROJECT_URL.replace('http:', 'https:')

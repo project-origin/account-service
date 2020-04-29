@@ -57,18 +57,18 @@ def import_meteringpoints_and_insert_to_db(subject, session):
 
             session.add(meteringpoint)
 
-            service.set_key(
-                token=user.access_token,
-                gsrn=meteringpoint.gsrn,
-                key=meteringpoint.extended_key,
-            )
-
             logger.info(f'Imported meteringpoint with GSRN: {meteringpoint.gsrn}', extra={
                 'gsrn': meteringpoint.gsrn,
                 'subject': user.sub,
                 'pipeline': 'import_meteringpoints',
                 'task': 'import_meteringpoints_and_insert_to_db',
             })
+
+            service.set_key(
+                token=user.access_token,
+                gsrn=meteringpoint.gsrn,
+                key=meteringpoint.extended_key,
+            )
         else:
             logger.info(f'Skipping meteringpoint with GSRN: {meteringpoint.gsrn} (already exists in DB)', extra={
                 'gsrn': meteringpoint.gsrn,
