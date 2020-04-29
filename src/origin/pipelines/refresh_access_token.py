@@ -1,10 +1,10 @@
 """
 TODO write this
 """
-import logging
 from datetime import datetime, timezone
 from celery import group
 
+from origin import logger
 from origin.db import inject_session, atomic
 from origin.auth import UserQuery, AuthBackend
 from origin.tasks import celery_app
@@ -17,17 +17,20 @@ backend = AuthBackend()
     name='refresh_token.get_soon_to_expire_tokens',
     max_retries=None,
 )
+@logger.wrap_task(
+    title='Getting soon-to-expire tokens',
+    pipeline='refresh_token',
+    task='get_soon_to_expire_tokens',
+)
 @inject_session
 def get_soon_to_expire_tokens(session):
     """
     :param Session session:
     """
-    logging.info('--- get_soon_to_expire_tokens')
-
     users = UserQuery(session) \
         .should_refresh_token()
 
-    tasks = [refresh_token.si(user.id) for user in users]
+    tasks = [refresh_token.si(subject=user.sub) for user in users]
 
     group(*tasks).apply_async()
 
@@ -36,16 +39,19 @@ def get_soon_to_expire_tokens(session):
     name='refresh_token.refresh_token_for_user',
     max_retries=None,
 )
+@logger.wrap_task(
+    title='Refreshing user\'s refresh_token',
+    pipeline='refresh_token',
+    task='refresh_token',
+)
 @atomic
-def refresh_token(user_id, session):
+def refresh_token(subject, session):
     """
-    :param int user_id:
+    :param str subject:
     :param Session session:
     """
-    logging.info(f'--- refresh_token_for_user, user_id={user_id}')
-
     user = UserQuery(session) \
-        .has_id(user_id) \
+        .has_sub(subject) \
         .one()
 
     token = backend.refresh_token(user.refresh_token)
