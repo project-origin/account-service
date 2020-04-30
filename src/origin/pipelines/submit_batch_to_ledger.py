@@ -1,14 +1,15 @@
 """
 TODO write this
 """
-import logging
 import origin_ledger_sdk as ols
 from celery import chain
 
+from origin import logger
 from origin.db import atomic
 from origin.tasks import celery_app
-from origin.settings import LEDGER_URL
-from origin.ledger import Batch, logger
+from origin.settings import LEDGER_URL, DEBUG
+from origin.ledger import Batch
+
 
 # Settings
 POLLING_DELAY = 5
@@ -54,8 +55,7 @@ def submit_batch_to_ledger(task, batch_id, session):
     """
     print('SUBMIT TO LEDGER, RETRIES: %d' % task.request.retries, flush=True)
 
-    ledger = ols.Ledger(LEDGER_URL)
-
+    ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
     batch = session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \
@@ -113,7 +113,7 @@ def poll_batch_status(task, handle, batch_id, session):
         .filter(Batch.id == batch_id) \
         .one()
 
-    ledger = ols.Ledger(LEDGER_URL)
+    ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
     response = ledger.get_batch_status(handle)
 
     if response.status == ols.BatchStatus.COMMITTED:
