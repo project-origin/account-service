@@ -1,19 +1,19 @@
 import requests
 import marshmallow_dataclass as md
 
+from origin import logger
 from origin.settings import (
     PROJECT_URL,
     DATAHUB_SERVICE_URL,
     TOKEN_HEADER,
-    DEBUG)
+    DEBUG,
+)
 
 from .models import (
     GetGgoListRequest,
     GetGgoListResponse,
     GetMeasurementRequest,
     GetMeasurementResponse,
-    GetMeasurementSummaryRequest,
-    GetMeasurementSummaryResponse,
     GetMeteringPointsResponse,
     SetKeyRequest,
     SetKeyResponse,
@@ -35,20 +35,38 @@ class DataHubService(object):
         :param Schema response_schema:
         :rtype obj:
         """
+        url = '%s%s' % (DATAHUB_SERVICE_URL, path)
+        verify_ssl = not DEBUG
+
         if request and request_schema:
             body = request_schema().dump(request)
         else:
             body = None
 
-        response = requests.post(
-            url='%s%s' % (DATAHUB_SERVICE_URL, path),
-            json=body,
-            headers={TOKEN_HEADER: f'Bearer {token}'},
-            verify=not DEBUG,
-        )
+        try:
+            response = requests.post(
+                url=url,
+                json=body,
+                headers={TOKEN_HEADER: f'Bearer {token}'},
+                verify=verify_ssl,
+            )
+        except:
+            logger.exception(f'Invoking DataHubService resulted in an exception', extra={
+                'url': url,
+                'verify_ssl': verify_ssl,
+                'request_body': str(body),
+            })
+            raise
 
         if response.status_code != 200:
-            raise Exception('%s\n\n%s\n\n%s\n\n%s\n\n' % (str(response), path, body, response.content))
+            logger.error(f'Invoking DataHubService resulted in a status != 200', extra={
+                'url': url,
+                'verify_ssl': verify_ssl,
+                'request_body': str(body),
+                'response_code': response.status_code,
+                'response_content': str(response.content),
+            })
+            raise Exception('Request to DataHub failed: %s' % str(response.content))
 
         response_json = response.json()
 

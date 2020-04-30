@@ -1,6 +1,7 @@
 import marshmallow_dataclass as md
 from datetime import datetime, timezone
 
+from origin import logger
 from origin.db import atomic, inject_session
 from origin.http import Controller, redirect, BadRequest
 from origin.pipelines import start_import_meteringpoints
@@ -69,7 +70,11 @@ class LoginCallback(Controller):
         try:
             token = backend.fetch_token(request.code, request.state)
         except:
-            raise
+            logger.exception(f'Failed to fetch token', extra={
+                'scope': str(request.scope),
+                'code': request.code,
+                'state': request.state,
+            })
             return self.redirect_to_failure(return_url)
 
         # Extract data from token
@@ -89,10 +94,16 @@ class LoginCallback(Controller):
             .one_or_none()
 
         if user is None:
+            logger.error(f'Creating new user and subscribing to webhooks', extra={
+                'subject': id_token['sub'],
+            })
             self.create_new_user(token, id_token, expires, session)
             self.datahub.webhook_on_meteringpoints_available_subscribe(token['access_token'])
             self.datahub.webhook_on_ggos_issued_subscribe(token['access_token'])
         else:
+            logger.error(f'Updating tokens for existing user', extra={
+                'subject': id_token['sub'],
+            })
             self.update_user_attributes(user, token, expires)
 
         # Create HTTP response
@@ -154,7 +165,7 @@ class OnMeteringPointsAvailableWebhook(Controller):
             .one_or_none()
 
         if user:
-            start_import_meteringpoints(user.id)
+            start_import_meteringpoints(user)
             return True
         else:
             return False

@@ -2,11 +2,12 @@ import requests
 import marshmallow_dataclass as md
 from dataclasses import dataclass
 
+from origin import logger
+from origin.settings import DEBUG
 from origin.db import atomic, inject_session
 from origin.ggo import Ggo, MappedGgo
 
 from .models import Subscription, Event
-from ..settings import DEBUG
 
 
 @dataclass
@@ -52,15 +53,33 @@ class WebhookService(object):
         for subscription in subscriptions:
             body = schema().dump(request)
 
+            logger.info(f'Invoking webhook: {event.value}', extra={
+                'subject': subject,
+                'event': event.value,
+                'url': subscription.url,
+                'request': str(body),
+            })
+
             try:
                 response = requests.post(subscription.url, json=body, verify=not DEBUG)
             except:
-                # TODO logging
-                raise
+                logger.exception(f'Failed to invoke webhook: {event.value}', extra={
+                    'subject': subject,
+                    'event': event.value,
+                    'url': subscription.url,
+                    'request': str(body),
+                })
                 continue
 
             if response.status_code != 200:
-                raise Exception('%s\n\n%s\n\n' % (body, response.content))
+                logger.error('Invoking webhook resulted in status code != 200', extra={
+                    'subject': subject,
+                    'event': event.value,
+                    'url': subscription.url,
+                    'request': str(body),
+                    'response_status_code': response.status_code,
+                    'response_body': response.content,
+                })
 
     def on_ggo_received(self, subject, ggo):
         """
