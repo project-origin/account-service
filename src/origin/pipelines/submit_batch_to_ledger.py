@@ -53,8 +53,6 @@ def submit_batch_to_ledger(task, batch_id, session):
     :param int batch_id:
     :param Session session:
     """
-    print('SUBMIT TO LEDGER, RETRIES: %d' % task.request.retries, flush=True)
-
     ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
     batch = session \
         .query(Batch) \
