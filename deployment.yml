@@ -1,0 +1,99 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-deployment
+  namespace: project-origin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-deployment
+  template:
+    metadata:
+      labels:
+        app: account-deployment
+    spec:
+      containers:
+        - name: account-service-api-container
+          image: projectorigin/account-service:2153
+          ports:
+            - containerPort: 8085
+
+          envFrom:
+            - configMapRef:
+                name: namespace-config
+            - configMapRef:
+                name: account-config
+            - secretRef:
+                name: account-system-secret
+            - secretRef:
+                name: account-hydra-secret
+            - secretRef:
+                name: account-db-secret
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-beat-deployment
+  namespace: project-origin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-beat-deployment
+  template:
+    metadata:
+      labels:
+        app: account-beat-deployment
+    spec:
+      containers:
+        - name: account-service-api-container
+          image: projectorigin/account-service:2153
+          args: ["pipenv", "run", "beat"]
+          
+          envFrom:
+            - configMapRef:
+                name: namespace-config
+            - configMapRef:
+                name: account-config
+            - secretRef:
+                name: account-system-secret
+            - secretRef:
+                name: account-hydra-secret
+            - secretRef:
+                name: account-db-secret
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-worker-deployment
+  namespace: project-origin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-worker-deployment
+  template:
+    metadata:
+      labels:
+        app: account-worker-deployment
+    spec:
+      containers:
+        - name: account-service-api-container
+          image: projectorigin/account-service:2153
+          args: ["pipenv", "run", "worker"]
+          
+          envFrom:
+            - configMapRef:
+                name: namespace-config
+            - configMapRef:
+                name: account-config
+            - secretRef:
+                name: account-system-secret
+            - secretRef:
+                name: account-hydra-secret
+            - secretRef:
+                name: account-db-secret
