@@ -7,8 +7,9 @@ from celery import chain
 
 from origin.db import atomic
 from origin.tasks import celery_app
-from origin.settings import LEDGER_URL
+from origin.settings import LEDGER_URL, DEBUG
 from origin.ledger import Batch
+
 
 
 # Settings
@@ -48,7 +49,7 @@ def submit_batch_to_ledger(task, batch_id, session):
     """
     logging.info('--- submit_batch_to_ledger, batch_id = %d' % batch_id)
 
-    ledger = ols.Ledger(LEDGER_URL)
+    ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
     batch = session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \
@@ -97,7 +98,7 @@ def poll_batch_status(task, handle, batch_id, session):
     #         .filter(Batch.id == batch_id) \
     #         .update({'poll_count': Batch.poll_count + 1})
 
-    ledger = ols.Ledger(LEDGER_URL)
+    ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
     response = ledger.get_batch_status(handle)
 
     if response.status == ols.BatchStatus.COMMITTED:
