@@ -15,7 +15,9 @@ backend = AuthBackend()
 
 @celery_app.task(
     name='refresh_token.get_soon_to_expire_tokens',
-    max_retries=None,
+    autoretry_for=(Exception,),
+    retry_backoff=2,
+    max_retries=5,
 )
 @logger.wrap_task(
     title='Getting soon-to-expire tokens',
@@ -37,7 +39,9 @@ def get_soon_to_expire_tokens(session):
 
 @celery_app.task(
     name='refresh_token.refresh_token_for_user',
-    max_retries=None,
+    autoretry_for=(Exception,),
+    retry_backoff=2,
+    max_retries=5,
 )
 @logger.wrap_task(
     title='Refreshing user\'s refresh_token',

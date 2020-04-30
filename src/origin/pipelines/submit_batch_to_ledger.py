@@ -36,7 +36,9 @@ def start_submit_batch_pipeline(batch, callback=None):
 @celery_app.task(
     bind=True,
     name='ledger.submit_batch_to_ledger',
-    max_retries=None,
+    autoretry_for=(ols.LedgerException,),
+    retry_backoff=2,
+    max_retries=5,
 )
 @logger.wrap_task(
     title='Submitting Batch to ledger',
@@ -50,7 +52,10 @@ def submit_batch_to_ledger(task, batch_id, session):
     :param int batch_id:
     :param Session session:
     """
+    print('SUBMIT TO LEDGER, RETRIES: %d' % task.request.retries, flush=True)
+
     ledger = ols.Ledger(LEDGER_URL)
+
     batch = session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \
@@ -62,10 +67,14 @@ def submit_batch_to_ledger(task, batch_id, session):
     except ols.LedgerException as e:
         if e.code == 31:
             # Ledger Queue is full
-            raise task.retry(countdown=SUBMIT_RETRY_DELAY)
+            raise task.retry(
+                max_retries=9999,
+                countdown=SUBMIT_RETRY_DELAY,
+            )
         else:
             logger.exception(f'Ledger raise an exception', extra={
                 'subject': batch.user.sub,
+                'batch_id': batch_id,
                 'error_message': str(e),
                 'error_code': e.code,
                 'pipeline': 'import_measurements',
@@ -81,7 +90,9 @@ def submit_batch_to_ledger(task, batch_id, session):
 @celery_app.task(
     bind=True,
     name='ledger.poll_batch_status',
-    max_retries=MAX_POLLING_RETRIES,
+    autoretry_for=(ols.LedgerException,),
+    retry_backoff=2,
+    max_retries=5,
 )
 @logger.wrap_task(
     pipeline='submit_batch_to_ledger',
@@ -95,6 +106,8 @@ def poll_batch_status(task, handle, batch_id, session):
     :param int batch_id:
     :param Session session:
     """
+    print('POLL BATCH STATUS, RETRIES: %d' % task.request.retries, flush=True)
+
     batch = session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \
@@ -120,4 +133,7 @@ def poll_batch_status(task, handle, batch_id, session):
         })
         batch.on_rollback()
     else:
-        raise task.retry(countdown=POLLING_DELAY)
+        raise task.retry(
+            max_retries=MAX_POLLING_RETRIES,
+            countdown=POLLING_DELAY,
+        )

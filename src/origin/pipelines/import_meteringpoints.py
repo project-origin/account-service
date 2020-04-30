@@ -19,11 +19,17 @@ def start_import_meteringpoints(user):
     """
     :param User user:
     """
-    import_meteringpoints_and_insert_to_db.s(subject=user.sub) \
+    import_meteringpoints_and_insert_to_db \
+        .s(subject=user.sub) \
         .apply_async()
 
 
-@celery_app.task(name='import_meteringpoints.import_meteringpoints_and_insert_to_db')
+@celery_app.task(
+    name='import_meteringpoints.import_meteringpoints_and_insert_to_db',
+    autoretry_for=(Exception,),
+    retry_backoff=2,
+    max_retries=5,
+)
 @logger.wrap_task(
     title='Importing meteringpoints from DataHub',
     pipeline='import_meteringpoints',
@@ -33,7 +39,6 @@ def start_import_meteringpoints(user):
 def import_meteringpoints_and_insert_to_db(subject, session):
     """
     :param str subject:
-    :param int user_id:
     :param Session session:
     """
     user = UserQuery(session) \

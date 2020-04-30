@@ -24,15 +24,22 @@ def start_import_issued_ggos(request):
     """
     :param OnGgosIssuedWebhookRequest request:
     """
-    import_ggos_and_insert_to_db.s(
-        subject=request.sub,
-        gsrn=request.gsrn,
-        begin_from=request.begin_from.isoformat(),
-        begin_to=request.begin_to.isoformat(),
-    ).apply_async()
+    import_ggos_and_insert_to_db \
+        .s(
+            subject=request.sub,
+            gsrn=request.gsrn,
+            begin_from=request.begin_from.isoformat(),
+            begin_to=request.begin_to.isoformat(),
+        ) \
+        .apply_async()
 
 
-@celery_app.task(name='import_ggos.import_ggos_and_insert_to_db')
+@celery_app.task(
+    name='import_ggos.import_ggos_and_insert_to_db',
+    autoretry_for=(Exception,),
+    retry_backoff=2,
+    max_retries=5,
+)
 @logger.wrap_task(
     title='Importing GGOs for GSRN: %(gsrn)s',
     pipeline='import_ggos',
@@ -65,7 +72,12 @@ def import_ggos_and_insert_to_db(subject, gsrn, begin_from, begin_to, session):
         group(tasks).apply_async()
 
 
-@celery_app.task(name='import_ggos.invoke_webhook')
+@celery_app.task(
+    name='import_ggos.invoke_webhook',
+    autoretry_for=(Exception,),
+    retry_backoff=2,
+    max_retries=5,
+)
 @logger.wrap_task(
     title='Invoking webhook on_ggo_received',
     pipeline='import_ggos',
@@ -80,6 +92,6 @@ def invoke_webhook(subject, ggo_id, session):
     """
     ggo = GgoQuery(session) \
         .has_id(ggo_id) \
-        .one()
+        .one_or_none()
 
     webhook.on_ggo_received(subject, ggo)
