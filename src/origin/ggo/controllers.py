@@ -14,7 +14,6 @@ from .models import (
     TransferDirection,
     TransferRequest,
     RetireRequest,
-    GgoCategory,
     GetGgoListRequest,
     GetGgoListResponse,
     GetGgoSummaryRequest,
@@ -28,6 +27,7 @@ from .models import (
     GetRetiredAmountResponse,
     GetRetiredAmountRequest,
     OnGgosIssuedWebhookRequest,
+    Ggo,
 )
 
 
@@ -56,6 +56,7 @@ class GetGgoList(Controller):
             .apply_filters(request.filters)
 
         results = query \
+            .order_by(Ggo.begin) \
             .offset(request.offset) \
             .limit(request.limit) \
             .all()
@@ -71,13 +72,8 @@ class GetGgoList(Controller):
 
 class GetGgoSummary(Controller):
     """
-    grouping: gsrn |  sector | technologyCode | fuelCode
-    resolution: year | month | day | hour | all
-
-    beginFrom: INCLUSIVE
-    beginTo: EXCLUSIVE
-
-    # TODO resolutionIso: https://www.digi.com/resources/documentation/digidocs/90001437-13/reference/r_iso_8601_duration_format.htm
+    TODO
+    TODO resolutionIso: https://www.digi.com/resources/documentation/digidocs/90001437-13/reference/r_iso_8601_duration_format.htm
     """
     Request = md.class_schema(GetGgoSummaryRequest)
     Response = md.class_schema(GetGgoSummaryResponse)
@@ -92,22 +88,10 @@ class GetGgoSummary(Controller):
         :param Session session:
         :rtype: GetGgoSummaryResponse
         """
-        query = GgoQuery(session) \
+        summary = GgoQuery(session) \
             .belongs_to(user) \
-            .apply_filters(request.filters)
-
-        if request.category == GgoCategory.ISSUED:
-            query = query.is_issued(True)
-        elif request.category == GgoCategory.STORED:
-            query = query.is_stored(True).is_expired(False)
-        elif request.category == GgoCategory.RETIRED:
-            query = query.is_retired(True)
-        elif request.category == GgoCategory.EXPIRED:
-            query = query.is_stored(True).is_expired(True)
-        else:
-            raise RuntimeError('Should NOT have happened!')
-
-        summary = query.get_summary(request.resolution, request.grouping)
+            .apply_filters(request.filters) \
+            .get_summary(request.resolution, request.grouping)
 
         if request.fill and request.filters.begin_range:
             summary.fill(request.filters.begin_range)

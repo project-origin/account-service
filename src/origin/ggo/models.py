@@ -237,6 +237,7 @@ class GgoFilters:
     technology_code: List[str] = field(default_factory=list, metadata=dict(data_key='technologyCode'))
     fuel_code: List[str] = field(default_factory=list, metadata=dict(data_key='fuelCode'))
 
+    category: GgoCategory = field(default=None, metadata=dict(by_value=True))
     issue_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='issueGsrn'))
     retire_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='retireGsrn'))
 
@@ -324,7 +325,7 @@ class GetGgoListRequest:
 class GetGgoListResponse:
     success: bool
     total: int
-    results: List[Ggo] = field(default_factory=list)
+    results: List[MappedGgo] = field(default_factory=list)
 
 
 # -- GetGgoSummary request and response --------------------------------------
@@ -332,7 +333,6 @@ class GetGgoListResponse:
 
 @dataclass
 class GetGgoSummaryRequest:
-    category: GgoCategory = field(metadata=dict(by_value=True))
     resolution: SummaryResolution = field(metadata=dict(by_value=True))
     filters: GgoFilters
     fill: bool
