@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: account-service-api-container
-          image: projectorigin/account-service:2153
+          image: projectorigin/account-service:2165
           ports:
             - containerPort: 8085
 
@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
         - name: account-service-api-container
-          image: projectorigin/account-service:2153
+          image: projectorigin/account-service:2165
           args: ["pipenv", "run", "beat"]
           
           envFrom:
@@ -83,7 +83,7 @@ spec:
     spec:
       containers:
         - name: account-service-api-container
-          image: projectorigin/account-service:2153
+          image: projectorigin/account-service:2165
           args: ["pipenv", "run", "worker"]
           
           envFrom:
