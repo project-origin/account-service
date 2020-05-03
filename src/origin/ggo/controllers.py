@@ -2,13 +2,20 @@ import marshmallow_dataclass as md
 
 from origin.db import inject_session, atomic
 from origin.http import Controller, BadRequest
-from origin.auth import User, inject_token, inject_user, require_oauth
 from origin.pipelines import (
     start_handle_composed_ggo_pipeline,
     start_import_issued_ggos,
 )
+from origin.auth import (
+    User,
+    UserQuery,
+    MeteringPointQuery,
+    MeteringPoint,
+    inject_user,
+    require_oauth,
+)
 
-from .composer import GgoComposer, GgoComposition
+from .composer import GgoComposer
 from .queries import GgoQuery, TransactionQuery, RetireQuery
 from .models import (
     TransferDirection,
@@ -263,59 +270,90 @@ class ComposeGgo(Controller):
 
     @require_oauth(['ggo.transfer', 'ggo.retire'])
     @inject_user(required=True)
-    @inject_token
-    def handle_request(self, request, user, token):
+    def handle_request(self, request, user):
         """
         :param ComposeGgoRequest request:
         :param User user:
-        :param str token:
         :rtype: ComposeGgoResponse
         """
-        composition = self.compose(
+        batch, recipients = self.compose(
             user=user,
-            token=token,
             ggo_address=request.address,
             transfers=request.transfers,
             retires=request.retires,
         )
 
-        start_handle_composed_ggo_pipeline(
-            batch=composition.batch,
-            recipients=composition.recipients,
-        )
+        start_handle_composed_ggo_pipeline(batch, recipients)
 
         return ComposeGgoResponse(success=True)
 
     @atomic
-    def compose(self, user, token, ggo_address,
-                transfers, retires, session):
+    def compose(self, user, ggo_address, transfers, retires, session):
         """
         :param User user:
-        :param str token:
         :param str ggo_address:
         :param list[TransferRequest] transfers:
         :param list[RetireRequest] retires:
         :param Session session:
-        :rtype: GgoComposition
+        :rtype: (Batch, list[User])
+        :returns: Tuple the composed Batch along with a list of users
+            who receive GGO by transfers
         """
         ggo = self.get_ggo(user, ggo_address, session)
-        composer = self.get_composer(ggo, token, session)
+        composer = self.get_composer(ggo, session)
+
+        for transfer in transfers:
+            self.add_transfer(composer, transfer, session)
+
+        for retire in retires:
+            self.add_retire(user, composer, retire, session)
 
         try:
-            composer.add_many_transfers(transfers)
-            composer.add_many_retires(retires)
-            composition = composer.compose()
-        except GgoComposer.AmountUnavailable:
+            batch, recipients = composer.build_batch()
+        except composer.Empty:
+            raise BadRequest('Nothing to transfer/retire')
+        except composer.AmountUnavailable:
             raise BadRequest('Requested amount exceeds available amount')
-        except GgoComposer.RetireGSRNInvalid as e:
-            raise BadRequest('Can not retire GGO to GSRN %s' % e.gsrn)
-        except GgoComposer.RetireMeasurementInvalid as e:
-            raise BadRequest('Can not retire GGO to measurement %s'
-                             % e.measurement.address)
 
-        session.add(composition.batch)
+        session.add(batch)
 
-        return composition
+        return batch, recipients
+
+    def add_transfer(self, composer, request, session):
+        """
+        :param GgoComposer composer:
+        :param TransferRequest request:
+        :param Session session:
+        """
+        target_user = self.get_user(request.sub, session)
+
+        if target_user is None:
+            raise BadRequest(f'Account unavailable ({request.sub})')
+
+        composer.add_transfer(target_user, request.amount, request.reference)
+
+    def add_retire(self, user, composer, request, session):
+        """
+        :param User user:
+        :param GgoComposer composer:
+        :param RetireRequest request:
+        :param Session session:
+        """
+        meteringpoint = self.get_metering_point(
+            user, request.gsrn, session)
+
+        if meteringpoint is None:
+            raise BadRequest(f'MeteringPoint unavailable (GSRN: {request.gsrn})')
+
+        try:
+            composer.add_retire(meteringpoint, request.amount)
+        except composer.RetireMeasurementUnavailable as e:
+            raise BadRequest((
+                f'No measurement available at {e.begin} '
+                f'for GSRN {e.gsrn}'
+            ))
+        except composer.RetireMeasurementInvalid as e:
+            raise BadRequest(f'Can not retire GGO to measurement {e.measurement.address}')
 
     def get_ggo(self, user, ggo_address, session):
         """
@@ -335,19 +373,39 @@ class ComposeGgo(Controller):
 
         return ggo
 
-    def get_composer(self, ggo, token, session):
+    def get_user(self, sub, session):
         """
-        :param str token:
-        :param Ggo ggo:
+        :param str sub:
         :param Session session:
+        :rtype: User
+        """
+        return UserQuery(session) \
+            .has_sub(sub) \
+            .one_or_none()
+
+    def get_metering_point(self, user, gsrn, session):
+        """
+        :param User user:
+        :param str gsrn:
+        :param Session session:
+        :rtype: MeteringPoint
+        """
+        return MeteringPointQuery(session) \
+            .belongs_to(user) \
+            .has_gsrn(gsrn) \
+            .one_or_none()
+
+    def get_composer(self, *args, **kwargs):
+        """
         :rtype: GgoComposer
         """
-        return GgoComposer(ggo, token, session)
+        return GgoComposer(*args, **kwargs)
 
 
 class OnGgosIssuedWebhook(Controller):
     """
-    TODO
+    Invoked by DataHubService when new GGO(s) have been issued
+    to a specific meteringpoint.
     """
     Request = md.class_schema(OnGgosIssuedWebhookRequest)
 

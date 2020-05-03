@@ -1,20 +1,16 @@
-from functools import lru_cache
-
-from origin.auth import User, UserQuery, MeteringPointQuery
+from origin.auth import User, MeteringPoint
+from origin.ledger import Batch, SplitTransaction, RetireTransaction
 from origin.services.datahub import (
     DataHubService,
     Measurement,
     GetMeasurementRequest,
 )
-from origin.ledger import (
-    Batch,
-    BatchState,
-    SplitTransaction,
-    RetireTransaction,
-)
 
 from .queries import RetireQuery
-from .models import Ggo, TransferRequest, RetireRequest
+from .models import Ggo
+
+
+datahub = DataHubService()
 
 
 class GgoComposer(object):
@@ -22,49 +18,48 @@ class GgoComposer(object):
     TODO
     """
 
-    class AmountUnavailable(Exception):
+    class Empty(Exception):
+        """
+        Raised when composing a Batch if no transfers or retires were provided
+        """
         pass
 
-    class RetireGSRNInvalid(Exception):
-        def __init__(self, ggo, gsrn):
-            self.ggo = ggo
+    class AmountUnavailable(Exception):
+        """
+        Raised if the sum of transfers+retires exceeds the GGO provided
+        """
+        pass
+
+    class RetireMeasurementUnavailable(Exception):
+        def __init__(self, gsrn, begin):
             self.gsrn = gsrn
+            self.begin = begin
 
     class RetireMeasurementInvalid(Exception):
         def __init__(self, ggo, measurement):
             self.ggo = ggo
             self.measurement = measurement
 
-    datahub = DataHubService()
-
-    def __init__(self, ggo, token, session):
+    def __init__(self, ggo, session):
         """
         :param Ggo ggo:
-        :param str token:
         :param Session session:
         """
         assert ggo.is_tradable()
+        assert not ggo.is_expired()
 
         self.ggo = ggo
-        self.user = ggo.user
-        self.token = token
         self.session = session
         self.transfers = []
         self.retires = []
-
-    def __len__(self):
-        """
-        :rtype: int
-        """
-        return len(self.transfers) + len(self.retires)
 
     @property
     def total_amount(self):
         """
         :rtype: int
         """
-        sum_of_transfers = sum(req.amount for req in self.transfers)
-        sum_of_retires = sum(req.amount for req, meteringpoint, measurement in self.retires)
+        sum_of_transfers = sum(t[1] for t in self.transfers)
+        sum_of_retires = sum(r[2] for r in self.retires)
         return sum_of_transfers + sum_of_retires
 
     @property
@@ -72,138 +67,128 @@ class GgoComposer(object):
         """
         :rtype: int
         """
-        return max(0, self.ggo.amount - self.total_amount)
+        return self.ggo.amount - self.total_amount
 
-    def add_transfer(self, request):
+    def add_transfer(self, user, amount, reference=None):
         """
-        :param TransferRequest request:
+        :param User user:
+        :param int amount:
+        :param str reference:
         """
-        assert request.amount > 0
+        assert 0 < amount <= self.ggo.amount
 
-        self.transfers.append(request)
+        self.transfers.append((user, amount, reference))
 
-    def add_many_transfers(self, requests):
+    def add_retire(self, meteringpoint, amount):
         """
-        :param list[TransferRequest] requests:
+        :param MeteringPoint meteringpoint:
+        :param int amount:
         """
-        for request in requests:
-            self.add_transfer(request)
+        assert 0 < amount <= self.ggo.amount
 
-    def add_retire(self, request):
-        """
-        :param RetireRequest request:
-        """
-        assert request.amount > 0
-
-        # The meteringpoint which we want to retire to,
-        # and which the measurement were published to
-        meteringpoint = self.get_metering_point(request.gsrn)  # TODO filter only consumption?
-
-        # TODO what if metering_point is None?
-        if meteringpoint is None:
-            raise self.RetireGSRNInvalid(self.ggo, meteringpoint.gsrn)
-
-        # The published consumption measurement (fetched from DataHub service)
+        # The published consumption measurement to retire to
         measurement = self.get_consumption(meteringpoint.gsrn, self.ggo.begin)
 
+        if measurement is None:
+            raise self.RetireMeasurementUnavailable(
+                meteringpoint.gsrn, self.ggo.begin)
+
         # GGO may be in different sector etc.
-        if not self.ggo.can_retire_measurement(measurement):
-            raise self.RetireMeasurementInvalid(self.ggo, measurement)
+        if not self.eligible_to_retire_measurement(measurement):
+            raise self.RetireMeasurementInvalid(
+                self.ggo, measurement)
 
-        # Amount already retired on this measurement
+        # The actual amount to retire may not exceed the measured
+        # amount minus whats already been retired
         retired_amount = self.get_retired_amount(measurement)
-
-        # Amount remaining for entire Measurement to be retired completely
         remaining_amount = measurement.amount - retired_amount
-
-        # The actual amount to retire cannot exceed the remaining amount
-        actual_amount = min(remaining_amount, request.amount)
+        actual_amount = min(remaining_amount, amount)
 
         if actual_amount > 0:
-            request.amount = actual_amount
-            self.retires.append((request, meteringpoint, measurement))
+            self.retires.append((measurement, meteringpoint, actual_amount))
 
-    def add_many_retires(self, requests):
-        """
-        :param list[RetireRequest] requests:
-        """
-        for request in requests:
-            self.add_retire(request)
+    # -- Compose  ------------------------------------------------------------
 
-    def compose(self):
+    def build_batch(self):
         """
-        :rtype: GgoComposition
+        Returns the Batch along with a list of tuples of (User, Ggo)
+        where User is the recipient of the [new] Ggo. One
+
+        :rtype: (Batch, list[(User, Ggo)])
         """
+        if self.total_amount == 0:
+            raise self.Empty
         if self.total_amount > self.ggo.amount:
             raise self.AmountUnavailable
 
-        # List of (Ggo, User, reference)
-        transfers = []
+        split_transaction = SplitTransaction(parent_ggo=self.ggo)
+        retire_transactions = []
+        recipients = []
 
-        # List of (RetireRequest, Ggo, Measurement)
-        retires = []
-
-        # Create a split target + RetireTransaction for each retire
-        for request, meteringpoint, measurement in self.retires:
-            new_ggo = self.ggo.create_child(request.amount, self.user)
-            retires.append((
-                request,
-                new_ggo,
-                meteringpoint,
-                measurement,
-            ))
-
-        # Create a split target for each transfer
-        for request in self.transfers:
-            target_user = self.get_user(request.sub)
-            new_ggo = self.ggo.create_child(request.amount, target_user)
-            transfers.append((
-                new_ggo,
-                target_user,
-                request.reference,
-            ))
-
-        # Transfer the remaining amount to the current owner of the GGO
+        # Assign the remaining amount to the current owner of the GGO
         if self.remaining_amount > 0:
-            new_ggo = self.ggo.create_child(self.remaining_amount, self.user)
-            transfers.append((
-                new_ggo,
-                self.user,
-                None,
-            ))
+            self.add_transfer(self.ggo.user, self.remaining_amount)
 
-        return GgoComposition(self.ggo, self.user, transfers, retires)
+        # For debugging/development/assurance
+        assert self.total_amount == self.ggo.amount
+        assert self.remaining_amount == 0
 
-    def get_user(self, sub):
-        """
-        :param str sub:
-        :rtype: User
-        """
-        return UserQuery(self.session) \
-            .has_sub(sub) \
-            .one()
+        # Do not create a SplitTransaction if there's only one retire,
+        # and this constitutes the entire amount of the GGO. In this
+        # case we can retire the GGO directly. Otherwise we have to
+        # split it up before transferring/retiring.
+        total_targets = len(self.transfers) + len(self.retires)
+        should_split = total_targets > 1 or len(self.transfers) > 0
 
-    def get_metering_point(self, gsrn):
-        """
-        :param str gsrn:
-        :rtype: MeteringPoint
-        """
-        return MeteringPointQuery(self.session) \
-            .belongs_to(self.ggo.user) \
-            .has_gsrn(gsrn) \
-            .one_or_none()
+        # -- Transfers -------------------------------------------------------
 
-    def get_consumption(self, gsrn, begin):
-        """
-        :param str gsrn:
-        :param datetime.datetime begin:
-        :rtype: Measurement
-        """
-        request = GetMeasurementRequest(gsrn=gsrn, begin=begin)
-        response = self.datahub.get_consumption(
-            self.ggo.user.access_token, request)
+        for user, amount, reference in self.transfers:
+            assert should_split
+            ggo_to_transfer = self.ggo.create_child(amount, user)
+            split_transaction.add_target(ggo_to_transfer, reference)
+            recipients.append((user, ggo_to_transfer))
 
-        return response.measurement
+        # -- Retires ---------------------------------------------------------
+
+        for measurement, meteringpoint, amount in self.retires:
+            if should_split:
+                ggo_to_retire = self.ggo.create_child(amount, self.ggo.user)
+                split_transaction.add_target(ggo_to_retire)
+                retire_transactions.append(RetireTransaction.build(
+                    ggo=ggo_to_retire,
+                    meteringpoint=meteringpoint,
+                    measurement_address=measurement.address,
+                ))
+            else:
+                retire_transactions.append(RetireTransaction.build(
+                    ggo=self.ggo,
+                    meteringpoint=meteringpoint,
+                    measurement_address=measurement.address,
+                ))
+
+        # -- Setup Batch -----------------------------------------------------
+
+        batch = Batch(user=self.ggo.user)
+
+        if should_split:
+            batch.add_transaction(split_transaction)
+        if retire_transactions:
+            batch.add_all_transactions(retire_transactions)
+
+        # Batch and transactions initial state
+        batch.on_begin()
+
+        return batch, recipients
+
+    # -- Helper functions  ---------------------------------------------------
+
+    def eligible_to_retire_measurement(self, measurement):
+        """
+        :param Measurement measurement:
+        :rtype: bool
+        """
+        return (self.ggo.sector == measurement.sector
+                and self.ggo.begin == measurement.begin)
 
     def get_retired_amount(self, measurement):
         """
@@ -215,58 +200,19 @@ class GgoComposer(object):
             .is_retired_to_address(measurement.address) \
             .get_total_amount()
 
-
-class GgoComposition(object):
-    def __init__(self, ggo, user, transfers, retires):
+    def get_consumption(self, gsrn, begin):
         """
-        :param Ggo ggo:
-        :param User user:
-        :param list[(Ggo, User, str)] transfers:
-        :param list[(RetireRequest, Ggo, MeteringPoint, Measurement)] retires:
+        Returns a single Measurement for a GSRN at a specific begin.
+
+        The GSRN provided MUST belong to the user who owns the
+        GGO to transfer/retire, fails otherwise.
+
+        :param str gsrn:
+        :param datetime.datetime begin:
+        :rtype: Measurement
         """
-        self.ggo = ggo
-        self.user = user
-        self.transfers = transfers
-        self.retires = retires
+        request = GetMeasurementRequest(gsrn=gsrn, begin=begin)
+        response = datahub.get_consumption(
+            self.ggo.user.access_token, request)
 
-    @property
-    @lru_cache()
-    def recipients(self):
-        """
-        :rtype: list[(User, Ggo)]
-        """
-        return [(ggo, user) for ggo, user, reference in self.transfers]
-
-    @property
-    @lru_cache()
-    def batch(self):
-        """
-        :rtype: Batch
-        """
-        retire_transactions = []
-        split_transaction = SplitTransaction(parent_ggo=self.ggo)
-
-        # Create a split target + RetireTransaction for each retire
-        for request, ggo, meteringpoint, measurement in self.retires:
-            ggo.retire_gsrn = request.gsrn
-            ggo.retire_address = measurement.address
-
-            split_transaction.add_target(ggo)
-            retire_transactions.append(RetireTransaction.build(
-                ggo=ggo,
-                meteringpoint=meteringpoint,
-                measurement_address=measurement.address,
-            ))
-
-        # Create a split target for each transfer
-        for ggo, user, reference in self.transfers:
-            split_transaction.add_target(ggo, reference)
-
-        # First add the SplitTransaction, then the RetireTransactions,
-        # as they require the SplitTransaction to complete first
-        batch = Batch(user=self.user, state=BatchState.PENDING)
-        batch.add_transaction(split_transaction)
-        batch.add_all_transactions(retire_transactions)
-        batch.on_begin()
-
-        return batch
+        return response.measurement

@@ -208,6 +208,7 @@ class SplitTransaction(Transaction):
         """
         TODO
         """
+        assert sum(t.ggo.amount for t in self.targets) == self.parent_ggo.amount
         assert self.parent_ggo.stored is True
         assert self.parent_ggo.retired is False
         assert self.parent_ggo.locked is False
@@ -310,6 +311,7 @@ class RetireTransaction(Transaction):
     def build(ggo, meteringpoint, measurement_address):
         """
         Retires the provided GGO to the measurement at the provided address.
+        The provided meteringpoint
 
         :param Ggo ggo:
         :param MeteringPoint meteringpoint:
@@ -319,7 +321,7 @@ class RetireTransaction(Transaction):
         return RetireTransaction(
             parent_ggo=ggo,
             begin=ggo.begin,
-            meteringpoint_id=meteringpoint.id,
+            meteringpoint=meteringpoint,
             measurement_address=measurement_address,
         )
 
