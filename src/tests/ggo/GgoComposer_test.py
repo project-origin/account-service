@@ -3,13 +3,11 @@ from datetime import datetime
 import pytest
 from unittest.mock import Mock, patch
 
-# from origin.auth import User
-# from origin.ggo import Ggo, RetireRequest, TransferRequest
 from origin.ggo.composer import GgoComposer
+from origin.ledger import SplitTransaction, RetireTransaction
 
 
 # -- Constructor -------------------------------------------------------------
-from origin.ledger import SplitTransaction, RetireTransaction
 
 
 def test__GgoComposer__ggo_is_not_tradable__should_raise_AssertionError():
@@ -452,62 +450,3 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     assert retire2.parent_ggo.amount == 40
     assert retire2.meteringpoint is meteringpoint2
     assert retire2.measurement_address == measurement.address
-
-
-
-# @patch('origin.ggo.composer.datahub')
-# @pytest.mark.parametrize(
-#     'transfer_amounts,      retire_amounts,     remaining_amount', (
-#     ((40,),                 (40,),              20),
-#     # ((40, 40),              (),                 20),
-#     # ((),                    (40, 40),           20),
-#     # ((50,),                 (50,),              0),
-#     # ((100,),                (0,),               0),
-#     # ((0,),                  (100,),             0),
-# ))
-# def test__GgoComposer__build_batch__valid_input__should_build_batch(
-#         datahub, transfer_amounts, retire_amounts, remaining_amount):
-#     """
-#     :param list[int] transfer_amounts:
-#     :param list[int] retire_amounts:
-#     :param int remaining_amount:
-#     """
-#
-#     # Arrange
-#     sector = 'DK1'
-#     begin = datetime(2020, 1, 1, 0, 0, 0)
-#
-#     ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True)
-#     ggo.is_tradable.return_value = True
-#     ggo.is_expired.return_value = False
-#     ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user)
-#
-#     measurement = Mock(sector=sector, begin=begin, amount=100)
-#
-#     datahub.get_consumption.return_value = Mock(measurement=measurement)
-#
-#     composer = GgoComposer(ggo=ggo, session=Mock())
-#     composer.get_retired_amount = Mock()
-#     composer.get_retired_amount.return_value = 0
-#
-#     transfer_users = [Mock(name=f'User {i}') for i in range(len(transfer_amounts))]
-#     retire_meteringpoints = [Mock(name=f'MeteringPoint {i}') for i in range(len(transfer_amounts))]
-#
-#     for user, amount in zip(transfer_users, transfer_amounts):
-#         composer.add_transfer(user, amount)
-#     for meteringpoint, amount in zip(retire_meteringpoints, retire_amounts):
-#         composer.add_retire(meteringpoint, amount)
-#
-#     # Act
-#     batch, recipients = composer.build_batch()
-#
-#     # Assert
-#     assert len(batch.transactions)
-#
-#     recipients_dict = dict(recipients)  # {User: Ggo}
-#
-#     for i, (user, amount) in enumerate(zip(transfer_users, transfer_amounts)):
-#         assert user in recipients_dict
-#         assert recipients_dict[user].amount == amount
-#         assert batch.transactions[0].targets[i].ggo.user is user
-#         assert batch.transactions[0].targets[i].ggo.amount == amount
