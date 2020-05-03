@@ -316,6 +316,68 @@ def test__GgoComposer__build_batch__retire_full_amount_to_one_gsrn__should_build
 
 
 @patch('origin.ggo.composer.datahub')
+def test__GgoComposer__build_batch__multiple_retires__should_build_batch_with_one_SplitTransaction_and_multiple_RetireTransactions(datahub):
+
+    #  -- Arrange ------------------------------------------------------------
+
+    sector = 'DK1'
+    begin = datetime(2020, 1, 1, 0, 0, 0)
+
+    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True)
+    ggo.is_tradable.return_value = True
+    ggo.is_expired.return_value = False
+    ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user, begin=begin)
+
+    user1 = Mock()
+    user2 = Mock()
+
+    meteringpoint1 = Mock()
+    meteringpoint2 = Mock()
+    measurement = Mock(sector=sector, begin=begin, amount=100, address='SOMETHING')
+
+    datahub.get_consumption.return_value = Mock(measurement=measurement)
+
+    composer = GgoComposer(ggo=ggo, session=Mock())
+    composer.get_retired_amount = Mock()
+    composer.get_retired_amount.return_value = 0
+
+    #  -- Act ----------------------------------------------------------------
+
+    composer.add_retire(meteringpoint=meteringpoint1, amount=80)
+    composer.add_retire(meteringpoint=meteringpoint2, amount=20)
+    batch, recipients = composer.build_batch()
+
+    #  -- Assert -------------------------------------------------------------
+
+    assert len(recipients) == 0
+    assert len(batch.transactions) == 3
+
+    split = batch.transactions[0]
+    retire1 = batch.transactions[1]
+    retire2 = batch.transactions[2]
+
+    # SplitTransaction
+    assert type(split) is SplitTransaction
+    assert len(split.targets) == 2
+
+    # RetireTransaction 1
+    assert type(retire1) is RetireTransaction
+    assert retire1.begin == begin
+    assert retire1.parent_ggo is split.targets[0].ggo
+    assert retire1.parent_ggo.amount == 80
+    assert retire1.meteringpoint is meteringpoint1
+    assert retire1.measurement_address == measurement.address
+
+    # RetireTransaction 2
+    assert type(retire2) is RetireTransaction
+    assert retire2.begin == begin
+    assert retire2.parent_ggo is split.targets[1].ggo
+    assert retire2.parent_ggo.amount == 20
+    assert retire2.meteringpoint is meteringpoint2
+    assert retire2.measurement_address == measurement.address
+
+
+@patch('origin.ggo.composer.datahub')
 def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build_batch_with_one_SplitTransaction_and_multiple_RetireTransactions(datahub):
 
     #  -- Arrange ------------------------------------------------------------
@@ -343,15 +405,18 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
 
     #  -- Act ----------------------------------------------------------------
 
-    composer.add_transfer(user=user1, amount=20, reference='REF1')
+    composer.add_transfer(user=user1, amount=15, reference='REF1')
     composer.add_transfer(user=user2, amount=30, reference='REF2')
     composer.add_retire(meteringpoint=meteringpoint1, amount=10)
     composer.add_retire(meteringpoint=meteringpoint2, amount=40)
+
+    # Sum of transfers + retires = 95 (5 remaining)
+
     batch, recipients = composer.build_batch()
 
     #  -- Assert -------------------------------------------------------------
 
-    assert len(recipients) == 2
+    assert len(recipients) == 3
     assert len(batch.transactions) == 3
 
     split = batch.transactions[0]
@@ -360,19 +425,22 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
 
     # SplitTransaction
     assert type(split) is SplitTransaction
-    assert len(split.targets) == 4
+    assert len(split.targets) == 5
     assert split.parent_ggo is ggo
     assert split.targets[0].ggo.user is user1
-    assert split.targets[0].ggo.amount == 20
+    assert split.targets[0].ggo.amount == 15
     assert split.targets[0].reference == 'REF1'
     assert split.targets[1].ggo.user is user2
     assert split.targets[1].ggo.amount == 30
     assert split.targets[1].reference == 'REF2'
+    assert split.targets[2].ggo.user is ggo.user
+    assert split.targets[2].ggo.amount == 5
+    assert split.targets[2].reference is None
 
     # RetireTransaction 1
     assert type(retire1) is RetireTransaction
     assert retire1.begin == begin
-    assert retire1.parent_ggo is split.targets[2].ggo
+    assert retire1.parent_ggo is split.targets[3].ggo
     assert retire1.parent_ggo.amount == 10
     assert retire1.meteringpoint is meteringpoint1
     assert retire1.measurement_address == measurement.address
@@ -380,7 +448,7 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     # RetireTransaction 2
     assert type(retire2) is RetireTransaction
     assert retire2.begin == begin
-    assert retire2.parent_ggo is split.targets[3].ggo
+    assert retire2.parent_ggo is split.targets[4].ggo
     assert retire2.parent_ggo.amount == 40
     assert retire2.meteringpoint is meteringpoint2
     assert retire2.measurement_address == measurement.address
