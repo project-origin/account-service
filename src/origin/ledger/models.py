@@ -5,7 +5,6 @@ import origin_ledger_sdk as ols
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
 
-from origin import logger
 from origin.db import ModelBase
 
 from .keys import KeyGenerator

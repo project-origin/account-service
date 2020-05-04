@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
+import origin_ledger_sdk as ols
 
 from origin.ledger.models import Batch, BatchState
 
@@ -34,9 +35,9 @@ def test__Batch__on_begin__should_set_batch_state_to_PENDING_and_invoke_on_begin
     transactions = [MagicMock(), MagicMock(), MagicMock()]
 
     uut = Batch()
+    uut.add_all_transactions(transactions)
 
     # Act
-    uut.add_all_transactions(transactions)
     uut.on_begin()
 
     # Assert
@@ -65,9 +66,9 @@ def test__Batch__on_commit__should_set_batch_state_to_COMPLETED_and_invoke_on_co
     # Arrange
     transactions = [MagicMock(), MagicMock(), MagicMock()]
     uut = Batch()
+    uut.add_all_transactions(transactions)
 
     # Act
-    uut.add_all_transactions(transactions)
     uut.on_commit()
 
     # Assert
@@ -82,9 +83,9 @@ def test__Batch__on_commit__should_set_batch_state_to_DECLINED_and_invoke_on_rol
     # Arrange
     transactions = [MagicMock(), MagicMock(), MagicMock()]
     uut = Batch()
+    uut.add_all_transactions(transactions)
 
     # Act
-    uut.add_all_transactions(transactions)
     uut.on_rollback()
 
     # Assert
@@ -92,3 +93,22 @@ def test__Batch__on_commit__should_set_batch_state_to_DECLINED_and_invoke_on_rol
 
     for transaction in transactions:
         transaction.on_rollback.assert_called_once()
+
+
+def test__Batch__build_ledger_batch__should_build_correct_request():
+
+    # Arrange
+    user = Mock()
+    transactions = [MagicMock(), MagicMock(), MagicMock()]
+
+    uut = Batch(user=user)
+    uut.add_all_transactions(transactions)
+
+    # Act
+    request = uut.build_ledger_batch()
+
+    # Assert
+    assert type(request) is ols.Batch
+
+    for transaction in transactions:
+        transaction.build_ledger_request.assert_called_once_with()

@@ -215,8 +215,7 @@ def test__SplitTransaction__on_rollback__should_update_state_on_self_and_target_
     assert target_ggo2.synchronized is False
 
 
-@patch('origin.ledger.models.ols.generate_address')
-def test__SplitTransaction__build_ledger_request__should_build_correct_request(generate_address):
+def test__SplitTransaction__build_ledger_request__should_build_correct_request():
 
     # Arrange
     parent_ggo = MagicMock()
