@@ -46,15 +46,6 @@ class Batch(ModelBase):
     # How many times the ledger has been polled, asking for batch status
     poll_count = sa.Column(sa.Integer(), nullable=False, default=0)
 
-    def get_poll_delay(self):
-        """
-        Returns the number of seconds to wait before polling the ledger
-        for batch status using the handle.
-
-        :rtype: int
-        """
-        return min(15, self.poll_count * 3)
-
     def add_transaction(self, transaction):
         """
         :param Transaction transaction:
@@ -329,8 +320,8 @@ class RetireTransaction(Transaction):
         """
         TODO
         """
-        self.parent_ggo.retired = True
         self.parent_ggo.stored = False
+        self.parent_ggo.retired = True
         self.parent_ggo.locked = True
         self.parent_ggo.synchronized = False
 
@@ -338,8 +329,8 @@ class RetireTransaction(Transaction):
         """
         TODO
         """
-        self.parent_ggo.retired = True
         self.parent_ggo.stored = False
+        self.parent_ggo.retired = True
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
 
@@ -347,8 +338,8 @@ class RetireTransaction(Transaction):
         """
         TODO WHAT EVEN TODO HERE?
         """
-        self.parent_ggo.retired = False
         self.parent_ggo.stored = False
+        self.parent_ggo.retired = False
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
 
