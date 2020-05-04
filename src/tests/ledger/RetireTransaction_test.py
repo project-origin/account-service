@@ -1,4 +1,3 @@
-import pytest
 import origin_ledger_sdk as ols
 from unittest.mock import MagicMock, patch, Mock
 
@@ -101,7 +100,7 @@ def test__RetireTransaction__build_ledger_request__should_build_correct_request(
         if address_prefix is ols.AddressPrefix.SETTLEMENT:
             return 'settlement_address'
         elif address_prefix is ols.AddressPrefix.GGO:
-            return 'ggo_address'
+            return 'parent_ggo_address'
         else:
             raise ValueError
 
@@ -130,5 +129,5 @@ def test__RetireTransaction__build_ledger_request__should_build_correct_request(
     assert request.measurement_private_key is measurement_key.PrivateKey()
     assert len(request.parts) == 1
     assert type(request.parts[0]) is ols.RetireGGOPart
-    assert request.parts[0].address == 'ggo_address'
+    assert request.parts[0].address == 'parent_ggo_address'
     assert request.parts[0].private_key == parent_ggo.key.PrivateKey()

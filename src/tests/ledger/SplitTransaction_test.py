@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import MagicMock
+import origin_ledger_sdk as ols
+from unittest.mock import MagicMock, patch
 
 from origin.ledger.models import SplitTransaction, SplitTarget
 
@@ -212,3 +213,31 @@ def test__SplitTransaction__on_rollback__should_update_state_on_self_and_target_
     assert target_ggo2.stored is False
     assert target_ggo2.locked is False
     assert target_ggo2.synchronized is False
+
+
+@patch('origin.ledger.models.ols.generate_address')
+def test__SplitTransaction__build_ledger_request__should_build_correct_request(generate_address):
+
+    # Arrange
+    parent_ggo = MagicMock()
+    target_ggo1 = MagicMock()
+    target_ggo2 = MagicMock()
+
+    uut = SplitTransaction(parent_ggo=parent_ggo)
+    uut.targets.append(SplitTarget(ggo=target_ggo1))
+    uut.targets.append(SplitTarget(ggo=target_ggo2))
+
+    # Act
+    request = uut.build_ledger_request()
+
+    # Assert
+    assert type(request) is ols.SplitGGORequest
+    assert request.source_private_key is parent_ggo.key.PrivateKey()
+    assert request.source_address == parent_ggo.address
+    assert len(request.parts) == 2
+
+    assert request.parts[0].address == target_ggo1.address
+    assert request.parts[0].amount == target_ggo1.amount
+
+    assert request.parts[1].address == target_ggo2.address
+    assert request.parts[1].amount == target_ggo2.amount
