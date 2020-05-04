@@ -66,7 +66,7 @@ def test__KeyGenerator__get_key_for_metering_point():
 
 def test__KeyGenerator__get_key_for_measurement():
 
-    key_index = 123
+    # Arrange
     input_begin = datetime(2020, 1, 1, 0, 0, 12, 21)
     user = Mock(master_extended_key=A_VALID_EXTENDED_KEY)
     meteringpoint = Mock(user=user, key_index=123)
@@ -105,8 +105,8 @@ def test__KeyGenerator__get_key_for_traded_ggo():
 
 def test__KeyGenerator__get_key_for_issued_ggo():
 
+    # Arrange
     user = Mock(master_extended_key=A_VALID_EXTENDED_KEY)
-
     ggo = Mock(
         begin=datetime(2020, 1, 1, 0, 0, 12, 21),
         issued=True,
