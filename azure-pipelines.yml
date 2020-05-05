@@ -7,9 +7,9 @@ resources:
 
 variables:
   imageName: 'projectorigin/account-service'
-  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
   tag: '$(Build.BuildId)'
-  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
   tag: 'dev_$(Date:yyyyMMdd)$(Rev:.r)'
   vmImageName: 'ubuntu-latest'
 
