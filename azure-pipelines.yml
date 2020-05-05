@@ -41,7 +41,7 @@ stages:
         containerRegistry: dockerHub
         tags: |
           $(tag)
-- stage: update_clsuter
+- stage: update_cluster
   displayName: Update kubernetes
   jobs:  
   - job: push_to_cluster
