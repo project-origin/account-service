@@ -14,7 +14,7 @@ variables:
     tag: 'dev.$(Build.BuildId)'
     namespace: 'dev-project-origin'
   vmImageName: 'ubuntu-latest'
-  
+   
 stages:
 - stage: build_and_publish
   displayName: Build and publish
