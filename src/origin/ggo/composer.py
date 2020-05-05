@@ -153,6 +153,7 @@ class GgoComposer(object):
         for measurement, meteringpoint, amount in self.retires:
             if should_split:
                 ggo_to_retire = self.ggo.create_child(amount, self.ggo.user)
+                ggo_to_retire.retire_gsrn = meteringpoint.gsrn
                 split_transaction.add_target(ggo_to_retire)
                 retire_transactions.append(RetireTransaction.build(
                     ggo=ggo_to_retire,
@@ -160,6 +161,7 @@ class GgoComposer(object):
                     measurement_address=measurement.address,
                 ))
             else:
+                self.ggo.retire_gsrn = meteringpoint.gsrn
                 retire_transactions.append(RetireTransaction.build(
                     ggo=self.ggo,
                     meteringpoint=meteringpoint,

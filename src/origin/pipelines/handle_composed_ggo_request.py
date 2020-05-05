@@ -23,7 +23,7 @@ def start_handle_composed_ggo_pipeline(batch, recipients):
     """
     on_submit_batch_complete = group(
         invoke_webhook.si(subject=user.sub, ggo_id=ggo.id)
-        for ggo, user in recipients
+        for user, ggo in recipients
     )
 
     start_submit_batch_pipeline(batch, on_submit_batch_complete)
