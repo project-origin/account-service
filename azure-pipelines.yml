@@ -8,10 +8,10 @@ resources:
 variables:
   imageName: 'projectorigin/account-service'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
-    tag: '$(git describe --abbrev=0 --tags).$(git rev-list $(git describe --abbrev=0 --tags)..HEAD --count)'
+    tag: '$(Build.BuildId)'
     namespace: 'project-origin'
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
-    tag: 'dev.$(git describe --abbrev=0 --tags).$(git rev-list $(git describe --abbrev=0 --tags)..HEAD --count)'
+    tag: 'dev.$(Build.BuildId)'
     namespace: 'dev-project-origin'
   vmImageName: 'ubuntu-latest'
 
