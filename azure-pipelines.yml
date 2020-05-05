@@ -7,7 +7,10 @@ resources:
 
 variables:
   imageName: 'projectorigin/account-service'
-  tag: '$(Build.BuildId)-$(Build.SourceBranchName)'
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+  tag: '$(Build.BuildId)'
+  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+  tag: 'dev_$(Date:yyyyMMdd)$(Rev:.r)'
   vmImageName: 'ubuntu-latest'
 
 stages:
@@ -26,7 +29,6 @@ stages:
         repository: $(imageName)
         Dockerfile: Dockerfile
         tags: |
-          latest
           $(tag)
     - task: Docker@2
       displayName: Push image
@@ -35,5 +37,4 @@ stages:
         repository: $(imageName)
         containerRegistry: dockerHub
         tags: |
-          latest
           $(tag)
