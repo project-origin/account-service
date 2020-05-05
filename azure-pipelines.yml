@@ -1,12 +1,13 @@
 trigger:
 - master
+- develop
 
 resources:
 - repo: self
 
 variables:
   imageName: 'projectorigin/account-service'
-  tag: '$(Build.BuildId)'
+  tag: '$(Build.BuildId)-$(Build.SourceBranchName)'
   vmImageName: 'ubuntu-latest'
 
 stages:
