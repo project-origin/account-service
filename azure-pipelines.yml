@@ -11,7 +11,7 @@ variables:
     tag: '$(Build.BuildId)'
     namespace: 'project-origin'
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
-    tag: 'dev-$(Date:yyyyMMdd)$(Rev:.r)'
+    tag: 'dev-$(Date:yyyyMMdd)-$(Rev:r)'
     namespace: 'dev-project-origin'
   vmImageName: 'ubuntu-latest'
 
