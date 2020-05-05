@@ -9,8 +9,10 @@ variables:
   imageName: 'projectorigin/account-service'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     tag: '$(Build.BuildId)'
-  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
-    tag: 'dev_$(Date:yyyyMMdd)$(Rev:.r)'
+    namespace: 'project-origin'
+  ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    tag: 'dev-$(Date:yyyyMMdd)$(Rev:.r)'
+    namespace: 'dev-project-origin'
   vmImageName: 'ubuntu-latest'
 
 stages:
@@ -38,3 +40,24 @@ stages:
         containerRegistry: dockerHub
         tags: |
           $(tag)
+- stage: update_clsuter
+  displayName: Update kubernetes
+  jobs:  
+  - job: push_to_cluster
+    displayName: Push to Cluster
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+      - task: HelmDeploy@0
+        displayName: Helm upgrade
+        inputs:
+          connectionType: 'Kubernetes Service Connection'
+          kubernetesServiceConnection: 'origin-kubernetes-connection'
+          namespace: $(namespace)
+          command: upgrade
+          chartType: filepath
+          chartPath: ./chart
+          releaseName: account-service
+          overrideValues: tag=$(tag)
+          install: true
+          waitForExecution: true
