@@ -91,7 +91,7 @@ class Ggo(ModelBase):
         :param User user:
         :rtype: Ggo
         """
-        assert amount <= self.amount
+        assert 0 < amount <= self.amount
 
         key_index = GgoIndexSequence.get_next(user.id, Session.object_session(self))
         key = KeyGenerator.get_key_for_traded_ggo_at_index(user, key_index)
@@ -145,15 +145,6 @@ class Ggo(ModelBase):
         :rtype: bool
         """
         return datetime.now(tz=timezone.utc) >= self.expire_time
-
-    def can_retire_measurement(self, measurement):
-        """
-        :param Measurement measurement:
-        :rtype: bool
-        """
-        return (self.sector == measurement.sector
-                and self.begin == measurement.begin
-                and not self.is_expired())
 
 
 class GgoIndexSequence(ModelBase):

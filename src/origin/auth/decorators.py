@@ -27,7 +27,7 @@ def inject_token(func):
     return inject_user_wrapper
 
 
-def inject_user(required=False):
+def inject_user(required=True):
     """
     TODO
 

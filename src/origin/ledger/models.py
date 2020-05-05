@@ -5,7 +5,6 @@ import origin_ledger_sdk as ols
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
 
-from origin import logger
 from origin.db import ModelBase
 
 from .keys import KeyGenerator
@@ -45,15 +44,6 @@ class Batch(ModelBase):
 
     # How many times the ledger has been polled, asking for batch status
     poll_count = sa.Column(sa.Integer(), nullable=False, default=0)
-
-    def get_poll_delay(self):
-        """
-        Returns the number of seconds to wait before polling the ledger
-        for batch status using the handle.
-
-        :rtype: int
-        """
-        return min(15, self.poll_count * 3)
 
     def add_transaction(self, transaction):
         """
@@ -208,6 +198,7 @@ class SplitTransaction(Transaction):
         """
         TODO
         """
+        assert sum(t.ggo.amount for t in self.targets) == self.parent_ggo.amount
         assert self.parent_ggo.stored is True
         assert self.parent_ggo.retired is False
         assert self.parent_ggo.locked is False
@@ -310,6 +301,7 @@ class RetireTransaction(Transaction):
     def build(ggo, meteringpoint, measurement_address):
         """
         Retires the provided GGO to the measurement at the provided address.
+        The provided meteringpoint
 
         :param Ggo ggo:
         :param MeteringPoint meteringpoint:
@@ -319,7 +311,7 @@ class RetireTransaction(Transaction):
         return RetireTransaction(
             parent_ggo=ggo,
             begin=ggo.begin,
-            meteringpoint_id=meteringpoint.id,
+            meteringpoint=meteringpoint,
             measurement_address=measurement_address,
         )
 
@@ -327,8 +319,8 @@ class RetireTransaction(Transaction):
         """
         TODO
         """
-        self.parent_ggo.retired = True
         self.parent_ggo.stored = False
+        self.parent_ggo.retired = True
         self.parent_ggo.locked = True
         self.parent_ggo.synchronized = False
 
@@ -336,8 +328,8 @@ class RetireTransaction(Transaction):
         """
         TODO
         """
-        self.parent_ggo.retired = True
         self.parent_ggo.stored = False
+        self.parent_ggo.retired = True
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
 
@@ -345,8 +337,8 @@ class RetireTransaction(Transaction):
         """
         TODO WHAT EVEN TODO HERE?
         """
-        self.parent_ggo.retired = False
         self.parent_ggo.stored = False
+        self.parent_ggo.retired = False
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
 
