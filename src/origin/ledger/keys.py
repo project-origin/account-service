@@ -57,18 +57,6 @@ class KeyGenerator(object):
             .ChildKey(m)
 
     @staticmethod
-    def get_key_for_traded_ggo(ggo):
-        """
-        :param Ggo ggo:
-        :rtype: BIP32Key
-        """
-        assert ggo.issued is False
-        assert ggo.key_index is not None
-
-        return KeyGenerator \
-            .get_key_for_traded_ggo_at_index(ggo.user, ggo.key_index)
-
-    @staticmethod
     def get_key_for_traded_ggo_at_index(user, index):
         """
         :param User user:
@@ -79,6 +67,18 @@ class KeyGenerator(object):
             .get_key_for_user(user) \
             .ChildKey(0) \
             .ChildKey(index)
+
+    @staticmethod
+    def get_key_for_traded_ggo(ggo):
+        """
+        :param Ggo ggo:
+        :rtype: BIP32Key
+        """
+        assert ggo.issued is False
+        assert ggo.key_index is not None
+
+        return KeyGenerator \
+            .get_key_for_traded_ggo_at_index(ggo.user, ggo.key_index)
 
     @staticmethod
     def get_key_for_issued_ggo(ggo):

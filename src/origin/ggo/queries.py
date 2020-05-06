@@ -10,7 +10,14 @@ from origin.auth import User
 from origin.common import DateTimeRange
 from origin.ledger import SplitTarget, SplitTransaction
 
-from .models import Ggo, SummaryGroup, GgoFilters, SummaryResolution, RetireFilters
+from .models import (
+    Ggo,
+    SummaryGroup,
+    GgoFilters,
+    GgoCategory,
+    SummaryResolution,
+    RetireFilters,
+)
 
 
 class GgoQuery(object):
@@ -57,7 +64,18 @@ class GgoQuery(object):
         if filters.retire_gsrn:
             q = q.filter(Ggo.retire_gsrn.in_(filters.retire_gsrn))
 
-        return self.__class__(self.session, q)
+        new_query = self.__class__(self.session, q)
+
+        if filters.category == GgoCategory.ISSUED:
+            new_query = new_query.is_issued(True)
+        elif filters.category == GgoCategory.STORED:
+            new_query = new_query.is_stored(True).is_expired(False)
+        elif filters.category == GgoCategory.RETIRED:
+            new_query = new_query.is_retired(True)
+        elif filters.category == GgoCategory.EXPIRED:
+            new_query = new_query.is_stored(True).is_expired(True)
+
+        return new_query
 
     def has_id(self, id):
         """

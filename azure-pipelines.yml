@@ -1,13 +1,20 @@
 trigger:
 - master
+- develop
 
 resources:
 - repo: self
 
 variables:
   imageName: 'projectorigin/account-service'
-  tag: '$(Build.BuildId)'
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    tag: '$(Build.BuildId)'
+    namespace: 'project-origin'
+  ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    tag: 'dev.$(Build.BuildId)'
+    namespace: 'dev-project-origin'
   vmImageName: 'ubuntu-latest'
+
 
 stages:
 - stage: build_and_publish
@@ -25,7 +32,6 @@ stages:
         repository: $(imageName)
         Dockerfile: Dockerfile
         tags: |
-          latest
           $(tag)
     - task: Docker@2
       displayName: Push image
@@ -34,5 +40,25 @@ stages:
         repository: $(imageName)
         containerRegistry: dockerHub
         tags: |
-          latest
           $(tag)
+- stage: update_cluster
+  displayName: Update kubernetes
+  jobs:  
+  - job: push_to_cluster
+    displayName: Push to Cluster
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+      - task: HelmDeploy@0
+        displayName: Helm upgrade
+        inputs:
+          connectionType: 'Kubernetes Service Connection'
+          kubernetesServiceConnection: 'origin-kubernetes-connection'
+          namespace: $(namespace)
+          command: upgrade
+          chartType: filepath
+          chartPath: ./chart
+          releaseName: account-service
+          overrideValues: tag=$(tag)
+          install: true
+          waitForExecution: true

@@ -91,7 +91,7 @@ class Ggo(ModelBase):
         :param User user:
         :rtype: Ggo
         """
-        assert amount <= self.amount
+        assert 0 < amount <= self.amount
 
         key_index = GgoIndexSequence.get_next(user.id, Session.object_session(self))
         key = KeyGenerator.get_key_for_traded_ggo_at_index(user, key_index)
@@ -145,15 +145,6 @@ class Ggo(ModelBase):
         :rtype: bool
         """
         return datetime.now(tz=timezone.utc) >= self.expire_time
-
-    def can_retire_measurement(self, measurement):
-        """
-        :param Measurement measurement:
-        :rtype: bool
-        """
-        return (self.sector == measurement.sector
-                and self.begin == measurement.begin
-                and not self.is_expired())
 
 
 class GgoIndexSequence(ModelBase):
@@ -237,6 +228,7 @@ class GgoFilters:
     technology_code: List[str] = field(default_factory=list, metadata=dict(data_key='technologyCode'))
     fuel_code: List[str] = field(default_factory=list, metadata=dict(data_key='fuelCode'))
 
+    category: GgoCategory = field(default=None, metadata=dict(by_value=True))
     issue_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='issueGsrn'))
     retire_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='retireGsrn'))
 
@@ -324,7 +316,7 @@ class GetGgoListRequest:
 class GetGgoListResponse:
     success: bool
     total: int
-    results: List[Ggo] = field(default_factory=list)
+    results: List[MappedGgo] = field(default_factory=list)
 
 
 # -- GetGgoSummary request and response --------------------------------------
@@ -332,7 +324,6 @@ class GetGgoListResponse:
 
 @dataclass
 class GetGgoSummaryRequest:
-    category: GgoCategory = field(metadata=dict(by_value=True))
     resolution: SummaryResolution = field(metadata=dict(by_value=True))
     filters: GgoFilters
     fill: bool

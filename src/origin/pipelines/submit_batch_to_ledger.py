@@ -23,8 +23,8 @@ def start_submit_batch_pipeline(batch, callback=None):
     :param Task callback:
     """
     pipeline = chain(
-        submit_batch_to_ledger.si(batch.id),
-        poll_batch_status.s(batch.id),
+        submit_batch_to_ledger.si(batch_id=batch.id),
+        poll_batch_status.s(batch_id=batch.id),
         # commit_or_rollback_batch.si(batch.id),
     )
 

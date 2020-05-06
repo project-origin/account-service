@@ -3,7 +3,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: account-deployment
-  namespace: project-origin
 spec:
   replicas: 1
   selector:
@@ -16,7 +15,7 @@ spec:
     spec:
       containers:
         - name: account-service-api-container
-          image: projectorigin/account-service:2165
+          image: projectorigin/account-service:{{ .Values.tag }}
           ports:
             - containerPort: 8085
 
@@ -37,7 +36,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: account-beat-deployment
-  namespace: project-origin
 spec:
   replicas: 1
   selector:
@@ -50,7 +48,7 @@ spec:
     spec:
       containers:
         - name: account-service-api-container
-          image: projectorigin/account-service:2165
+          image: projectorigin/account-service:{{ .Values.tag }}
           args: ["pipenv", "run", "beat"]
           
           envFrom:
@@ -70,7 +68,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: account-worker-deployment
-  namespace: project-origin
 spec:
   replicas: 1
   selector:
@@ -83,7 +80,7 @@ spec:
     spec:
       containers:
         - name: account-service-api-container
-          image: projectorigin/account-service:2165
+          image: projectorigin/account-service:{{ .Values.tag }}
           args: ["pipenv", "run", "worker"]
           
           envFrom:
