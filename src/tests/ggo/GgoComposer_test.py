@@ -289,8 +289,8 @@ def test__GgoComposer__build_batch__retire_full_amount_to_one_gsrn__should_build
     ggo.is_expired.return_value = False
     ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user)
 
-    meteringpoint = Mock()
-    measurement = Mock(sector=sector, begin=begin, amount=100, address='SOMETHING')
+    meteringpoint = Mock(gsrn='GSRN1')
+    measurement = Mock(sector=sector, begin=begin, amount=100, address='MEASUREMENT-ADDRESS')
 
     datahub.get_consumption.return_value = Mock(measurement=measurement)
 
@@ -309,9 +309,10 @@ def test__GgoComposer__build_batch__retire_full_amount_to_one_gsrn__should_build
     assert len(batch.transactions) == 1
     assert type(batch.transactions[0]) is RetireTransaction
     assert batch.transactions[0].parent_ggo is ggo
-    assert batch.transactions[0].parent_ggo.retire_gsrn == meteringpoint.gsrn
+    assert batch.transactions[0].parent_ggo.retire_gsrn == 'GSRN1'
+    assert batch.transactions[0].parent_ggo.retire_address == 'MEASUREMENT-ADDRESS'
     assert batch.transactions[0].meteringpoint is meteringpoint
-    assert batch.transactions[0].measurement_address == measurement.address
+    assert batch.transactions[0].measurement_address == 'MEASUREMENT-ADDRESS'
 
 
 @patch('origin.ggo.composer.datahub')
@@ -327,12 +328,9 @@ def test__GgoComposer__build_batch__multiple_retires__should_build_batch_with_on
     ggo.is_expired.return_value = False
     ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user, begin=begin)
 
-    user1 = Mock()
-    user2 = Mock()
-
-    meteringpoint1 = Mock()
-    meteringpoint2 = Mock()
-    measurement = Mock(sector=sector, begin=begin, amount=100, address='SOMETHING')
+    meteringpoint1 = Mock(gsrn='GSRN1')
+    meteringpoint2 = Mock(gsrn='GSRN2')
+    measurement = Mock(sector=sector, begin=begin, amount=100, address='MEASUREMENT-ADDRESS')
 
     datahub.get_consumption.return_value = Mock(measurement=measurement)
 
@@ -363,19 +361,21 @@ def test__GgoComposer__build_batch__multiple_retires__should_build_batch_with_on
     assert type(retire1) is RetireTransaction
     assert retire1.begin == begin
     assert retire1.parent_ggo is split.targets[0].ggo
-    assert retire1.parent_ggo.retire_gsrn == meteringpoint1.gsrn
+    assert retire1.parent_ggo.retire_gsrn == 'GSRN1'
+    assert retire1.parent_ggo.retire_address == 'MEASUREMENT-ADDRESS'
     assert retire1.parent_ggo.amount == 80
     assert retire1.meteringpoint is meteringpoint1
-    assert retire1.measurement_address == measurement.address
+    assert retire1.measurement_address == 'MEASUREMENT-ADDRESS'
 
     # RetireTransaction 2
     assert type(retire2) is RetireTransaction
     assert retire2.begin == begin
     assert retire2.parent_ggo is split.targets[1].ggo
-    assert retire2.parent_ggo.retire_gsrn == meteringpoint2.gsrn
+    assert retire2.parent_ggo.retire_gsrn == 'GSRN2'
+    assert retire2.parent_ggo.retire_address == 'MEASUREMENT-ADDRESS'
     assert retire2.parent_ggo.amount == 20
     assert retire2.meteringpoint is meteringpoint2
-    assert retire2.measurement_address == measurement.address
+    assert retire2.measurement_address == 'MEASUREMENT-ADDRESS'
 
 
 @patch('origin.ggo.composer.datahub')
@@ -394,9 +394,9 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     user1 = Mock()
     user2 = Mock()
 
-    meteringpoint1 = Mock()
-    meteringpoint2 = Mock()
-    measurement = Mock(sector=sector, begin=begin, amount=100, address='SOMETHING')
+    meteringpoint1 = Mock(gsrn='GSRN1')
+    meteringpoint2 = Mock(gsrn='GSRN2')
+    measurement = Mock(sector=sector, begin=begin, amount=100, address='MEASUREMENT-ADDRESS')
 
     datahub.get_consumption.return_value = Mock(measurement=measurement)
 
@@ -442,16 +442,18 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     assert type(retire1) is RetireTransaction
     assert retire1.begin == begin
     assert retire1.parent_ggo is split.targets[3].ggo
-    assert retire1.parent_ggo.retire_gsrn == meteringpoint1.gsrn
+    assert retire1.parent_ggo.retire_gsrn == 'GSRN1'
+    assert retire1.parent_ggo.retire_address == 'MEASUREMENT-ADDRESS'
     assert retire1.parent_ggo.amount == 10
     assert retire1.meteringpoint is meteringpoint1
-    assert retire1.measurement_address == measurement.address
+    assert retire1.measurement_address == 'MEASUREMENT-ADDRESS'
 
     # RetireTransaction 2
     assert type(retire2) is RetireTransaction
     assert retire2.begin == begin
     assert retire2.parent_ggo is split.targets[4].ggo
-    assert retire2.parent_ggo.retire_gsrn == meteringpoint2.gsrn
+    assert retire2.parent_ggo.retire_gsrn == 'GSRN2'
+    assert retire2.parent_ggo.retire_address == 'MEASUREMENT-ADDRESS'
     assert retire2.parent_ggo.amount == 40
     assert retire2.meteringpoint is meteringpoint2
-    assert retire2.measurement_address == measurement.address
+    assert retire2.measurement_address == 'MEASUREMENT-ADDRESS'

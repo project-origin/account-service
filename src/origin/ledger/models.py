@@ -308,6 +308,9 @@ class RetireTransaction(Transaction):
         :param str measurement_address:
         :rtype: RetireTransaction
         """
+        ggo.retire_gsrn = meteringpoint.gsrn
+        ggo.retire_address = measurement_address
+
         return RetireTransaction(
             parent_ggo=ggo,
             begin=ggo.begin,
