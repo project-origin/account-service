@@ -16,7 +16,6 @@ variables:
     kubeCon: 'dev-kube-con'
     tag: 'dev.$(Build.BuildId)'
     namespace: 'dev-project-origin'
-  vmImageName: 'ubuntu-latest'
 
 
 stages:
