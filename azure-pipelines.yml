@@ -7,18 +7,11 @@ resources:
 
 variables:
   imageName: 'projectorigin/account-service'
-<<<<<<< Updated upstream
-=======
   vmImageName: 'ubuntu-latest'
->>>>>>> Stashed changes
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     kubeCon: 'test-kube-con'
     tag: '$(Build.BuildId)'
-<<<<<<< Updated upstream
-    namespace: 'project-origin'
-=======
     namespace: 'test-project-origin'
->>>>>>> Stashed changes
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     kubeCon: 'dev-kube-con'
     tag: 'dev.$(Build.BuildId)'
@@ -63,11 +56,7 @@ stages:
         displayName: Helm upgrade
         inputs:
           connectionType: 'Kubernetes Service Connection'
-<<<<<<< Updated upstream
-          kubernetesServiceConnection: 'origin-kubernetes-connection'
-=======
           kubernetesServiceConnection: $(kubeCon)
->>>>>>> Stashed changes
           namespace: $(namespace)
           command: upgrade
           chartType: filepath
