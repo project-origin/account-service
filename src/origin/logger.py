@@ -11,20 +11,29 @@ from .settings import PROJECT_NAME, AZURE_APP_INSIGHTS_CONN_STRING
 
 logger = logging.getLogger(PROJECT_NAME)
 handler = None
+exporter = None
+sampler = None
 
 
 if AZURE_APP_INSIGHTS_CONN_STRING:
     print('Exporting logs to Azure Application Insight', flush=True)
 
+    def __telemetry_processor(envelope):
+        envelope.data.baseData.cloud_roleName = PROJECT_NAME
+        envelope.tags['ai.cloud.role'] = PROJECT_NAME
+
     handler = AzureLogHandler(
         connection_string=AZURE_APP_INSIGHTS_CONN_STRING,
         export_interval=5.0,
     )
-
-    tracer = Tracer(exporter=AzureExporter(connection_string=AZURE_APP_INSIGHTS_CONN_STRING),
-                    sampler=ProbabilitySampler(1.0))
-
+    handler.add_telemetry_processor(__telemetry_processor)
     logger.addHandler(handler)
+
+    exporter = AzureExporter(connection_string=AZURE_APP_INSIGHTS_CONN_STRING)
+    exporter.add_telemetry_processor(__telemetry_processor)
+
+    sampler = ProbabilitySampler(1.0)
+    tracer = Tracer(exporter=exporter, sampler=sampler)
 
     def __route_extras_to_azure(f, *args, extra=None, **kwargs):
         if extra is None:
@@ -70,8 +79,7 @@ def wrap_task(pipeline, task, title=None):
                 info(f'Task: {formatted_title}', extra=extra)
 
             try:
-                with tracer.span(title):
-                    return function(*args, **kwargs)
+                return function(*args, **kwargs)
             except Retry:
                 raise
             except:
