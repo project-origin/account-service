@@ -33,6 +33,10 @@ spec:
           env:
             - name: SERVICE_NAME
               value: AccountBackend
+            - name: WORKERS
+              value: {{ .Values.workers }}
+            - name: WORKER_CONNECTIONS
+              value: {{ .Values.worker-connections }}
 
 ---
 apiVersion: apps/v1
@@ -52,7 +56,7 @@ spec:
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
-          args: ["pipenv", "run", "beat"]
+          args: ["./entrypoint.beat.sh"]
           
           envFrom:
             - configMapRef:
@@ -87,7 +91,7 @@ spec:
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
-          args: ["pipenv", "run", "worker"]
+          args: ["./entrypoint.worker.sh"]
           
           envFrom:
             - configMapRef:
@@ -103,3 +107,5 @@ spec:
           env:
             - name: SERVICE_NAME
               value: AccountBackendWorker
+            - name: CONCURRENCY
+              value: {{ .Values.concurrency }}

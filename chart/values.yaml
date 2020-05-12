@@ -1,5 +1,4 @@
-
-
-
-
 tag: latest
+workers: 3
+worker-connections: 10
+concurrency: 10
