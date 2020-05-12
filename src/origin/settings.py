@@ -11,7 +11,7 @@ SERVICE_NAME = os.environ['SERVICE_NAME']
 SECRET = os.environ['SECRET']
 PROJECT_URL = os.environ['PROJECT_URL']
 HTTPS_PROJECT_URL = PROJECT_URL.replace('http:', 'https:')
-LOGIN_CALLBACK_URL = f'{PROJECT_URL}/auth/login/callback'
+LOGIN_CALLBACK_URL = f'{HTTPS_PROJECT_URL}/auth/login/callback'
 CORS_ORIGINS = os.environ['CORS_ORIGINS']
 
 
