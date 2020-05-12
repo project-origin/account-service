@@ -32,7 +32,7 @@ spec:
                 name: account-db-secret
           env:
             - name: SERVICE_NAME
-              value: AccountBackend
+              value: AccountService
             - name: WORKERS
               value: {{ .Values.workers }}
             - name: WORKER_CONNECTIONS
@@ -71,7 +71,7 @@ spec:
                 name: account-db-secret
           env:
             - name: SERVICE_NAME
-              value: AccountBackendBeat
+              value: AccountServiceBeat
 
 ---
 apiVersion: apps/v1
@@ -106,6 +106,6 @@ spec:
                 name: account-db-secret
           env:
             - name: SERVICE_NAME
-              value: AccountBackendWorker
+              value: AccountServiceWorker
             - name: CONCURRENCY
               value: {{ .Values.concurrency }}
