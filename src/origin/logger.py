@@ -70,7 +70,8 @@ def wrap_task(pipeline, task, title=None):
                 info(f'Task: {formatted_title}', extra=extra)
 
             try:
-                return function(*args, **kwargs)
+                with tracer.span(title):
+                    return function(*args, **kwargs)
             except Retry:
                 raise
             except:

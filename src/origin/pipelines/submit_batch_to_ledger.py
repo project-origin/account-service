@@ -61,7 +61,8 @@ def submit_batch_to_ledger(task, batch_id, session):
 
     # Submit batch
     try:
-        handle = ledger.execute_batch(batch.build_ledger_batch())
+        with logger.tracer.span('ExecuteBatch'):
+            handle = ledger.execute_batch(batch.build_ledger_batch())
     except ols.LedgerException as e:
         if e.code == 31:
             # Ledger Queue is full
@@ -112,7 +113,9 @@ def poll_batch_status(task, handle, batch_id, session):
         .one()
 
     ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
-    response = ledger.get_batch_status(handle)
+
+    with logger.tracer.span('GetBatchStatus'):
+        response = ledger.get_batch_status(handle)
 
     if response.status == ols.BatchStatus.COMMITTED:
         logger.error('Ledger submitted', extra={
