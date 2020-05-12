@@ -1,6 +1,8 @@
 FROM python:3.7
 COPY src/ /app
-COPY entrypoint.sh /app
+COPY entrypoint.web.sh /app
+COPY entrypoint.beat.sh /app
+COPY entrypoint.worker.sh /app
 COPY Pipfile /app
 COPY Pipfile.lock /app
 WORKDIR /app
