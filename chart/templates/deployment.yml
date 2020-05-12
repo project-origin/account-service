@@ -30,6 +30,9 @@ spec:
                 name: account-hydra-secret
             - secretRef:
                 name: account-db-secret
+          env:
+            - name: SERVICE_NAME
+              value: AccountBackend
 
 ---
 apiVersion: apps/v1
@@ -62,6 +65,9 @@ spec:
                 name: account-hydra-secret
             - secretRef:
                 name: account-db-secret
+          env:
+            - name: SERVICE_NAME
+              value: AccountBackendBeat
 
 ---
 apiVersion: apps/v1
@@ -94,3 +100,6 @@ spec:
                 name: account-hydra-secret
             - secretRef:
                 name: account-db-secret
+          env:
+            - name: SERVICE_NAME
+              value: AccountBackendWorker
