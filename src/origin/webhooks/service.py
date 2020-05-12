@@ -86,13 +86,12 @@ class WebhookService(object):
         :param str subject:
         :param Ggo ggo:
         """
-        with logger.tracer.span('Invoking webhook: OnGgoReceived'):
-            return self.publish(
-                event=Event.ON_GGO_RECEIVED,
-                subject=subject,
-                schema=md.class_schema(OnGgoReceivedRequest),
-                request=OnGgoReceivedRequest(
-                    sub=subject,
-                    ggo=ggo,
-                )
+        return self.publish(
+            event=Event.ON_GGO_RECEIVED,
+            subject=subject,
+            schema=md.class_schema(OnGgoReceivedRequest),
+            request=OnGgoReceivedRequest(
+                sub=subject,
+                ggo=ggo,
             )
+        )

@@ -79,26 +79,24 @@ class DataHubService(object):
         :param str key:
         :rtype: SetKeyResponse
         """
-        with logger.tracer.span('DataHubService.SetMeteringPointKey'):
-            return self.invoke(
-                token=token,
-                path='/meteringpoints/set-key',
-                request=SetKeyRequest(gsrn=gsrn, key=key),
-                request_schema=md.class_schema(SetKeyRequest),
-                response_schema=md.class_schema(SetKeyResponse),
-            )
+        return self.invoke(
+            token=token,
+            path='/meteringpoints/set-key',
+            request=SetKeyRequest(gsrn=gsrn, key=key),
+            request_schema=md.class_schema(SetKeyRequest),
+            response_schema=md.class_schema(SetKeyResponse),
+        )
 
     def get_meteringpoints(self, token):
         """
         :param str token:
         :rtype: GetMeteringPointsResponse
         """
-        with logger.tracer.span('DataHubService.GetMeteringPoints'):
-            return self.invoke(
-                token=token,
-                path='/meteringpoints',
-                response_schema=md.class_schema(GetMeteringPointsResponse),
-            )
+        return self.invoke(
+            token=token,
+            path='/meteringpoints',
+            response_schema=md.class_schema(GetMeteringPointsResponse),
+        )
 
     def get_ggo_list(self, token, request):
         """
@@ -106,14 +104,13 @@ class DataHubService(object):
         :param GetGgoListRequest request:
         :rtype: GetGgoListResponse
         """
-        with logger.tracer.span('DataHubService.GetGgoList'):
-            return self.invoke(
-                token=token,
-                path='/ggo',
-                request=request,
-                request_schema=md.class_schema(GetGgoListRequest),
-                response_schema=md.class_schema(GetGgoListResponse),
-            )
+        return self.invoke(
+            token=token,
+            path='/ggo',
+            request=request,
+            request_schema=md.class_schema(GetGgoListRequest),
+            response_schema=md.class_schema(GetGgoListResponse),
+        )
 
     def get_consumption(self, token, request):
         """
@@ -121,14 +118,13 @@ class DataHubService(object):
         :param GetMeasurementRequest request:
         :rtype: GetMeasurementResponse
         """
-        with logger.tracer.span('DataHubService.GetConsumedMeasurement'):
-            return self.invoke(
-                token=token,
-                path='/measurements/consumed',
-                request=request,
-                request_schema=md.class_schema(GetMeasurementRequest),
-                response_schema=md.class_schema(GetMeasurementResponse),
-            )
+        return self.invoke(
+            token=token,
+            path='/measurements/consumed',
+            request=request,
+            request_schema=md.class_schema(GetMeasurementRequest),
+            response_schema=md.class_schema(GetMeasurementResponse),
+        )
 
     def webhook_on_meteringpoints_available_subscribe(self, token):
         """
@@ -137,14 +133,13 @@ class DataHubService(object):
         """
         url = f'{PROJECT_URL}/webhook/on-meteringpoints-available'
 
-        with logger.tracer.span('DataHubService.SubscribeOnMeteringPointsAvailableWebhook'):
-            return self.invoke(
-                token=token,
-                path='/webhook/on-meteringpoints-available/subscribe',
-                request=WebhookSubscribeRequest(url=url),
-                request_schema=md.class_schema(WebhookSubscribeRequest),
-                response_schema=md.class_schema(WebhookSubscribeResponse),
-            )
+        return self.invoke(
+            token=token,
+            path='/webhook/on-meteringpoints-available/subscribe',
+            request=WebhookSubscribeRequest(url=url),
+            request_schema=md.class_schema(WebhookSubscribeRequest),
+            response_schema=md.class_schema(WebhookSubscribeResponse),
+        )
 
     def webhook_on_ggos_issued_subscribe(self, token):
         """
@@ -153,11 +148,10 @@ class DataHubService(object):
         """
         url = f'{PROJECT_URL}/webhook/on-ggos-issued'
 
-        with logger.tracer.span('DataHubService.SubscribeOnGgosIssuedWebhook'):
-            return self.invoke(
-                token=token,
-                path='/webhook/on-ggos-issued/subscribe',
-                request=WebhookSubscribeRequest(url=url),
-                request_schema=md.class_schema(WebhookSubscribeRequest),
-                response_schema=md.class_schema(WebhookSubscribeResponse),
-            )
+        return self.invoke(
+            token=token,
+            path='/webhook/on-ggos-issued/subscribe',
+            request=WebhookSubscribeRequest(url=url),
+            request_schema=md.class_schema(WebhookSubscribeRequest),
+            response_schema=md.class_schema(WebhookSubscribeResponse),
+        )
