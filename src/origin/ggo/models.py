@@ -413,5 +413,4 @@ class GetRetiredAmountResponse:
 class OnGgosIssuedWebhookRequest:
     sub: str
     gsrn: str
-    begin_from: datetime = field(metadata=dict(data_key='beginFrom'))
-    begin_to: datetime = field(metadata=dict(data_key='beginTo'))
+    begin: datetime

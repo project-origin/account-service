@@ -28,8 +28,7 @@ def start_import_issued_ggos(request):
         .s(
             subject=request.sub,
             gsrn=request.gsrn,
-            begin_from=request.begin_from.isoformat(),
-            begin_to=request.begin_to.isoformat(),
+            begin=request.begin.isoformat(),
         ) \
         .apply_async()
 
@@ -46,12 +45,11 @@ def start_import_issued_ggos(request):
     task='import_ggos_and_insert_to_db',
 )
 @inject_session
-def import_ggos_and_insert_to_db(subject, gsrn, begin_from, begin_to, session):
+def import_ggos_and_insert_to_db(subject, gsrn, begin, session):
     """
     :param str subject:
     :param str gsrn:
-    :param str begin_from:
-    :param str begin_to:
+    :param str begin:
     :param Session session:
     """
     user = UserQuery(session) \
@@ -62,10 +60,8 @@ def import_ggos_and_insert_to_db(subject, gsrn, begin_from, begin_to, session):
     if user is None:
         return
 
-    begin_from = datetime.fromisoformat(begin_from)
-    begin_to = datetime.fromisoformat(begin_to)
-
-    ggos = controller.import_ggos(user, gsrn, begin_from, begin_to)
+    begin = datetime.fromisoformat(begin)
+    ggos = controller.import_ggos(user, gsrn, begin, begin)
     tasks = [invoke_webhook.si(subject=subject, ggo_id=ggo.id) for ggo in ggos]
 
     if tasks:

@@ -96,6 +96,7 @@ def submit_batch_to_ledger(task, batch_id, session):
 @logger.wrap_task(
     pipeline='submit_batch_to_ledger',
     task='poll_batch_status',
+    title='Poll batch status',
 )
 @atomic
 def poll_batch_status(task, handle, batch_id, session):
