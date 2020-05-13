@@ -122,18 +122,29 @@ def poll_batch_status(task, handle, batch_id, session):
         logger.error('Ledger submitted', extra={
             'subject': batch.user.sub,
             'handle': handle,
-            'pipeline': 'import_measurements',
-            'task': 'submit_to_ledger',
+            'pipeline': 'submit_batch_to_ledger',
+            'task': 'poll_batch_status',
         })
         batch.on_commit()
     elif response.status == ols.BatchStatus.INVALID:
         logger.error('Batch submit FAILED: Invalid', extra={
             'subject': batch.user.sub,
             'handle': handle,
-            'pipeline': 'import_measurements',
-            'task': 'submit_to_ledger',
+            'pipeline': 'submit_batch_to_ledger',
+            'task': 'poll_batch_status',
         })
         batch.on_rollback()
+    elif response.status == ols.BatchStatus.UNKNOWN:
+        logger.error('Batch submit UNKNOWN: Re-submitting', extra={
+            'subject': batch.user.sub,
+            'handle': handle,
+            'pipeline': 'submit_batch_to_ledger',
+            'task': 'poll_batch_status',
+        })
+
+        submit_batch_to_ledger \
+            .si(batch_id=batch_id) \
+            .apply_async()
     else:
         raise task.retry(
             max_retries=MAX_POLLING_RETRIES,
