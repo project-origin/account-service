@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
+pytest_pgsql = "*"
+"testing.postgresql" = "*"
 waitress = "*"
 
 [packages]
@@ -26,7 +28,10 @@ python-dateutil = "*"
 authlib = "*"
 bip32utils = "*"
 Origin-Ledger-SDK = "*"
+opencensus-ext-flask = "*"
 opencensus-ext-azure = "*"
+opencensus-ext-requests = "*"
+opencensus-ext-sqlalchemy = "*"
 
 [requires]
 python_version = "3.7"
@@ -35,6 +40,3 @@ python_version = "3.7"
 migrate = "alembic upgrade head"
 revision = "alembic revision --autogenerate"
 develop = "python -m waitress --port=8085 origin:app"
-production = "gunicorn -b 0.0.0.0:8085 origin:app --workers 3 --worker-class gevent --worker-connections 10"
-worker = "celery worker -A origin.pipelines -O fair -l info --pool=gevent --concurrency=10"
-beat = "celery beat -A origin.pipelines -l info"

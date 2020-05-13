@@ -202,8 +202,8 @@ class MappedGgo:
     begin: datetime
     end: datetime
     amount: int
-    technology_code: str = field(default_factory=None, metadata=dict(data_key='technologyCode'))
-    fuel_code: str = field(default_factory=None, metadata=dict(data_key='fuelCode'))
+    technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
+    fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
 
 
 class GgoCategory(Enum):
@@ -222,7 +222,7 @@ class GgoFilters:
     TODO
     """
     begin: datetime = field(default=None)
-    begin_range: DateTimeRange = field(default_factory=None, metadata=dict(data_key='beginRange'))
+    begin_range: DateTimeRange = field(default=None, metadata=dict(data_key='beginRange'))
 
     sector: List[str] = field(default_factory=list)
     technology_code: List[str] = field(default_factory=list, metadata=dict(data_key='technologyCode'))
@@ -413,5 +413,4 @@ class GetRetiredAmountResponse:
 class OnGgosIssuedWebhookRequest:
     sub: str
     gsrn: str
-    begin_from: datetime = field(metadata=dict(data_key='beginFrom'))
-    begin_to: datetime = field(metadata=dict(data_key='beginTo'))
+    begin: datetime

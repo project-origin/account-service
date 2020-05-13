@@ -5,11 +5,13 @@ from origin.common import DateTimeRange
 from origin.services.datahub import DataHubService, GetGgoListRequest
 
 
+datahub = DataHubService()
+
+
 class GgoIssueController(object):
     """
     TODO
     """
-    datahub = DataHubService()
 
     def import_ggos(self, user, gsrn, begin_from, begin_to):
         """
@@ -52,7 +54,7 @@ class GgoIssueController(object):
         """
         begin_range = DateTimeRange(begin=begin_from, end=begin_to)
         request = GetGgoListRequest(gsrn=gsrn, begin_range=begin_range)
-        response = self.datahub.get_ggo_list(user.access_token, request)
+        response = datahub.get_ggo_list(user.access_token, request)
         return response.ggos
 
     @atomic

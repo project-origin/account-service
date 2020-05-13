@@ -112,34 +112,6 @@ class DataHubService(object):
             response_schema=md.class_schema(GetGgoListResponse),
         )
 
-    # def get_measurement_summary(self, token, request):
-    #     """
-    #     :param str token:
-    #     :param GetMeasurementSummaryRequest request:
-    #     :rtype: GetMeasurementSummaryResponse
-    #     """
-    #     return self.invoke(
-    #         token=token,
-    #         path='/measurements/summary',
-    #         request=request,
-    #         request_schema=md.class_schema(GetMeasurementSummaryRequest),
-    #         response_schema=md.class_schema(GetMeasurementSummaryResponse),
-    #     )
-    #
-    # def get_production(self, token, request):
-    #     """
-    #     :param str token:
-    #     :param GetMeasurementRequest request:
-    #     :rtype: GetMeasurementResponse
-    #     """
-    #     return self.invoke(
-    #         token=token,
-    #         path='/measurements/produced',
-    #         request=request,
-    #         request_schema=md.class_schema(GetMeasurementRequest),
-    #         response_schema=md.class_schema(GetMeasurementResponse),
-    #     )
-
     def get_consumption(self, token, request):
         """
         :param str token:

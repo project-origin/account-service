@@ -61,7 +61,8 @@ def submit_batch_to_ledger(task, batch_id, session):
 
     # Submit batch
     try:
-        handle = ledger.execute_batch(batch.build_ledger_batch())
+        with logger.tracer.span('ExecuteBatch'):
+            handle = ledger.execute_batch(batch.build_ledger_batch())
     except ols.LedgerException as e:
         if e.code == 31:
             # Ledger Queue is full
@@ -95,6 +96,7 @@ def submit_batch_to_ledger(task, batch_id, session):
 @logger.wrap_task(
     pipeline='submit_batch_to_ledger',
     task='poll_batch_status',
+    title='Poll batch status',
 )
 @atomic
 def poll_batch_status(task, handle, batch_id, session):
@@ -112,24 +114,37 @@ def poll_batch_status(task, handle, batch_id, session):
         .one()
 
     ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
-    response = ledger.get_batch_status(handle)
+
+    with logger.tracer.span('GetBatchStatus'):
+        response = ledger.get_batch_status(handle)
 
     if response.status == ols.BatchStatus.COMMITTED:
         logger.error('Ledger submitted', extra={
             'subject': batch.user.sub,
             'handle': handle,
-            'pipeline': 'import_measurements',
-            'task': 'submit_to_ledger',
+            'pipeline': 'submit_batch_to_ledger',
+            'task': 'poll_batch_status',
         })
         batch.on_commit()
     elif response.status == ols.BatchStatus.INVALID:
         logger.error('Batch submit FAILED: Invalid', extra={
             'subject': batch.user.sub,
             'handle': handle,
-            'pipeline': 'import_measurements',
-            'task': 'submit_to_ledger',
+            'pipeline': 'submit_batch_to_ledger',
+            'task': 'poll_batch_status',
         })
         batch.on_rollback()
+    elif response.status == ols.BatchStatus.UNKNOWN:
+        logger.error('Batch submit UNKNOWN: Re-submitting', extra={
+            'subject': batch.user.sub,
+            'handle': handle,
+            'pipeline': 'submit_batch_to_ledger',
+            'task': 'poll_batch_status',
+        })
+
+        submit_batch_to_ledger \
+            .si(batch_id=batch_id) \
+            .apply_async()
     else:
         raise task.retry(
             max_retries=MAX_POLLING_RETRIES,

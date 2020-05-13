@@ -105,7 +105,7 @@ class MeasurementFilters:
     TODO
     """
     begin: datetime = field(default=None)
-    begin_range: DateTimeRange = field(default_factory=None, metadata=dict(data_key='beginRange'))
+    begin_range: DateTimeRange = field(default=None, metadata=dict(data_key='beginRange'))
     sector: List[str] = field(default_factory=list)
     gsrn: List[str] = field(default_factory=list)
     type: MeasurementType = field(default=None, metadata=dict(by_value=True))
@@ -121,8 +121,8 @@ class Ggo:
     amount: int
     issue_time: str = field(metadata=dict(data_key='issueTime'))
     expire_time: str = field(metadata=dict(data_key='expireTime'))
-    technology_code: str = field(default_factory=None, metadata=dict(data_key='technologyCode'))
-    fuel_code: str = field(default_factory=None, metadata=dict(data_key='fuelCode'))
+    technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
+    fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
 
 
 # -- GetMeasurement request and response -------------------------------------

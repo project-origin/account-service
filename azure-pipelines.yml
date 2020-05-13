@@ -8,11 +8,12 @@ resources:
 variables:
   imageName: 'projectorigin/account-service'
   vmImageName: 'ubuntu-latest'
-  kubeCon: alpha-origin-con
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    kubeCon: 'test-kube-con'
     tag: '$(Build.BuildId)'
-    namespace: 'alpha-project-origin'
+    namespace: 'test-project-origin'
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    kubeCon: 'dev-kube-con'
     tag: 'dev.$(Build.BuildId)'
     namespace: 'dev-project-origin'
 
@@ -54,7 +55,7 @@ stages:
         displayName: Helm upgrade
         inputs:
           connectionType: 'Kubernetes Service Connection'
-          kubernetesServiceConnection: '$(kubeCon)'
+          kubernetesServiceConnection: $(kubeCon)
           namespace: $(namespace)
           command: upgrade
           chartType: filepath
