@@ -9,7 +9,7 @@ from .tasks import Retry
 from .settings import SERVICE_NAME, AZURE_APP_INSIGHTS_CONN_STRING
 
 
-logger = logging.getLogger(PROJECT_NAME)
+logger = logging.getLogger(SERVICE_NAME)
 handler = None
 exporter = None
 sampler = None
