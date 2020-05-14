@@ -17,6 +17,8 @@ Name | Description | Example
 `PROJECT_URL` | Public URL to this service without trailing slash | `https://account.projectorigin.dk`
 `DATAHUB_SERVICE_URL` | Public URL to DataHubService without trailing slash | `https://datahub.projectorigin.dk`
 `LEDGER_URL` | URL to Blockchain Ledger without trailing slash | `https://ledger.projectorigin.dk`
+**Webhooks:** | |
+`WEBHOOK_SECRET` | The secret to post together with the webhooks. | `some-secret`
 **Authentication:** | |
 `HYDRA_URL` | URL to Hydra without trailing slash | `https://auth.projectorigin.dk`
 `HYDRA_INTROSPECT_URL` | URL to Hydra Introspect without trailing slash | `https://authintrospect.projectorigin.dk`

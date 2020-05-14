@@ -43,6 +43,12 @@ DATAHUB_SERVICE_URL = os.environ['DATAHUB_SERVICE_URL']
 LEDGER_URL = os.environ['LEDGER_URL']
 
 
+# -- webhook -----------------------------------------------------------------
+
+HMAC_HEADER = 'x-hub-signature'
+WEBHOOK_SECRET = os.environ['WEBHOOK_SECRET']
+
+
 # -- Auth/tokens -------------------------------------------------------------
 
 TOKEN_HEADER = 'Authorization'

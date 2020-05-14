@@ -8,6 +8,7 @@ from origin.http import Controller, redirect, BadRequest
 from origin.pipelines import start_import_meteringpoints
 from origin.cache import redis
 from origin.services.datahub import DataHubService
+from origin.webhooks import validate_hmac
 
 from .queries import UserQuery
 from .backend import AuthBackend
@@ -155,6 +156,7 @@ class OnMeteringPointsAvailableWebhook(Controller):
     """
     Request = md.class_schema(OnMeteringPointsAvailableWebhookRequest)
 
+    @validate_hmac
     @inject_session
     def handle_request(self, request, session):
         """
