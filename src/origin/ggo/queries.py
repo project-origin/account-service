@@ -130,6 +130,7 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.issued.is_(value),
+            Ggo.issue_gsrn.isnot(None),
         ))
 
     def is_stored(self, value):
@@ -152,6 +153,8 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(value),
+            Ggo.retire_gsrn.isnot(None),
+            Ggo.retire_address.isnot(None),
         ))
 
     def is_retired_to_address(self, address):
@@ -239,18 +242,6 @@ class GgoQuery(object):
         """
         return self.is_tradable()
 
-    # def is_eligible_to_retire(self, measurement):
-    #     """
-    #     TODO
-    #
-    #     :param Measurement measurement:
-    #     :rtype: GgoQuery
-    #     """
-    #     return self.__class__(self.session, self.q.filter(
-    #         Ggo.begin == measurement.begin,
-    #         Ggo.sector == measurement.sector,
-    #     ))
-
     def get_total_amount(self):
         """
         :rtype: int
@@ -336,6 +327,7 @@ class TransactionQuery(GgoQuery):
     def apply_filters(self, filters):
         """
         :param TransferFilters filters:
+        :rtype: TransactionQuery
         """
         q = super(TransactionQuery, self) \
             .apply_filters(filters)

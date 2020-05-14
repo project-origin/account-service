@@ -7,8 +7,7 @@ from itertools import product
 
 from origin.db import ModelBase
 from origin.auth import User, MeteringPoint
-from origin.ggo.models import Ggo
-from origin.ggo.queries import GgoQuery
+from origin.ggo import Ggo, GgoQuery
 
 
 GGO_AMOUNT = 100
@@ -242,6 +241,8 @@ def test__GgoQuery__is_retired__returns_correct_ggos(seeded_session, ggo_retired
 
     assert query.count() > 0
     assert all(ggo.retired == ggo_retired for ggo in query.all())
+    assert all(ggo.retire_gsrn is not None for ggo in query.all())
+    assert all(ggo.retire_address is not None for ggo in query.all())
 
 
 @pytest.mark.parametrize('ggo_retire_address', ('RETIRE-ADDRESS-1', 'RETIRE-ADDRESS-2'))
