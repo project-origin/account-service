@@ -121,7 +121,7 @@ class GgoQuery(object):
             Ggo.begin == begin,
         ))
 
-    def is_issued(self, value):
+    def is_issued(self, value=True):
         """
         TODO
 
@@ -133,7 +133,7 @@ class GgoQuery(object):
             Ggo.issue_gsrn.isnot(None),
         ))
 
-    def is_stored(self, value):
+    def is_stored(self, value=True):
         """
         TODO
 
@@ -144,7 +144,7 @@ class GgoQuery(object):
             Ggo.stored.is_(value),
         ))
 
-    def is_retired(self, value):
+    def is_retired(self, value=True):
         """
         TODO
 
@@ -183,7 +183,7 @@ class GgoQuery(object):
             Ggo.retire_gsrn == gsrn,
         ))
 
-    def is_expired(self, value):
+    def is_expired(self, value=True):
         """
         TODO
 
@@ -199,7 +199,7 @@ class GgoQuery(object):
 
         return self.__class__(self.session, self.q.filter(cond))
 
-    def is_synchronized(self, value):
+    def is_synchronized(self, value=True):
         """
         TODO
 
@@ -210,7 +210,7 @@ class GgoQuery(object):
             Ggo.synchronized.is_(value),
         ))
 
-    def is_locked(self, value):
+    def is_locked(self, value=True):
         """
         TODO
 

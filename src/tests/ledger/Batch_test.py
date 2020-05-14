@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 import origin_ledger_sdk as ols
 
 from origin.ledger.models import Batch, BatchState
@@ -78,7 +78,11 @@ def test__Batch__on_commit__should_set_batch_state_to_COMPLETED_and_invoke_on_co
         transaction.on_commit.assert_called_once()
 
 
-def test__Batch__on_commit__should_set_batch_state_to_DECLINED_and_invoke_on_rollback_on_transactions():
+@patch('origin.ledger.models.Session.object_session')
+def test__Batch__on_rollback__should_set_batch_state_to_DECLINED_and_invoke_on_rollback_on_transactions(object_session):
+
+    session_mock = MagicMock()
+    object_session.return_value = session_mock
 
     # Arrange
     transactions = [MagicMock(), MagicMock(), MagicMock()]
@@ -90,6 +94,10 @@ def test__Batch__on_commit__should_set_batch_state_to_DECLINED_and_invoke_on_rol
 
     # Assert
     assert uut.state is BatchState.DECLINED
+    assert session_mock.delete.call_count == 3
+    session_mock.delete.assert_any_call(transactions[0])
+    session_mock.delete.assert_any_call(transactions[1])
+    session_mock.delete.assert_any_call(transactions[2])
 
     for transaction in transactions:
         transaction.on_rollback.assert_called_once()

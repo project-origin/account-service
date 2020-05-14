@@ -118,7 +118,6 @@ def seed_ggo_test_data(session):
         if i % 500 == 0:
             session.flush()
 
-
     session.commit()
 
 
