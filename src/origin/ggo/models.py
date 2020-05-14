@@ -83,6 +83,7 @@ class Ggo(ModelBase):
 
     # The GSRN and Measurement address this GGO is retired to (if retired=True)
     retire_gsrn = sa.Column(sa.String(), sa.ForeignKey('accounts_meteringpoint.gsrn'), index=True)
+    retire_meteringpoint = relationship('MeteringPoint', foreign_keys=[retire_gsrn], lazy='joined', uselist=False)
     retire_address = sa.Column(sa.String(), index=True)
 
     def create_child(self, amount, user):

@@ -163,6 +163,7 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(True),
+            Ggo.retire_gsrn.isnot(None),
             Ggo.retire_address == address,
         ))
 
@@ -175,6 +176,7 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(True),
+            Ggo.retire_address.isnot(None),
             Ggo.retire_gsrn == gsrn,
         ))
 
@@ -237,24 +239,24 @@ class GgoQuery(object):
         """
         return self.is_tradable()
 
-    def is_eligible_to_retire(self, measurement):
-        """
-        TODO
-
-        :param Measurement measurement:
-        :rtype: GgoQuery
-        """
-        return self.__class__(self.session, self.q.filter(
-            Ggo.begin == measurement.begin,
-            Ggo.sector == measurement.sector,
-        ))
+    # def is_eligible_to_retire(self, measurement):
+    #     """
+    #     TODO
+    #
+    #     :param Measurement measurement:
+    #     :rtype: GgoQuery
+    #     """
+    #     return self.__class__(self.session, self.q.filter(
+    #         Ggo.begin == measurement.begin,
+    #         Ggo.sector == measurement.sector,
+    #     ))
 
     def get_total_amount(self):
         """
         :rtype: int
         """
         total_amount = self.session.query(
-            func.sum(self.q.subquery().c.amount)).one()[0]
+            func.sum(self.q.subquery().c.amount)).scalar()
         return total_amount if total_amount is not None else 0
 
     def get_distinct_begins(self):
