@@ -127,7 +127,7 @@ class LoginCallback(Controller):
             token_expire=expires,
         )
 
-        entropy = os.urandom(256)
+        entropy = os.urandom(256) + user.sub.encode()
         user.set_key_from_entropy(entropy)
 
         session.add(user)
