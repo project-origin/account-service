@@ -26,10 +26,10 @@ class KeyGenerator(object):
     def set_key_for_user_from_entropy(user, entropy):
         """
         :param User user:
-        :param str entropy:
+        :param bytes entropy:
         """
         KeyGenerator.set_key_for_user(
-            user, BIP32Key.fromEntropy(entropy.encode()))
+            user, BIP32Key.fromEntropy(entropy))
 
     @staticmethod
     def get_key_for_metering_point(meteringpoint):

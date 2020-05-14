@@ -55,7 +55,7 @@ class User(ModelBase):
 
     def set_key_from_entropy(self, entropy):
         """
-        :param str entropy:
+        :param bytes entropy:
         """
         KeyGenerator.set_key_for_user_from_entropy(self, entropy)
 

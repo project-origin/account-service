@@ -41,14 +41,14 @@ def test__KeyGenerator__set_key_for_user():
 def test__KeyGenerator__set_key_for_user_from_entropy():
 
     # Arrange
-    entropy = 'SomethingVeryRandomWithAMinimumLengthWhichIDontQuiteRememberRightNow'
+    entropy = b'SomethingVeryRandomWithAMinimumLengthWhichIDontQuiteRememberRightNow'
     user = Mock()
 
     # Act
     KeyGenerator.set_key_for_user_from_entropy(user, entropy)
 
     # Assert
-    assert user.master_extended_key == BIP32Key.fromEntropy(entropy.encode()).ExtendedKey()
+    assert user.master_extended_key == BIP32Key.fromEntropy(entropy).ExtendedKey()
 
 
 def test__KeyGenerator__get_key_for_metering_point():
