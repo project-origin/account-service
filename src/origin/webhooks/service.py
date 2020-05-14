@@ -1,3 +1,5 @@
+import json
+
 import requests
 import hmac
 from hashlib import sha256
@@ -57,10 +59,15 @@ class WebhookService(object):
 
         for subscription in subscriptions:
             body = schema().dump(request)
-            hmac = 'sha256=' + b64encode(hmac.new(subscription.secret.encode(), body, sha256).digest())
+
+            hmac_header = 'sha256=' + b64encode(hmac.new(
+                subscription.secret.encode(),
+                json.dumps(body).encode(),
+                sha256
+            ).digest()).decode()
 
             headers = {
-                HMAC_HEADER: hmac
+                HMAC_HEADER: hmac_header
             }
 
             logger.info(f'Invoking webhook: {event.value}', extra={
@@ -68,11 +75,15 @@ class WebhookService(object):
                 'event': event.value,
                 'url': subscription.url,
                 'request': str(body),
-                'hmac': hmac,
             })
 
             try:
-                response = requests.post(subscription.url, json=body, headers=headers, verify=not DEBUG)
+                response = requests.post(
+                    url=subscription.url,
+                    json=body,
+                    headers=headers,
+                    verify=not DEBUG,
+                )
             except:
                 logger.exception(f'Failed to invoke webhook: {event.value}', extra={
                     'subject': subject,
