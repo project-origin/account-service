@@ -219,6 +219,7 @@ class GetMeteringPointsResponse:
 @dataclass
 class WebhookSubscribeRequest:
     url: str
+    secret: str
 
 
 @dataclass
