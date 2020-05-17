@@ -106,8 +106,6 @@ def poll_batch_status(task, handle, batch_id, session):
     :param int batch_id:
     :param Session session:
     """
-    print('POLL BATCH STATUS, RETRIES: %d' % task.request.retries, flush=True)
-
     batch = session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \

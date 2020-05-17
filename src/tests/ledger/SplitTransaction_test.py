@@ -168,7 +168,11 @@ def test__SplitTransaction__on_commit__should_update_state_on_self_and_target_gg
     assert target_ggo2.synchronized is True
 
 
-def test__SplitTransaction__on_rollback__should_update_state_on_self_and_target_ggos():
+@patch('origin.ledger.models.Session.object_session')
+def test__SplitTransaction__on_rollback__should_update_state_on_self_and_target_ggos(object_session):
+
+    session_mock = MagicMock()
+    object_session.return_value = session_mock
 
     # Arrange
     parent_ggo = MagicMock(
@@ -206,13 +210,11 @@ def test__SplitTransaction__on_rollback__should_update_state_on_self_and_target_
     assert parent_ggo.locked is False
     assert parent_ggo.synchronized is True
 
-    assert target_ggo1.stored is False
-    assert target_ggo1.locked is False
-    assert target_ggo1.synchronized is False
-
-    assert target_ggo2.stored is False
-    assert target_ggo2.locked is False
-    assert target_ggo2.synchronized is False
+    assert session_mock.delete.call_count == 4
+    session_mock.delete.assert_any_call(uut.targets[0])
+    session_mock.delete.assert_any_call(uut.targets[1])
+    session_mock.delete.assert_any_call(target_ggo1)
+    session_mock.delete.assert_any_call(target_ggo1)
 
 
 def test__SplitTransaction__build_ledger_request__should_build_correct_request():

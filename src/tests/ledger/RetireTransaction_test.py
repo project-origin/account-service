@@ -85,7 +85,7 @@ def test__RetireTransaction__on_rollback__should_update_state_on_self_and_target
     uut.on_rollback()
 
     # Assert
-    assert parent_ggo.stored is False
+    assert parent_ggo.stored is True
     assert parent_ggo.retired is False
     assert parent_ggo.locked is False
     assert parent_ggo.synchronized is True

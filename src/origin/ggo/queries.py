@@ -121,7 +121,7 @@ class GgoQuery(object):
             Ggo.begin == begin,
         ))
 
-    def is_issued(self, value):
+    def is_issued(self, value=True):
         """
         TODO
 
@@ -130,9 +130,10 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.issued.is_(value),
+            Ggo.issue_gsrn.isnot(None),
         ))
 
-    def is_stored(self, value):
+    def is_stored(self, value=True):
         """
         TODO
 
@@ -143,7 +144,7 @@ class GgoQuery(object):
             Ggo.stored.is_(value),
         ))
 
-    def is_retired(self, value):
+    def is_retired(self, value=True):
         """
         TODO
 
@@ -152,6 +153,8 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(value),
+            Ggo.retire_gsrn.isnot(None),
+            Ggo.retire_address.isnot(None),
         ))
 
     def is_retired_to_address(self, address):
@@ -163,6 +166,7 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(True),
+            Ggo.retire_gsrn.isnot(None),
             Ggo.retire_address == address,
         ))
 
@@ -175,10 +179,11 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(True),
+            Ggo.retire_address.isnot(None),
             Ggo.retire_gsrn == gsrn,
         ))
 
-    def is_expired(self, value):
+    def is_expired(self, value=True):
         """
         TODO
 
@@ -194,7 +199,7 @@ class GgoQuery(object):
 
         return self.__class__(self.session, self.q.filter(cond))
 
-    def is_synchronized(self, value):
+    def is_synchronized(self, value=True):
         """
         TODO
 
@@ -205,7 +210,7 @@ class GgoQuery(object):
             Ggo.synchronized.is_(value),
         ))
 
-    def is_locked(self, value):
+    def is_locked(self, value=True):
         """
         TODO
 
@@ -237,24 +242,12 @@ class GgoQuery(object):
         """
         return self.is_tradable()
 
-    def is_eligible_to_retire(self, measurement):
-        """
-        TODO
-
-        :param Measurement measurement:
-        :rtype: GgoQuery
-        """
-        return self.__class__(self.session, self.q.filter(
-            Ggo.begin == measurement.begin,
-            Ggo.sector == measurement.sector,
-        ))
-
     def get_total_amount(self):
         """
         :rtype: int
         """
         total_amount = self.session.query(
-            func.sum(self.q.subquery().c.amount)).one()[0]
+            func.sum(self.q.subquery().c.amount)).scalar()
         return total_amount if total_amount is not None else 0
 
     def get_distinct_begins(self):
@@ -334,6 +327,7 @@ class TransactionQuery(GgoQuery):
     def apply_filters(self, filters):
         """
         :param TransferFilters filters:
+        :rtype: TransactionQuery
         """
         q = super(TransactionQuery, self) \
             .apply_filters(filters)

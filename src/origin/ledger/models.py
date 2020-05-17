@@ -1,11 +1,10 @@
-from enum import Enum
-
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
+from enum import Enum
 
-from origin.db import ModelBase
+from origin.db import ModelBase, Session
 
 from .keys import KeyGenerator
 
@@ -92,8 +91,11 @@ class Batch(ModelBase):
         """
         self.state = BatchState.DECLINED
 
-        for transaction in self.transactions:
+        session = Session.object_session(self)
+
+        for transaction in reversed(self.transactions):
             transaction.on_rollback()
+            session.delete(transaction)
 
     def build_ledger_batch(self):
         """
@@ -234,10 +236,11 @@ class SplitTransaction(Transaction):
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
 
+        session = Session.object_session(self)
+
         for target in self.targets:
-            target.ggo.stored = False
-            target.ggo.locked = False
-            target.ggo.synchronized = False
+            session.delete(target.ggo)
+            session.delete(target)
 
     def build_ledger_request(self):
         parts = []
@@ -340,10 +343,12 @@ class RetireTransaction(Transaction):
         """
         TODO WHAT EVEN TODO HERE?
         """
-        self.parent_ggo.stored = False
+        self.parent_ggo.stored = True  # TODO test this
         self.parent_ggo.retired = False
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
+        self.parent_ggo.retire_gsrn = None  # TODO test this
+        self.parent_ggo.retire_address = None  # TODO test this
 
     def build_ledger_request(self):
         """
