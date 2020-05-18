@@ -370,7 +370,7 @@ class ComposeGgo(Controller):
             .one_or_none()
 
         if not ggo:
-            raise BadRequest('GGO not found or is unavailable')
+            raise BadRequest('GGO not found or is unavailable: %s' % ggo_address)
 
         return ggo
 

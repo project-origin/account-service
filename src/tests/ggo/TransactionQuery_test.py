@@ -178,7 +178,8 @@ def test__TransactionQuery__sent_by_user__Ggos_exists__returns_correct_Ggos(seed
         .sent_by_user(user)
 
     assert query.count() > 0
-    assert all(ggo.parent.user_id == user.id for ggo in query.all())
+    assert all(ggo.parent.user_id == user.id and ggo.user_id != user.id
+               for ggo in query.all())
 
 
 def test__TransactionQuery__sent_by_user__Ggos_does_not_exists__returns_nothing(seeded_session):
@@ -194,7 +195,8 @@ def test__TransactionQuery__received_by_user__Ggos_exists__returns_correct_Ggos(
         .received_by_user(user)
 
     assert query.count() > 0
-    assert all(ggo.user_id == user.id for ggo in query.all())
+    assert all(ggo.parent.user_id != user.id and ggo.user_id == user.id
+               for ggo in query.all())
 
 
 def test__TransactionQuery__received_by_user__Ggos_does_not_exists__returns_nothing(seeded_session):

@@ -151,11 +151,16 @@ class GgoQuery(object):
         :param bool value:
         :rtype: GgoQuery
         """
-        return self.__class__(self.session, self.q.filter(
-            Ggo.retired.is_(value),
-            Ggo.retire_gsrn.isnot(None),
-            Ggo.retire_address.isnot(None),
-        ))
+        filters = [Ggo.retired.is_(value)]
+
+        if value is True:
+            filters.append(Ggo.retire_gsrn.isnot(None))
+            filters.append(Ggo.retire_address.isnot(None))
+        else:
+            filters.append(Ggo.retire_gsrn.is_(None))
+            filters.append(Ggo.retire_address.is_(None))
+
+        return self.__class__(self.session, self.q.filter(*filters))
 
     def is_retired_to_address(self, address):
         """
