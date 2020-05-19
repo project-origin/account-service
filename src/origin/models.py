@@ -1,4 +1,4 @@
-from .ggo import Ggo, GgoIndexSequence
+from .ggo import Ggo, GgoIndexSequence, Technology
 from .auth import User, MeteringPoint, MeteringPointIndexSequence
 from .webhooks import Subscription
 from .ledger import (
@@ -15,6 +15,7 @@ from .ledger import (
 VERSIONED_DB_MODELS = (
     Ggo,
     GgoIndexSequence,
+    Technology,
     User,
     MeteringPoint,
     MeteringPointIndexSequence,

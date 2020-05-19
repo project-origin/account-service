@@ -5,7 +5,6 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
-pytest_pgsql = "*"
 "testing.postgresql" = "*"
 waitress = "*"
 

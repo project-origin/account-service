@@ -14,6 +14,7 @@ from origin.auth import (
     inject_user,
     require_oauth,
 )
+from origin.webhooks import validate_hmac
 
 from .composer import GgoComposer
 from .queries import GgoQuery, TransactionQuery, RetireQuery
@@ -369,7 +370,7 @@ class ComposeGgo(Controller):
             .one_or_none()
 
         if not ggo:
-            raise BadRequest('GGO not found or is unavailable')
+            raise BadRequest('GGO not found or is unavailable: %s' % ggo_address)
 
         return ggo
 
@@ -409,6 +410,7 @@ class OnGgosIssuedWebhook(Controller):
     """
     Request = md.class_schema(OnGgosIssuedWebhookRequest)
 
+    @validate_hmac
     def handle_request(self, request):
         """
         :param OnGgosIssuedWebhookRequest request:

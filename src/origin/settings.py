@@ -43,6 +43,12 @@ DATAHUB_SERVICE_URL = os.environ['DATAHUB_SERVICE_URL']
 LEDGER_URL = os.environ['LEDGER_URL']
 
 
+# -- webhook -----------------------------------------------------------------
+
+HMAC_HEADER = 'x-hub-signature'
+WEBHOOK_SECRET = os.environ['WEBHOOK_SECRET']
+
+
 # -- Auth/tokens -------------------------------------------------------------
 
 TOKEN_HEADER = 'Authorization'
@@ -93,3 +99,5 @@ REDIS_BACKEND_URL = '%s/%d' % (REDIS_URL, REDIS_BACKEND_DB)
 # -- Misc --------------------------------------------------------------------
 
 AZURE_APP_INSIGHTS_CONN_STRING = os.environ.get('AZURE_APP_INSIGHTS_CONN_STRING')
+
+UNKNOWN_TECHNOLOGY_LABEL = 'Unknown'

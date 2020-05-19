@@ -1,9 +1,14 @@
+import json
+
 import requests
+import hmac
+from hashlib import sha256
+from base64 import b64encode
 import marshmallow_dataclass as md
 from dataclasses import dataclass
 
 from origin import logger
-from origin.settings import DEBUG
+from origin.settings import DEBUG, HMAC_HEADER
 from origin.db import atomic, inject_session
 from origin.ggo import Ggo, MappedGgo
 
@@ -19,17 +24,19 @@ class OnGgoReceivedRequest:
 class WebhookService(object):
 
     @atomic
-    def subscribe(self, event, subject, url, session):
+    def subscribe(self, event, subject, url, secret, session):
         """
         :param Event event:
         :param str subject:
         :param str url:
+        :param str secret:
         :param Session session:
         """
         session.add(Subscription(
             event=event,
             subject=subject,
             url=url,
+            secret=secret,
         ))
 
     @inject_session
@@ -53,6 +60,16 @@ class WebhookService(object):
         for subscription in subscriptions:
             body = schema().dump(request)
 
+            hmac_header = 'sha256=' + b64encode(hmac.new(
+                subscription.secret.encode(),
+                json.dumps(body).encode(),
+                sha256
+            ).digest()).decode()
+
+            headers = {
+                HMAC_HEADER: hmac_header
+            }
+
             logger.info(f'Invoking webhook: {event.value}', extra={
                 'subject': subject,
                 'event': event.value,
@@ -61,7 +78,12 @@ class WebhookService(object):
             })
 
             try:
-                response = requests.post(subscription.url, json=body, verify=not DEBUG)
+                response = requests.post(
+                    url=subscription.url,
+                    json=body,
+                    headers=headers,
+                    verify=not DEBUG,
+                )
             except:
                 logger.exception(f'Failed to invoke webhook: {event.value}', extra={
                     'subject': subject,

@@ -83,6 +83,7 @@ class Ggo(ModelBase):
 
     # The GSRN and Measurement address this GGO is retired to (if retired=True)
     retire_gsrn = sa.Column(sa.String(), sa.ForeignKey('accounts_meteringpoint.gsrn'), index=True)
+    retire_meteringpoint = relationship('MeteringPoint', foreign_keys=[retire_gsrn], lazy='joined', uselist=False)
     retire_address = sa.Column(sa.String(), index=True)
 
     def create_child(self, amount, user):
@@ -190,6 +191,22 @@ class GgoIndexSequence(ModelBase):
                 continue
             else:
                 return index
+
+
+class Technology(ModelBase):
+    """
+    A technology (by label) consists of a combination
+    of technology_code and fuel_code.
+    """
+    __tablename__ = 'ggo_technology'
+    __table_args__ = (
+        sa.UniqueConstraint('technology_code', 'fuel_code'),
+    )
+
+    id = sa.Column(sa.Integer(), primary_key=True, index=True)
+    technology = sa.Column(sa.String(), nullable=False)
+    technology_code = sa.Column(sa.String(), index=True, nullable=False)
+    fuel_code = sa.Column(sa.String(), index=True, nullable=False)
 
 
 # -- Common ------------------------------------------------------------------
@@ -329,7 +346,7 @@ class GetGgoSummaryRequest:
     fill: bool
 
     grouping: List[str] = field(metadata=dict(validate=(
-        validate.ContainsOnly(('begin', 'category', 'gsrn', 'sector', 'technologyCode', 'fuelCode')),
+        validate.ContainsOnly(('begin', 'sector', 'technology', 'technologyCode', 'fuelCode')),
     )))
 
 
@@ -350,7 +367,7 @@ class GetTransferSummaryRequest:
     fill: bool
 
     grouping: List[str] = field(metadata=dict(validate=(
-        validate.ContainsOnly(('begin', 'category', 'gsrn', 'sector', 'technologyCode', 'fuelCode')),
+        validate.ContainsOnly(('begin', 'sector', 'technology', 'technologyCode', 'fuelCode')),
     )))
 
     direction: TransferDirection = field(default=None, metadata=dict(by_value=True))

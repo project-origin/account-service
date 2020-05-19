@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from sqlalchemy import func, bindparam
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, load_only, Load
 from datetime import datetime
 from itertools import groupby
 from functools import lru_cache
@@ -9,9 +9,11 @@ from dateutil.relativedelta import relativedelta
 from origin.auth import User
 from origin.common import DateTimeRange
 from origin.ledger import SplitTarget, SplitTransaction
+from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 
 from .models import (
     Ggo,
+    Technology,
     SummaryGroup,
     GgoFilters,
     GgoCategory,
@@ -121,7 +123,7 @@ class GgoQuery(object):
             Ggo.begin == begin,
         ))
 
-    def is_issued(self, value):
+    def is_issued(self, value=True):
         """
         TODO
 
@@ -130,9 +132,10 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.issued.is_(value),
+            Ggo.issue_gsrn.isnot(None),
         ))
 
-    def is_stored(self, value):
+    def is_stored(self, value=True):
         """
         TODO
 
@@ -143,16 +146,23 @@ class GgoQuery(object):
             Ggo.stored.is_(value),
         ))
 
-    def is_retired(self, value):
+    def is_retired(self, value=True):
         """
         TODO
 
         :param bool value:
         :rtype: GgoQuery
         """
-        return self.__class__(self.session, self.q.filter(
-            Ggo.retired.is_(value),
-        ))
+        filters = [Ggo.retired.is_(value)]
+
+        if value is True:
+            filters.append(Ggo.retire_gsrn.isnot(None))
+            filters.append(Ggo.retire_address.isnot(None))
+        else:
+            filters.append(Ggo.retire_gsrn.is_(None))
+            filters.append(Ggo.retire_address.is_(None))
+
+        return self.__class__(self.session, self.q.filter(*filters))
 
     def is_retired_to_address(self, address):
         """
@@ -163,6 +173,7 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(True),
+            Ggo.retire_gsrn.isnot(None),
             Ggo.retire_address == address,
         ))
 
@@ -175,10 +186,11 @@ class GgoQuery(object):
         """
         return self.__class__(self.session, self.q.filter(
             Ggo.retired.is_(True),
+            Ggo.retire_address.isnot(None),
             Ggo.retire_gsrn == gsrn,
         ))
 
-    def is_expired(self, value):
+    def is_expired(self, value=True):
         """
         TODO
 
@@ -194,7 +206,7 @@ class GgoQuery(object):
 
         return self.__class__(self.session, self.q.filter(cond))
 
-    def is_synchronized(self, value):
+    def is_synchronized(self, value=True):
         """
         TODO
 
@@ -205,7 +217,7 @@ class GgoQuery(object):
             Ggo.synchronized.is_(value),
         ))
 
-    def is_locked(self, value):
+    def is_locked(self, value=True):
         """
         TODO
 
@@ -237,24 +249,12 @@ class GgoQuery(object):
         """
         return self.is_tradable()
 
-    def is_eligible_to_retire(self, measurement):
-        """
-        TODO
-
-        :param Measurement measurement:
-        :rtype: GgoQuery
-        """
-        return self.__class__(self.session, self.q.filter(
-            Ggo.begin == measurement.begin,
-            Ggo.sector == measurement.sector,
-        ))
-
     def get_total_amount(self):
         """
         :rtype: int
         """
         total_amount = self.session.query(
-            func.sum(self.q.subquery().c.amount)).one()[0]
+            func.sum(self.q.subquery().c.amount)).scalar()
         return total_amount if total_amount is not None else 0
 
     def get_distinct_begins(self):
@@ -334,6 +334,7 @@ class TransactionQuery(GgoQuery):
     def apply_filters(self, filters):
         """
         :param TransferFilters filters:
+        :rtype: TransactionQuery
         """
         q = super(TransactionQuery, self) \
             .apply_filters(filters)
@@ -398,6 +399,7 @@ class GgoSummary(object):
     GROUPINGS = (
         'begin',
         'sector',
+        'technology',
         'technologyCode',
         'fuelCode',
     )
@@ -494,6 +496,12 @@ class GgoSummary(object):
 
         q = self.query.subquery()
 
+        q = self.session.query(q, func.coalesce(Technology.technology, UNKNOWN_TECHNOLOGY_LABEL).label('technology')) \
+            .outerjoin(Technology, sa.and_(
+                Technology.technology_code == q.c.technology_code,
+                Technology.fuel_code == q.c.fuel_code,
+            )).subquery()
+
         # -- Resolution ------------------------------------------------------
 
         if self.resolution == SummaryResolution.ALL:
@@ -513,6 +521,10 @@ class GgoSummary(object):
                 groups.append(q.c.sector)
                 select.append(q.c.sector)
                 orders.append(q.c.sector)
+            elif group == 'technology':
+                groups.append(q.c.technology)
+                select.append(q.c.technology)
+                orders.append(q.c.technology)
             elif group == 'technologyCode':
                 groups.append(q.c.technology_code)
                 select.append(q.c.technology_code)

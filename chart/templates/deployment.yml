@@ -30,6 +30,8 @@ spec:
                 name: account-hydra-secret
             - secretRef:
                 name: account-db-secret
+            - secretRef:
+                name: account-webhook-secret
           env:
             - name: SERVICE_NAME
               value: AccountService
@@ -69,6 +71,8 @@ spec:
                 name: account-hydra-secret
             - secretRef:
                 name: account-db-secret
+            - secretRef:
+                name: account-webhook-secret
           env:
             - name: SERVICE_NAME
               value: AccountServiceBeat
@@ -104,6 +108,8 @@ spec:
                 name: account-hydra-secret
             - secretRef:
                 name: account-db-secret
+            - secretRef:
+                name: account-webhook-secret
           env:
             - name: SERVICE_NAME
               value: AccountServiceWorker

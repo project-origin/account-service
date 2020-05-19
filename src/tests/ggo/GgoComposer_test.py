@@ -415,6 +415,9 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
 
     batch, recipients = composer.build_batch()
 
+    # Rq9!4&C7bMvBCKG^Zoe@Q
+    # A7k6bJJ4QDJWyGPepqM
+
     #  -- Assert -------------------------------------------------------------
 
     assert len(recipients) == 3
