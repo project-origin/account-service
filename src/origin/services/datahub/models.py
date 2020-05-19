@@ -68,6 +68,13 @@ class SummaryGroup:
         return self + other
 
 
+@dataclass
+class Technology:
+    technology: str
+    technology_code: str = field(metadata=dict(data_key='technologyCode'))
+    fuel_code: str = field(metadata=dict(data_key='fuelCode'))
+
+
 class MeteringPointType(Enum):
     PRODUCTION = 'production'
     CONSUMPTION = 'consumption'
@@ -211,6 +218,15 @@ class GetMeasurementSummaryResponse:
 class GetMeteringPointsResponse:
     success: bool
     meteringpoints: List[MeteringPoint] = field(default_factory=list)
+
+
+# -- GetTechnologies request and response ------------------------------------
+
+
+@dataclass
+class GetTechnologiesResponse:
+    success: bool
+    technologies: List[Technology] = field(default_factory=list)
 
 
 # -- Webhooks request and response -------------------------------------------

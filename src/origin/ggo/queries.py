@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from sqlalchemy import func, bindparam
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, load_only, Load
 from datetime import datetime
 from itertools import groupby
 from functools import lru_cache
@@ -12,12 +12,16 @@ from origin.ledger import SplitTarget, SplitTransaction
 
 from .models import (
     Ggo,
+    Technology,
     SummaryGroup,
     GgoFilters,
     GgoCategory,
     SummaryResolution,
     RetireFilters,
 )
+
+
+UNKNOWN_TECHNOLOGY_LABEL = 'Unknown'
 
 
 class GgoQuery(object):
@@ -397,6 +401,7 @@ class GgoSummary(object):
     GROUPINGS = (
         'begin',
         'sector',
+        'technology',
         'technologyCode',
         'fuelCode',
     )
@@ -493,6 +498,12 @@ class GgoSummary(object):
 
         q = self.query.subquery()
 
+        q = self.session.query(q, func.coalesce(Technology.technology, UNKNOWN_TECHNOLOGY_LABEL).label('technology')) \
+            .outerjoin(Technology, sa.and_(
+                Technology.technology_code == q.c.technology_code,
+                Technology.fuel_code == q.c.fuel_code,
+            )).subquery()
+
         # -- Resolution ------------------------------------------------------
 
         if self.resolution == SummaryResolution.ALL:
@@ -512,6 +523,10 @@ class GgoSummary(object):
                 groups.append(q.c.sector)
                 select.append(q.c.sector)
                 orders.append(q.c.sector)
+            elif group == 'technology':
+                groups.append(q.c.technology)
+                select.append(q.c.technology)
+                orders.append(q.c.technology)
             elif group == 'technologyCode':
                 groups.append(q.c.technology_code)
                 select.append(q.c.technology_code)

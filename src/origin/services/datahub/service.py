@@ -20,18 +20,18 @@ from .models import (
     SetKeyResponse,
     WebhookSubscribeRequest,
     WebhookSubscribeResponse,
-)
+    GetTechnologiesResponse)
 
 
 class DataHubService(object):
     """
     An interface to the Project Origin DataHub Service API.
     """
-    def invoke(self, token, path, response_schema, request=None, request_schema=None):
+    def invoke(self, path, response_schema, token=None, request=None, request_schema=None):
         """
-        :param str token:
         :param str path:
         :param obj request:
+        :param str token:
         :param Schema request_schema:
         :param Schema response_schema:
         :rtype obj:
@@ -44,11 +44,16 @@ class DataHubService(object):
         else:
             body = None
 
+        if token:
+            headers = {TOKEN_HEADER: f'Bearer {token}'}
+        else:
+            headers = {}
+
         try:
             response = requests.post(
                 url=url,
                 json=body,
-                headers={TOKEN_HEADER: f'Bearer {token}'},
+                headers=headers,
                 verify=verify_ssl,
             )
         except:
@@ -155,4 +160,13 @@ class DataHubService(object):
             request=WebhookSubscribeRequest(url=url, secret=WEBHOOK_SECRET),
             request_schema=md.class_schema(WebhookSubscribeRequest),
             response_schema=md.class_schema(WebhookSubscribeResponse),
+        )
+
+    def get_technologies(self):
+        """
+        :rtype: GetTechnologiesResponse
+        """
+        return self.invoke(
+            path='/technologies',
+            response_schema=md.class_schema(GetTechnologiesResponse),
         )
