@@ -39,7 +39,7 @@ def start_submit_batch_pipeline(batch, callback=None):
     name='ledger.submit_batch_to_ledger',
     autoretry_for=(ols.LedgerException,),
     retry_backoff=2,
-    max_retries=5,
+    max_retries=16,
 )
 @logger.wrap_task(
     title='Submitting Batch to ledger',
@@ -91,7 +91,7 @@ def submit_batch_to_ledger(task, batch_id, session):
     name='ledger.poll_batch_status',
     autoretry_for=(ols.LedgerException,),
     retry_backoff=2,
-    max_retries=5,
+    max_retries=16,
 )
 @logger.wrap_task(
     pipeline='submit_batch_to_ledger',
