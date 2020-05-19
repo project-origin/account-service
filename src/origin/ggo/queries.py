@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from origin.auth import User
 from origin.common import DateTimeRange
 from origin.ledger import SplitTarget, SplitTransaction
+from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 
 from .models import (
     Ggo,
@@ -19,9 +20,6 @@ from .models import (
     SummaryResolution,
     RetireFilters,
 )
-
-
-UNKNOWN_TECHNOLOGY_LABEL = 'Unknown'
 
 
 class GgoQuery(object):
