@@ -21,12 +21,19 @@ def start_handle_composed_ggo_pipeline(batch, recipients):
     :param Batch batch:
     :param collections.abc.Iterable[(User, Ggo)] recipients:
     """
-    on_submit_batch_complete = group(
+
+    # On success, invoke a webhook GgoReceived for each recipient
+    # of a new GGO
+    on_success = group(
         invoke_webhook.si(subject=user.sub, ggo_id=ggo.id)
         for user, ggo in recipients
     )
 
-    start_submit_batch_pipeline(batch, on_submit_batch_complete)
+    start_submit_batch_pipeline(
+        subject=batch.user.sub,
+        batch=batch,
+        success=on_success,
+    )
 
 
 @celery_app.task(
