@@ -45,12 +45,12 @@ def resubmit_batches(session):
         .filter(
             sa.or_(
                 sa.and_(
-                    BatchState.PENDING,
+                    Batch.state == BatchState.PENDING,
                     Batch.created <= text(
                         "NOW() - INTERVAL '%d HOURS'" % BATCH_RESUBMIT_AFTER_HOURS),
                 ),
                 sa.and_(
-                    BatchState.SUBMITTED,
+                    Batch.state == BatchState.SUBMITTED,
                     Batch.submitted <= text(
                         "NOW() - INTERVAL '%d HOURS'" % BATCH_RESUBMIT_AFTER_HOURS),
                 ),
