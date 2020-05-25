@@ -1,0 +1,641 @@
+openapi: 3.0.0
+info:
+  version: "1.0.0-oas3"
+  title: Project Origin AccountService
+  description: |
+    The document describes the API interface for Project Origin's Account Service.
+    
+    ## GitHub repository
+    
+    The project is available at [GitHub](https://github.com/project-origin/account-service).
+    
+    ## Authorization
+    
+    The client must provide the user's access token via the Authorization header in the form *Bearer \<token\>*.
+    
+schemes:
+  - https
+tags:
+  - name: GGO
+  - name: Transfers
+  - name: Retires
+paths:
+  /ggo:
+    post:
+      summary: Get a list of GGOs
+      description: >
+        Returns an array of GGO objects which belongs to the account.
+        The database contains a historical record of prioir received, sent, and
+        retired GGOs, so this endpoint will return GGOs that are no longer
+        available, unless filtered out.
+        
+        ## Offset and limit (paging)
+        
+        The client must provide an "offset" and a "limit" of how many objects to
+        return in each request. The response JSON contains the total amount
+        of results (independent of the provided offset and limit), and can
+        be used to calculate total number of requests required to get all GGOs.
+        Its adviced to keep the provided "limit" reasonable low, as JSON encoding-
+        and decoding can be rather memory consuming.
+        
+        ## Filtering
+        
+        The "filters" object in the request body allows to narrow down results.
+        All filters are optional, but can be mixed to perform complex searches.
+        Some filters are an array of values, which filters out any GGOs not having
+        any of the provided values (analogous to an SQL "IN" statement).
+        
+        ### Filtering on GGO begin
+        
+        "begin" is the time at which the energy production began. It usually have an
+        end time which is one hour later, but only the begin is filtered upon.
+        It is possible to filters GGOs on either one specific begin, or a
+        range/period defined by a from- and to datetime.
+        These two options should be considered mutually exclusive.
+        
+        ### Filtering on category
+        
+        "category" is the current state of a GGO. A GGO can be in multiple categories
+        at a time depending on it's lifecycle. For instance, a GGO can be "issued"
+        and "stored" at the same time, but can not be "retired" and "stored"
+        at the same time. Possible categories are:
+        
+        - issued
+        
+        - stored
+        
+        - retired
+        
+        - expired
+        
+      security:
+        - Bearer: []
+      tags:
+        - GGO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                offset:
+                  type: integer
+                limit:
+                  type: integer
+                  example: 20
+                filters:
+                  $ref: '#/definitions/GgoFilters'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  total:
+                    type: integer
+                    description: Total number of results
+                    example: 999
+                  results:
+                    type: array
+                    description: Array of GGO objects
+                    items:
+                      $ref: '#/definitions/Ggo'
+
+
+
+
+  /ggo-summary:
+    post:
+      summary: Get a summary of GGOs
+      description: >
+        Returns a summary of the account's GGOs, or a subset hereof. Useful for plotting or visualizing data.
+        
+        ## Filtering
+        
+        GGOs are filtered in the same way as with the /ggo endpoint (above).
+        
+        ## Time resolution
+        
+        Data is returned in the data/time resolution specified in the request. The total amount of energy (Wh) is aggregated/summarized for each period. Available resolutions are:
+        
+        - all
+        
+        - year
+        
+        - month
+        
+        - day
+        
+        - hour
+        
+        ## Labels
+        
+        The response contans an array of labels in order. Each label is a string representing a period of time according to the requested time resolution. There may be gaps in the array, depending on the source data, unless the "fill" parameter in the request is set to true.
+        
+        ## Grouping
+        
+        Data can be grouped by multiple different keys, much like an SQL "GROUP BY" statement.
+        The returned data is split into one or more groups. Each group has an array of values, which is the aggregated energy for a period of time. The values are in same order as the returned labels. Values may be null.
+      security:
+        - Bearer: []
+      tags:
+        - GGO
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                fill:
+                  type: boolean
+                  description: Whether or not to fill gaps in the array of labels
+                resolution:
+                  $ref: '#/definitions/SummaryResolution'
+                grouping:
+                  $ref: '#/definitions/SummaryGrouping'
+                filters:
+                  $ref: '#/definitions/GgoFilters'
+      responses:
+        '200':
+          description: asd
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  labels:
+                    type: array
+                    description: Date/datetime labels
+                    example: ['2020-01-01', '2020-01-02', '2020-01-03']
+                    items:
+                      type: string
+                  groups:
+                    type: array
+                    description: Array of result groups
+                    items:
+                      $ref: '#/definitions/SummaryGroup'
+                    example:
+                      group:
+                        example: ['Wind', 'DK1']
+              example:
+                success: true
+                labels: ['2020-01-01', '2020-01-02', '2020-01-03']
+                groups:
+                  - group: ['DK1', 'Wind']
+                    values: [2000, 5000, 3000]
+                  - group: ['DK2', 'Wind']
+                    values: [4000, 1000, 6000]
+                  - group: ['DK1', 'Solar']
+                    values: [2000, 5000, 3000]
+                  - group: ['DK2', 'Solar']
+                    values: [4000, 1000, 6000]
+
+
+
+
+  /compose:
+    post:
+      summary: Transfer and/or retire a GGO
+      description: >
+        Transfers or retires a single GGO to one or more accounts and/or MeteringPoints. The operation splits the source GGO up into multiple new GGOs if required to before transferring and retiring takes place. The sum of these can not exceed the source GGO's amount, but can, however deceed it. Any remaining amount is transferred back to the owner of the source GGO.
+        
+        ## Transfers
+        
+        Each transfer request contains an amount in Wh, a reference string for future enquiry, and a subject (sub), which is the recipient user's account number.
+        
+        ## Retires
+        
+        Each retire request contains an amount in Wh, and a GSRN number to retire the specified amount to.
+        
+        ## Concurrency
+        
+        The requested transfers and retires are counted as complete upon a successful response from this endpoint. This means that subsequent requests to other endpoints will count the requested amount transferred or retired immediately. However, due to the asynchronous nature of the blockchain ledger, this operation may be rolled back later in case of an error on the ledger, and will result in the source GGO being stored and available to the source' account again.
+      security:
+        - Bearer: []
+      tags:
+        - GGO
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                address:
+                  type: string
+                  description: Address of the source GGO
+                  example: '849c0b80c72ff6aed09e7d06f9f8474b577545870973674ba364fa40f6c6e2da0a026b'
+                transfers:
+                  type: array
+                  items:
+                    $ref: '#/definitions/TransferRequest'
+                retires:
+                  type: array
+                  items:
+                    $ref: '#/definitions/RetireRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  message:
+                    type: string
+                    description: Error message (if any)
+
+
+
+
+  /transfer/summary:
+    post:
+      summary: Get a summary of transferred GGOs
+      description: >
+        This endpoint works the same way as /ggo-summary, except it only summarized transferred GGOs, either inbound or outbound depending on the parameter "direction"
+        
+        ## Filtering
+        
+        In addition to the filters available for /ggo-summary, an additional filter "reference" is available to narrow down GGOs transferred with specific reference strings. These are the string references provided when composing a transfer using the /compose endpoint.
+      security:
+        - Bearer: []
+      tags:
+        - Transfers
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                direction:
+                  type: string
+                  enum:
+                    - inbound
+                    - outbound
+                fill:
+                  type: boolean
+                  description: Whether or not to fill gaps in the array of labels
+                resolution:
+                  $ref: '#/definitions/SummaryResolution'
+                grouping:
+                  $ref: '#/definitions/SummaryGrouping'
+                filters:
+                  $ref: '#/definitions/TransferFilters'
+      responses:
+        '200':
+          description: asd
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  labels:
+                    type: array
+                    description: Date/datetime labels
+                    example: ['2020-01-01', '2020-01-02', '2020-01-03']
+                    items:
+                      type: string
+                  groups:
+                    type: array
+                    description: Array of result groups
+                    items:
+                      $ref: '#/definitions/SummaryGroup'
+                    example:
+                      group:
+                        example: ['Wind', 'DK1']
+              example:
+                success: true
+                labels: ['2020-01-01', '2020-01-02', '2020-01-03']
+                groups:
+                  - group: ['DK1', 'Wind']
+                    values: [2000, 5000, 3000]
+                  - group: ['DK2', 'Wind']
+                    values: [4000, 1000, 6000]
+                  - group: ['DK1', 'Solar']
+                    values: [2000, 5000, 3000]
+                  - group: ['DK2', 'Solar']
+                    values: [4000, 1000, 6000]
+
+
+
+
+  /transfer/get-transferred-amount:
+    post:
+      summary: Get the amount of transferred GGOs
+      description: >
+        Summarizes the amount of transferred GGOs and returns the total amount of Wh as an integer. Takes the "filters" and "direction" like /transfers/summary.
+      security:
+        - Bearer: []
+      tags:
+        - Transfers
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                direction:
+                  type: string
+                  enum:
+                    - inbound
+                    - outbound
+                filters:
+                  $ref: '#/definitions/TransferFilters'
+      responses:
+        '200':
+          description: asd
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  amount:
+                    type: integer
+                    description: Summarized amount of transferred GGOs in Wh
+                    example: 5000
+
+
+
+
+  /retire/get-retired-amount:
+    post:
+      summary: Get the amount of transferred GGOs
+      description: >
+        Summarizes the amount of retired GGOs and returns the total amount of Wh as an integer.
+        
+        ## Filtering
+        
+        In addition to the filters available for /ggo and /ggo-summary, two additional filters "gsrn" and "address" is available to narrow down GGOs retired to specific MeteringPoints (specified by their GSRN numbers) and consumption measurement (specified by their addresses on the ledger).
+      security:
+        - Bearer: []
+      tags:
+        - Retires
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                direction:
+                  type: string
+                  enum:
+                    - inbound
+                    - outbound
+                filters:
+                  $ref: '#/definitions/RetireFilters'
+      responses:
+        '200':
+          description: asd
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  amount:
+                    type: integer
+                    description: Summarized amount of transferred GGOs in Wh
+                    example: 5000
+
+
+
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+
+
+
+definitions:
+  DateTimeRange:
+    type: object
+    description: A peroid of time defined by its begin and end (both included)
+    properties:
+      begin:
+        type: string
+        format: date-time
+        example: '2020-01-01 00:00:00'
+      end:
+        type: string
+        format: date-time
+        example: '2020-01-03 23:00:00'
+
+  SummaryResolution:
+    type: string
+    description: Date/datetime resolution of returned GGO summaries
+    example: 'day'
+    enum:
+      - all
+      - year
+      - month
+      - day
+      - hour
+
+  SummaryGrouping:
+    type: array
+    description: Data grouping of returned GGO summaries
+    example: ['sector', 'technology']
+    items:
+      type: string
+      enum:
+        - begin
+        - sector
+        - technology
+        - technologyCode
+        - fuelCode
+
+  SummaryGroup:
+    type: object
+    description: A grouping of values in a GGO summary
+    properties:
+      group:
+        type: array
+        example: ['Wind']
+        items:
+          type: string
+
+  Ggo:
+    type: object
+    description: One specific GGO
+    properties:
+      address:
+        type: string
+        description: The GGOs address on the ledger
+        example: '849c0b80c72ff6aed09e7d06f9f8474b577545870973674ba364fa40f6c6e2da0a026b'
+      sector:
+        type: string
+        description: The sector in which the energy was produced
+        example: 'DK1'
+      begin:
+        type: string
+        format: date-time
+        description: The time at which the production (measurement) started
+        example: '2020-01-01 00:00:00'
+      end:
+        type: string
+        format: date-time
+        description: The time at which the production (measurement) ended
+        example: '2020-01-01 01:00:00'
+      amount:
+        type: integer
+        description: The amount of energy produced in Wh
+        example: 10000
+      technologyCode:
+        type: string
+        description: The technology code of the production MeteringPoint
+        example: 'T010000'
+      fuelCode:
+        type: string
+        description: The fuel code of the production MeteringPoint
+        example: 'F01040100'
+
+  GgoCategory:
+    type: string
+    description: Current state/category of a GGO
+    enum:
+      - issued
+      - stored
+      - retired
+      - expired
+
+  GgoFilters:
+    type: object
+    description: Filters when selecting GGOs
+    properties:
+      begin:
+        type: string
+        format: date-time
+      beginRange:
+        $ref: '#/definitions/DateTimeRange'
+      sector:
+        type: array
+        description: Narrows GGOs down to those issued within certain sector(s)
+        example:
+          - DK1
+          - DK2
+        items:
+          type: string
+      technologyCode:
+        type: array
+        description: Narrows GGOs down to those issued with certain technology code(s)
+        example:
+          - T010000
+          - T040101
+        items:
+          type: string
+      fuelCode:
+        type: array
+        description: Narrows GGOs down to those issued with certain fuel code(s)
+        example:
+          - F01040100
+          - F01010501
+        items:
+          type: string
+      issueGsrn:
+        type: array
+        description: >-
+          Narrows GGOs down to those issued to specific MeteringPoints(s)
+          (specified by their GSRN number)
+        example:
+          - '123456789012345'
+          - '987654321098765'
+        items:
+          type: string
+      retireGsrn:
+        type: array
+        description: >-
+          Narrows GGOs down to those retired to specific MeteringPoints(s)
+          (specified by their GSRN number)
+        example:
+          - '123456789012345'
+          - '987654321098765'
+        items:
+          type: string
+      category:
+        $ref: '#/definitions/GgoCategory'
+
+  TransferFilters:
+    type: object
+    description: Filters when selecting transferred GGOs
+    allOf:
+      - $ref: '#/definitions/GgoFilters'
+      - type: object
+        properties:
+          reference:
+            type: array
+            description: >-
+              Narrows GGOs down to those transferred with specific references
+            example:
+              - 'My reference'
+              - 'My other reference'
+            items:
+              type: string
+
+  RetireFilters:
+    type: object
+    description: Filters when selecting retired GGOs
+    allOf:
+      - $ref: '#/definitions/GgoFilters'
+      - type: object
+        properties:
+          gsrn:
+            type: array
+            description: >-
+              Narrows GGOs down to those retired to specific MeteringPoints (specified by their GSRN number)
+            example:
+              - '123456798012345'
+              - '987654321054321'
+            items:
+              type: string
+
+  TransferRequest:
+    type: object
+    description: A request to transfer a certain amount of Wh to a specific recipient account
+    properties:
+      amount:
+        type: integer
+        description: Amount to tranfer in Wh
+        example: 1000
+      reference:
+        type: string
+        description: Your reference
+        example: 'Something for my own future reference'
+      sub:
+        type: string
+        description: Recipient's account number
+        example: 'effb72ff-b65b-4985-8bd3-3522c6002ebd'
+
+  RetireRequest:
+    type: object
+    description: A request to retire a certain amount of Wh to a specific MeteringPoint (specified by its GSRN number)
+    properties:
+      amount:
+        type: integer
+        description: Amount to retire in Wh
+        example: 1000
+      gsrn:
+        type: string
+        description: GSRN number
+        example: '123456789012345'

@@ -14,7 +14,7 @@ urls = (
     ('/ggo', ggo.GetGgoList()),
     ('/ggo/summary', ggo.GetGgoSummary()),
     ('/compose', ggo.ComposeGgo()),
-    ('/transfer', ggo.TransferGgo()),
+    # ('/transfer', ggo.TransferGgo()),
     ('/transfer/summary', ggo.GetTransferSummary()),
     ('/transfer/get-transferred-amount', ggo.GetTransferredAmount()),
 
