@@ -1,5 +1,6 @@
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
+from sqlalchemy import func
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
 from enum import Enum
@@ -32,6 +33,9 @@ class Batch(ModelBase):
     id = sa.Column(sa.Integer(), primary_key=True, index=True)
     created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
     state: BatchState = sa.Column(sa.Enum(BatchState), nullable=False)
+
+    # Time when batch was LAST submitted to ledger (if at all)
+    submitted = sa.Column(sa.DateTime(timezone=True), nullable=True)
 
     # Relationships
     user_id = sa.Column(sa.Integer(), sa.ForeignKey('auth_user.id'), index=True, nullable=False)
@@ -75,6 +79,7 @@ class Batch(ModelBase):
         """
         self.state = BatchState.SUBMITTED
         self.handle = handle
+        self.submitted = func.now()
 
     def on_commit(self):
         """

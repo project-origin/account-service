@@ -7,13 +7,16 @@ from celery import chain
 from origin import logger
 from origin.db import atomic
 from origin.tasks import celery_app
-from origin.settings import LEDGER_URL, DEBUG
 from origin.ledger import Batch
+from origin.settings import LEDGER_URL, DEBUG, BATCH_RESUBMIT_AFTER_HOURS
 
 
 # Settings
 RETRY_MAX_DELAY = 60
-MAX_RETRIES = (24 * 60 * 60) / RETRY_MAX_DELAY
+MAX_RETRIES = (BATCH_RESUBMIT_AFTER_HOURS * 60 * 60) / RETRY_MAX_DELAY
+
+
+ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
 
 
 def start_submit_batch_pipeline(subject, batch, success=None, error=None):
@@ -59,7 +62,6 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
     :param int batch_id:
     :param Session session:
     """
-    ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
     batch = session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \
@@ -114,8 +116,6 @@ def poll_batch_status(handle, subject, batch_id, session):
         .filter(Batch.id == batch_id) \
         .one()
 
-    ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
-
     with logger.tracer.span('GetBatchStatus'):
         response = ledger.get_batch_status(handle)
 
@@ -136,7 +136,7 @@ def poll_batch_status(handle, subject, batch_id, session):
         })
         batch.on_rollback()
     elif response.status == ols.BatchStatus.UNKNOWN:
-        logger.error('Batch submit UNKNOWN: Re-submitting', extra={
+        logger.error('Batch submit UNKNOWN: Retrying', extra={
             'subject': batch.user.sub,
             'handle': handle,
             'pipeline': 'submit_batch_to_ledger',
