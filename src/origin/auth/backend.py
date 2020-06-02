@@ -42,8 +42,8 @@ class AuthBackend(object):
                 url=HYDRA_AUTH_ENDPOINT,
                 redirect_uri=LOGIN_CALLBACK_URL,
             )
-        except json.decoder.JSONDecodeError:
-            logger.exception('JSONDecodeError from Hydra')
+        except json.decoder.JSONDecodeError as e:
+            logger.exception('JSONDecodeError from Hydra', extra={'doc': e.doc})
             raise
 
     def fetch_token(self, code, state):
@@ -61,8 +61,8 @@ class AuthBackend(object):
                 redirect_uri=LOGIN_CALLBACK_URL,
                 verify=not DEBUG,
             )
-        except json.decoder.JSONDecodeError:
-            logger.exception('JSONDecodeError from Hydra')
+        except json.decoder.JSONDecodeError as e:
+            logger.exception('JSONDecodeError from Hydra', extra={'doc': e.doc})
             raise
 
     def refresh_token(self, refresh_token):
@@ -76,8 +76,8 @@ class AuthBackend(object):
                 refresh_token=refresh_token,
                 verify=not DEBUG,
             )
-        except json.decoder.JSONDecodeError:
-            logger.exception('JSONDecodeError from Hydra')
+        except json.decoder.JSONDecodeError as e:
+            logger.exception('JSONDecodeError from Hydra', extra={'doc': e.doc})
             raise
 
     def get_id_token(self, token):
