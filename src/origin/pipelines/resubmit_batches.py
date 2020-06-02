@@ -4,7 +4,6 @@ which has not been successfully submitted to the ledger for some reason,
 for instance if the ledger has been down for a period of time etc.
 """
 import sqlalchemy as sa
-from celery import group
 from sqlalchemy import text
 
 from origin import logger
@@ -13,7 +12,7 @@ from origin.tasks import celery_app
 from origin.ledger import Batch, BatchState
 from origin.settings import BATCH_RESUBMIT_AFTER_HOURS
 
-from .submit_batch_to_ledger import submit_batch_to_ledger
+from .submit_batch_to_ledger import start_submit_batch_pipeline
 
 
 def start_resubmit_batches_pipeline():
@@ -57,10 +56,8 @@ def resubmit_batches(session):
             ),
         )
 
-    tasks = [
-        submit_batch_to_ledger.s(subject=b.user.sub, batch_id=b.id)
-        for b in batches
-    ]
-
-    if tasks:
-        group(tasks).apply_async()
+    for batch in batches:
+        start_submit_batch_pipeline(
+            subject=batch.user.sub,
+            batch=batch,
+        )
