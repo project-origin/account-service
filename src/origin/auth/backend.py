@@ -1,7 +1,9 @@
+import json
 import requests
 from authlib.jose import jwt
 from authlib.integrations.requests_client import OAuth2Session
 
+from origin import logger
 from origin.cache import redis
 from origin.settings import (
     DEBUG,
@@ -35,10 +37,14 @@ class AuthBackend(object):
         :rtype: (str, str)
         :returns: Tuple of (login_url, state)
         """
-        return self.client.create_authorization_url(
-            url=HYDRA_AUTH_ENDPOINT,
-            redirect_uri=LOGIN_CALLBACK_URL,
-        )
+        try:
+            return self.client.create_authorization_url(
+                url=HYDRA_AUTH_ENDPOINT,
+                redirect_uri=LOGIN_CALLBACK_URL,
+            )
+        except json.decoder.JSONDecodeError as e:
+            logger.exception('JSONDecodeError from Hydra', extra={'doc': e.doc})
+            raise
 
     def fetch_token(self, code, state):
         """
@@ -46,25 +52,33 @@ class AuthBackend(object):
         :param str state:
         :rtype: collections.abc.Mapping
         """
-        return self.client.fetch_token(
-            url=HYDRA_TOKEN_ENDPOINT,
-            grant_type='authorization_code',
-            code=code,
-            state=state,
-            redirect_uri=LOGIN_CALLBACK_URL,
-            verify=not DEBUG,
-        )
+        try:
+            return self.client.fetch_token(
+                url=HYDRA_TOKEN_ENDPOINT,
+                grant_type='authorization_code',
+                code=code,
+                state=state,
+                redirect_uri=LOGIN_CALLBACK_URL,
+                verify=not DEBUG,
+            )
+        except json.decoder.JSONDecodeError as e:
+            logger.exception('JSONDecodeError from Hydra', extra={'doc': e.doc})
+            raise
 
     def refresh_token(self, refresh_token):
         """
         :param str refresh_token:
         :rtype:
         """
-        return self.client.refresh_token(
-            url=HYDRA_TOKEN_ENDPOINT,
-            refresh_token=refresh_token,
-            verify=not DEBUG,
-        )
+        try:
+            return self.client.refresh_token(
+                url=HYDRA_TOKEN_ENDPOINT,
+                refresh_token=refresh_token,
+                verify=not DEBUG,
+            )
+        except json.decoder.JSONDecodeError as e:
+            logger.exception('JSONDecodeError from Hydra', extra={'doc': e.doc})
+            raise
 
     def get_id_token(self, token):
         """
