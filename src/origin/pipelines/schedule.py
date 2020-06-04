@@ -20,7 +20,7 @@ def setup_periodic_tasks(sender, **kwargs):
     # REFRESH ACCESS TOKENS
     # Refresh tokens every 30 minutes
     sender.add_periodic_task(
-        crontab(minute='15/45'),
+        crontab(minute='15,45'),
         get_soon_to_expire_tokens.s(),
     )
 

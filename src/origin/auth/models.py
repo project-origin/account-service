@@ -22,6 +22,7 @@ class User(ModelBase):
 
     id = sa.Column(sa.Integer, primary_key=True, index=True)
     created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
+    last_login = sa.Column(sa.DateTime(timezone=True))
 
     # Subject ID / Account number
     sub = sa.Column(sa.String(), index=True, unique=True, nullable=False)
@@ -58,6 +59,9 @@ class User(ModelBase):
         :param bytes entropy:
         """
         KeyGenerator.set_key_for_user_from_entropy(self, entropy)
+
+    def update_last_login(self):
+        self.last_login = sa.func.now()
 
 
 class MeteringPoint(ModelBase):
