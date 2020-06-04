@@ -383,6 +383,9 @@ class RetireQuery(GgoQuery):
         """
         q = super(RetireQuery, self).apply_filters(filters).q
 
+        # TODO refactor to use self.is_retired_to_address()
+        # TODO   and self.is_retired_to_gsrn()
+
         if filters.gsrn:
             q = q.filter(Ggo.retire_gsrn.in_(filters.gsrn))
         if filters.address:

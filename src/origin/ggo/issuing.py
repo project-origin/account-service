@@ -1,8 +1,10 @@
 from origin import logger
 from origin.db import atomic
-from origin.ggo import GgoQuery, Ggo
 from origin.common import DateTimeRange
 from origin.services.datahub import DataHubService, GetGgoListRequest
+
+from .models import Ggo
+from .queries import GgoQuery
 
 
 datahub = DataHubService()
@@ -13,12 +15,13 @@ class GgoIssueController(object):
     TODO
     """
 
-    def import_ggos(self, user, gsrn, begin_from, begin_to):
+    def import_ggos(self, user, gsrn, begin_from, begin_to, session):
         """
         :param User user:
         :param str gsrn:
         :param datetime.datetime begin_from:
         :param datetime.datetime begin_to:
+        :param Session session:
         :rtype: list[Ggo]
         """
         logger.info(f'Importing GGOs for GSRN: {gsrn}', extra={
@@ -31,7 +34,7 @@ class GgoIssueController(object):
         })
 
         imported_ggos = self.fetch_ggos(user, gsrn, begin_from, begin_to)
-        issued_ggos = self.insert_to_db(user, imported_ggos)
+        issued_ggos = self.insert_to_db(user, imported_ggos, session)
 
         logger.info(f'Imported {len(issued_ggos)} GGOs for GSRN: {gsrn}', extra={
             'gsrn': gsrn,
@@ -57,7 +60,6 @@ class GgoIssueController(object):
         response = datahub.get_ggo_list(user.access_token, request)
         return response.ggos
 
-    @atomic
     def insert_to_db(self, user, imported_ggos, session):
         """
         :param User user:
