@@ -34,6 +34,7 @@ stages:
         repository: $(imageName)
         Dockerfile: Dockerfile
         tags: |
+          latest
           $(tag)
     - task: Docker@2
       displayName: Push image
@@ -42,6 +43,7 @@ stages:
         repository: $(imageName)
         containerRegistry: dockerHub
         tags: |
+          latest
           $(tag)
 - stage: update_cluster
   displayName: Update kubernetes
