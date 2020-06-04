@@ -86,7 +86,7 @@ class MeteringPoint(ModelBase):
         return 'MeteringPoint<gsrn=%s>' % self.gsrn
 
     @staticmethod
-    def create(user, **kwargs):
+    def create(user, session, **kwargs):
         """
         :param User user:
         :param kwargs:
@@ -94,7 +94,7 @@ class MeteringPoint(ModelBase):
         """
         return MeteringPoint(
             user=user,
-            key_index=MeteringPointIndexSequence.get_next_position(user.id),
+            key_index=MeteringPointIndexSequence.get_next_position(user.id, session),
             **kwargs
         )
 
@@ -119,7 +119,7 @@ class MeteringPointIndexSequence(ModelBase):
     """
     __tablename__ = 'accounts_meteringpoint_index_sequence'
     __table_args__ = (
-        sa.UniqueConstraint('user_id', 'index'),
+        sa.UniqueConstraint('user_id'),
     )
 
     id = sa.Column(sa.Integer(), primary_key=True, index=True)
@@ -127,38 +127,28 @@ class MeteringPointIndexSequence(ModelBase):
     index = sa.Column(sa.Integer(), nullable=False)
 
     @staticmethod
-    @inject_session
     def get_next_position(user_id, session):
         """
         :param User user_id:
         :param Session session:
         :rtype: int
         """
-        index = session \
-            .query(sa.func.max(MeteringPointIndexSequence.index)) \
-            .filter_by(user_id=user_id) \
-            .scalar()
+        query = """
+            WITH updated AS (
+              INSERT INTO accounts_meteringpoint_index_sequence (user_id, index)
+              VALUES (:user_id, 0)
+              ON CONFLICT (user_id)
+              DO UPDATE
+                SET index = accounts_meteringpoint_index_sequence.index + 1
+              RETURNING accounts_meteringpoint_index_sequence.index
+            )
+            SELECT index FROM updated;
+            """
 
-        @atomic
-        def __insert(pos, session):
-            session.add(MeteringPointIndexSequence(
-                user_id=user_id,
-                index=pos,
-            ))
+        res = session.execute(query, {'user_id': user_id})
+        key_index = list(res)[0][0]
 
-        while 1:
-            if index is not None:
-                index += 1
-            else:
-                index = 0
-
-            try:
-                __insert(index)
-            except IntegrityError:
-                # Unique constraint violated
-                continue
-            else:
-                return index
+        return key_index
 
 
 # -- OnMeteringPointsAvailableWebhook request and response -------------------
