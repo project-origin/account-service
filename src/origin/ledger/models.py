@@ -244,8 +244,8 @@ class SplitTransaction(Transaction):
         session = Session.object_session(self)
 
         for target in self.targets:
-            session.delete(target.ggo)
             session.delete(target)
+            session.delete(target.ggo)
 
     def build_ledger_request(self):
         parts = []
