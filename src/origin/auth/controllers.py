@@ -130,6 +130,7 @@ class LoginCallback(Controller):
 
         entropy = os.urandom(256) + user.sub.encode()
         user.set_key_from_entropy(entropy)
+        user.update_last_login()
 
         session.add(user)
         session.flush()
@@ -138,6 +139,7 @@ class LoginCallback(Controller):
         """
 
         """
+        user.update_last_login()
         user.access_token = token['access_token']
         user.refresh_token = token['refresh_token']
         user.token_expire = expires
