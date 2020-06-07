@@ -31,7 +31,7 @@ class Ggo(ModelBase):
     __tablename__ = 'ggo_ggo'
     __table_args__ = (
         sa.UniqueConstraint('address'),
-        # sa.UniqueConstraint('facility_gsrn', 'technology', 'period'),
+        sa.UniqueConstraint('user_id', 'key_index'),
     )
 
     id = sa.Column(sa.Integer(), primary_key=True, index=True)
@@ -154,7 +154,7 @@ class GgoIndexSequence(ModelBase):
     """
     __tablename__ = 'ggo_ggo_index_sequence'
     __table_args__ = (
-        sa.UniqueConstraint('user_id', 'index'),
+        sa.UniqueConstraint('user_id'),
     )
 
     id = sa.Column(sa.Integer(), primary_key=True, index=True)
@@ -168,29 +168,22 @@ class GgoIndexSequence(ModelBase):
         :param Session session:
         :rtype: int
         """
-        index = session \
-            .query(sa.func.max(GgoIndexSequence.index)) \
-            .filter_by(user_id=user_id) \
-            .scalar()
+        query = """
+            WITH updated AS (
+              INSERT INTO ggo_ggo_index_sequence (user_id, index)
+              VALUES (:user_id, 0)
+              ON CONFLICT (user_id)
+              DO UPDATE
+                SET index = ggo_ggo_index_sequence.index + 1
+              RETURNING ggo_ggo_index_sequence.index
+            )
+            SELECT index FROM updated;
+            """
 
-        @atomic
-        def __insert(session):
-            session.add(GgoIndexSequence(user_id=user_id, index=index))
-            session.flush()
+        res = session.execute(query, {'user_id': user_id})
+        key_index = list(res)[0][0]
 
-        while 1:
-            if index is not None:
-                index += 1
-            else:
-                index = 0
-
-            try:
-                __insert()
-            except IntegrityError:
-                # Unique constraint violated
-                continue
-            else:
-                return index
+        return key_index
 
 
 class Technology(ModelBase):

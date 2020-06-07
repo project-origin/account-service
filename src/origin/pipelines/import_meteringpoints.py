@@ -58,6 +58,7 @@ def import_meteringpoints_and_insert_to_db(subject, session):
                 user=user,
                 gsrn=meteringpoint.gsrn,
                 sector=meteringpoint.sector,
+                session=session,
             )
 
             session.add(meteringpoint)
