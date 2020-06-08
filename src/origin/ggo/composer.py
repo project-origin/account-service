@@ -10,7 +10,7 @@ from .queries import RetireQuery
 from .models import Ggo
 
 
-datahub = DataHubService()
+datahub_service = DataHubService()
 
 
 class GgoComposer(object):
@@ -238,7 +238,7 @@ class GgoComposer(object):
         :rtype: Measurement
         """
         request = GetMeasurementRequest(gsrn=gsrn, begin=begin)
-        response = datahub.get_consumption(
+        response = datahub_service.get_consumption(
             self.ggo.user.access_token, request)
 
         return response.measurement

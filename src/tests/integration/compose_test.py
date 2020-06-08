@@ -108,8 +108,8 @@ def session():
 # -- Constructor -------------------------------------------------------------
 
 
-@patch('origin.ggo.composer.datahub')
-@patch('origin.ggo.issuing.datahub')
+@patch('origin.ggo.composer.datahub_service')
+@patch('origin.ggo.issuing.datahub_service')
 def test__integration__compose(datahub_issuing, datahub_composer, session):
 
     sector = 'DK1'
