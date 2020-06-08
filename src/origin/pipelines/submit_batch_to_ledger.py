@@ -121,24 +121,27 @@ def poll_batch_status(handle, subject, batch_id, session):
 
     if response.status == ols.BatchStatus.COMMITTED:
         logger.error('Ledger submitted', extra={
-            'subject': batch.user.sub,
+            'subject': subject,
             'handle': handle,
+            'batch_id': batch_id,
             'pipeline': 'submit_batch_to_ledger',
             'task': 'poll_batch_status',
         })
         batch.on_commit()
     elif response.status == ols.BatchStatus.INVALID:
         logger.error('Batch submit FAILED: Invalid', extra={
-            'subject': batch.user.sub,
+            'subject': subject,
             'handle': handle,
+            'batch_id': batch_id,
             'pipeline': 'submit_batch_to_ledger',
             'task': 'poll_batch_status',
         })
         batch.on_rollback()
     elif response.status == ols.BatchStatus.UNKNOWN:
         logger.error('Batch submit UNKNOWN: Retrying', extra={
-            'subject': batch.user.sub,
+            'subject': subject,
             'handle': handle,
+            'batch_id': batch_id,
             'pipeline': 'submit_batch_to_ledger',
             'task': 'poll_batch_status',
         })
