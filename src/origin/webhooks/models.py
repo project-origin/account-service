@@ -14,6 +14,9 @@ class Subscription(ModelBase):
     Represents one used in the system who is able to authenticate.
     """
     __tablename__ = 'webhook_subscription'
+    __table_args__ = (
+        sa.UniqueConstraint('subject', 'event', 'url'),
+    )
 
     id = sa.Column(sa.Integer(), primary_key=True, index=True)
     event = sa.Column(sa.Enum(Event), index=True, nullable=False)

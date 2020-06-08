@@ -1,5 +1,5 @@
 """
-TODO write this
+Asynchronous tasks for submitting a Batch to the ledger.
 """
 import origin_ledger_sdk as ols
 from celery import chain
@@ -60,7 +60,7 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
     :param celery.Task task:
     :param str subject:
     :param int batch_id:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
     batch = session \
         .query(Batch) \
@@ -75,7 +75,7 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
         # In this case, don't log the error, just try again later
         if e.code != 31:
             logger.exception(f'Ledger raise an exception', extra={
-                'subject': batch.user.sub,
+                'subject': subject,
                 'batch_id': batch_id,
                 'error_message': str(e),
                 'error_code': e.code,
@@ -109,7 +109,7 @@ def poll_batch_status(handle, subject, batch_id, session):
     :param str handle:
     :param str subject:
     :param int batch_id:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
     batch = session \
         .query(Batch) \
@@ -166,12 +166,10 @@ def rollback_batch(subject, batch_id, session):
     """
     :param str subject:
     :param int batch_id:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
-    batch = session \
+    session \
         .query(Batch) \
         .filter(Batch.id == batch_id) \
-        .one_or_none()
-
-    if batch:
-        batch.on_rollback()
+        .one() \
+        .on_rollback()

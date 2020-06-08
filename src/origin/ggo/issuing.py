@@ -1,5 +1,4 @@
 from origin import logger
-from origin.db import atomic
 from origin.common import DateTimeRange
 from origin.services.datahub import DataHubService, GetGgoListRequest
 
@@ -7,12 +6,13 @@ from .models import Ggo
 from .queries import GgoQuery
 
 
-datahub = DataHubService()
+datahub_service = DataHubService()
 
 
 class GgoIssueController(object):
     """
-    TODO
+    Imports GGO(s) from DataHubService and saves them in the
+    database with an ISSUED state.
     """
 
     def import_ggos(self, user, gsrn, begin_from, begin_to, session):
@@ -21,7 +21,7 @@ class GgoIssueController(object):
         :param str gsrn:
         :param datetime.datetime begin_from:
         :param datetime.datetime begin_to:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: list[Ggo]
         """
         logger.info(f'Importing GGOs for GSRN: {gsrn}', extra={
@@ -33,10 +33,20 @@ class GgoIssueController(object):
             'task': 'import_ggos_and_insert_to_db',
         })
 
+        # Import GGOs from DataHub
         imported_ggos = self.fetch_ggos(user, gsrn, begin_from, begin_to)
-        issued_ggos = self.insert_to_db(user, imported_ggos, session)
 
-        logger.info(f'Imported {len(issued_ggos)} GGOs for GSRN: {gsrn}', extra={
+        # Filter out GGOs that already exists and map to Ggo type
+        filtered_ggos = [
+            self.map_imported_ggo(user, ggo)
+            for ggo in imported_ggos
+            if not self.ggo_exists(ggo.address, session)
+        ]
+
+        # Insert to database
+        session.add_all(filtered_ggos)
+
+        logger.info(f'Imported {len(filtered_ggos)} GGOs for GSRN: {gsrn}', extra={
             'gsrn': gsrn,
             'subject': user.sub,
             'begin_from': str(begin_from),
@@ -45,7 +55,7 @@ class GgoIssueController(object):
             'task': 'import_ggos_and_insert_to_db',
         })
 
-        return issued_ggos
+        return filtered_ggos
 
     def fetch_ggos(self, user, gsrn, begin_from, begin_to):
         """
@@ -53,36 +63,23 @@ class GgoIssueController(object):
         :param str gsrn:
         :param datetime.datetime begin_from:
         :param datetime.datetime begin_to:
-        :rtype: list[Ggo]
+        :rtype: list[origin.services.datahub.Ggo]
         """
         begin_range = DateTimeRange(begin=begin_from, end=begin_to)
         request = GetGgoListRequest(gsrn=gsrn, begin_range=begin_range)
-        response = datahub.get_ggo_list(user.access_token, request)
+        response = datahub_service.get_ggo_list(user.access_token, request)
         return response.ggos
 
-    def insert_to_db(self, user, imported_ggos, session):
+    def ggo_exists(self, address, session):
         """
-        :param User user:
-        :param list[origin.services.datahub.Ggo] imported_ggos:
-        :param Session session:
-        :rtype: list[Ggo]
+        :param str address:
+        :param sqlalchemy.orm.Session session:
         """
-        ggos = []
+        count = GgoQuery(session) \
+            .has_address(address) \
+            .count()
 
-        for i, imported_ggo in enumerate(imported_ggos):
-            count = GgoQuery(session) \
-                .has_address(imported_ggo.address) \
-                .count()
-
-            if count == 0:
-                ggo = self.map_imported_ggo(user, imported_ggo)
-                session.add(ggo)
-                ggos.append(ggo)
-
-                if i % 100 == 0:
-                    session.flush()
-
-        return ggos
+        return count > 0
 
     def map_imported_ggo(self, user, imported_ggo):
         """

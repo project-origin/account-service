@@ -49,7 +49,7 @@ def test__GgoComposer__add_retire__meteringpoint_different_user__should_raise_As
         composer.add_retire(meteringpoint=Mock(user_id=2), amount=100)
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 def test__GgoComposer__add_retire__no_measurement_available__should_raise_RetireMeasurementUnavailable(datahub):
     """
     There does not exists any [consumption] Measurement for the
@@ -69,7 +69,7 @@ def test__GgoComposer__add_retire__no_measurement_available__should_raise_Retire
         composer.add_retire(meteringpoint=Mock(user_id=1), amount=100)
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 def test__GgoComposer__add_retire__measurement_and_ggo_different_sector__should_raise_RetireMeasurementInvalid(datahub):
     """
     GGO can only be retired to Measurements within the same "sector"
@@ -90,7 +90,7 @@ def test__GgoComposer__add_retire__measurement_and_ggo_different_sector__should_
         composer.add_retire(meteringpoint=Mock(user_id=1), amount=100)
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 def test__GgoComposer__add_retire__measurement_and_ggo_different_begin__should_raise_RetireMeasurementInvalid(datahub):
     """
     GGO can only be retired to Measurements at the same "begin"
@@ -111,7 +111,7 @@ def test__GgoComposer__add_retire__measurement_and_ggo_different_begin__should_r
         composer.add_retire(meteringpoint=Mock(user_id=1), amount=100)
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 @pytest.mark.parametrize('retire_amount', (-1, 0, 101))
 def test__GgoComposer__add_retire__invalid_amount__should_raise_AssertionError(datahub, retire_amount):
     """
@@ -131,7 +131,7 @@ def test__GgoComposer__add_retire__invalid_amount__should_raise_AssertionError(d
         composer.add_retire(meteringpoint=Mock(user_id=1), amount=retire_amount)
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 @pytest.mark.parametrize(
     'measured, retired, requested, actual', (
     (200,      0,       100,       100),
@@ -191,7 +191,7 @@ def test__GgoComposer__build_batch__nothing_added__should_raise_Empty():
         composer.build_batch()
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 @pytest.mark.parametrize(
     'transfer_amounts,      retire_amounts', (
     ((40, 40),              (40, 40)),
@@ -231,7 +231,7 @@ def test__GgoComposer__build_batch__total_amount_exceeds_available_amount__shoul
         composer.build_batch()
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 @pytest.mark.parametrize(
     'transfer_amounts,      remaining_amount', (
     ((100,),                0),
@@ -294,7 +294,7 @@ def test__GgoComposer__build_batch__only_transfer__should_build_batch_and_add_re
         assert batch.transactions[0].targets[i].ggo.amount == amount
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 def test__GgoComposer__build_batch__retire_full_amount_to_one_gsrn__should_build_batch_with_one_RetireTransaction(datahub):
 
     #  -- Arrange ------------------------------------------------------------
@@ -333,7 +333,7 @@ def test__GgoComposer__build_batch__retire_full_amount_to_one_gsrn__should_build
     assert batch.transactions[0].measurement_address == 'MEASUREMENT-ADDRESS'
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 def test__GgoComposer__build_batch__multiple_retires__should_build_batch_with_one_SplitTransaction_and_multiple_RetireTransactions(datahub):
 
     #  -- Arrange ------------------------------------------------------------
@@ -396,7 +396,7 @@ def test__GgoComposer__build_batch__multiple_retires__should_build_batch_with_on
     assert retire2.measurement_address == 'MEASUREMENT-ADDRESS'
 
 
-@patch('origin.ggo.composer.datahub')
+@patch('origin.ggo.composer.datahub_service')
 def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build_batch_with_one_SplitTransaction_and_multiple_RetireTransactions(datahub):
 
     #  -- Arrange ------------------------------------------------------------
@@ -432,9 +432,6 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     # Sum of transfers + retires = 95 (5 remaining)
 
     batch, recipients = composer.build_batch()
-
-    # Rq9!4&C7bMvBCKG^Zoe@Q
-    # A7k6bJJ4QDJWyGPepqM
 
     #  -- Assert -------------------------------------------------------------
 

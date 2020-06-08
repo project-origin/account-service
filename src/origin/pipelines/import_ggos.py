@@ -1,5 +1,11 @@
 """
-TODO write this
+Asynchronous tasks for importing GGOs from DataHubService.
+Invokes the "GGO RECEIVED" webhook for each new GGO.
+
+One entrypoint exists:
+
+    start_import_issued_ggos()
+
 """
 from celery import group
 from datetime import datetime

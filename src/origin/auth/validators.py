@@ -7,14 +7,13 @@ from marshmallow import ValidationError
 
 from origin.db import inject_session
 
-from origin.auth.queries import UserQuery
+from .queries import UserQuery
 
 
 @inject_session
 def sub_exists(sub, session, *args, **kwargs):
     """
-    Validates that a list of items are unique,
-    ie. no value are present more than once.
+    Validates that a user exists with the provided subject.
     """
     user = UserQuery(session) \
         .has_sub(sub) \

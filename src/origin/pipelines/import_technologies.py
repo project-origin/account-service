@@ -1,5 +1,10 @@
 """
-TODO write this
+Asynchronous tasks for importing Technologies from DataHubService.
+
+One entrypoint exists:
+
+    start_import_technologies()
+
 """
 from origin import logger
 from origin.db import atomic
@@ -31,7 +36,7 @@ def start_import_technologies():
 @atomic
 def import_technologies_and_insert_to_db(session):
     """
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
     response = service.get_technologies()
 

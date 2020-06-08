@@ -6,10 +6,6 @@ from origin.settings import HYDRA_INTROSPECT_URL
 
 
 class Token(dict):
-    """
-    TODO
-    """
-
     def __init__(self, json):
         super(Token, self).__init__()
         self.update(json)
