@@ -40,7 +40,7 @@ class Batch(ModelBase):
     # Relationships
     user_id = sa.Column(sa.Integer(), sa.ForeignKey('auth_user.id'), index=True, nullable=False)
     user = relationship('User', foreign_keys=[user_id])
-    transactions = relationship('Transaction', back_populates='batch', uselist=True)
+    transactions = relationship('Transaction', back_populates='batch', uselist=True, order_by='asc(Transaction.order)')
 
     # The handle returned by the ledger used to enquiry for status
     handle = sa.Column(sa.String())
