@@ -24,7 +24,6 @@ urls = (
     # Webhooks
     ('/webhook/on-ggos-issued', ggo.OnGgosIssuedWebhook()),
     ('/webhook/on-meteringpoints-available', auth.OnMeteringPointsAvailableWebhook()),
-    ('/webhook/on-ggo-received/subscribe', webhooks.Subscribe(
-        Event.ON_GGO_RECEIVED)),
+    ('/webhook/on-ggo-received/subscribe', webhooks.Subscribe(Event.ON_GGO_RECEIVED)),
 
 )

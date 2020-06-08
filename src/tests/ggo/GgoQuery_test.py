@@ -233,15 +233,24 @@ def test__GgoQuery__is_stored__returns_correct_ggos(seeded_session, ggo_stored):
     assert all(ggo.stored == ggo_stored for ggo in query.all())
 
 
-@pytest.mark.parametrize('ggo_retired', (True, False))
-def test__GgoQuery__is_retired__returns_correct_ggos(seeded_session, ggo_retired):
+def test__GgoQuery__is_retired__returns_correct_ggos(seeded_session):
     query = GgoQuery(seeded_session) \
-        .is_retired(ggo_retired)
+        .is_retired(True)
 
     assert query.count() > 0
-    assert all(ggo.retired == ggo_retired for ggo in query.all())
+    assert all(ggo.retired is True for ggo in query.all())
     assert all(ggo.retire_gsrn is not None for ggo in query.all())
     assert all(ggo.retire_address is not None for ggo in query.all())
+
+
+def test__GgoQuery__is_NOT_retired__returns_correct_ggos(seeded_session):
+    query = GgoQuery(seeded_session) \
+        .is_retired(False)
+
+    assert query.count() > 0
+    assert all(ggo.retired is False for ggo in query.all())
+    assert all(ggo.retire_gsrn is None for ggo in query.all())
+    assert all(ggo.retire_address is None for ggo in query.all())
 
 
 @pytest.mark.parametrize('ggo_retire_address', ('RETIRE-ADDRESS-1', 'RETIRE-ADDRESS-2'))
