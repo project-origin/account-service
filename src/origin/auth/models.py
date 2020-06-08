@@ -93,7 +93,7 @@ class MeteringPoint(ModelBase):
         :rtype: MeteringPoint
         """
         return MeteringPoint(
-            user=user,
+            user_id=user.id,
             key_index=MeteringPointIndexSequence.get_next_position(user.id, session),
             **kwargs
         )

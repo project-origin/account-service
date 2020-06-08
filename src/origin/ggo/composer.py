@@ -85,6 +85,7 @@ class GgoComposer(object):
         :param int amount:
         """
         assert 0 < amount <= self.ggo.amount
+        assert meteringpoint.user_id == self.ggo.user_id
 
         # The published consumption measurement to retire to
         measurement = self.get_consumption(meteringpoint.gsrn, self.ggo.begin)

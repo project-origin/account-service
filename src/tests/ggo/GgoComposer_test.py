@@ -31,6 +31,24 @@ def test__GgoComposer__ggo_is_expired__should_raise_AssertionError():
 # -- add_retire() ------------------------------------------------------------
 
 
+def test__GgoComposer__add_retire__meteringpoint_different_user__should_raise_AssertionError():
+    """
+    There does not exists any [consumption] Measurement for the
+    provided GSRN at the GGOs "begin"
+    """
+
+    # Arrange
+    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), user_id=1)
+    ggo.is_tradable.return_value = True
+    ggo.is_expired.return_value = False
+
+    composer = GgoComposer(ggo=ggo, session=Mock())
+
+    # Act + Assert
+    with pytest.raises(AssertionError):
+        composer.add_retire(meteringpoint=Mock(user_id=2), amount=100)
+
+
 @patch('origin.ggo.composer.datahub')
 def test__GgoComposer__add_retire__no_measurement_available__should_raise_RetireMeasurementUnavailable(datahub):
     """
@@ -39,7 +57,7 @@ def test__GgoComposer__add_retire__no_measurement_available__should_raise_Retire
     """
 
     # Arrange
-    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0))
+    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
 
@@ -48,7 +66,7 @@ def test__GgoComposer__add_retire__no_measurement_available__should_raise_Retire
 
     # Act + Assert
     with pytest.raises(composer.RetireMeasurementUnavailable):
-        composer.add_retire(meteringpoint=Mock(), amount=100)
+        composer.add_retire(meteringpoint=Mock(user_id=1), amount=100)
 
 
 @patch('origin.ggo.composer.datahub')
@@ -58,7 +76,7 @@ def test__GgoComposer__add_retire__measurement_and_ggo_different_sector__should_
     """
 
     # Arrange
-    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), sector='DK1')
+    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), sector='DK1', user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
 
@@ -69,7 +87,7 @@ def test__GgoComposer__add_retire__measurement_and_ggo_different_sector__should_
 
     # Act + Assert
     with pytest.raises(composer.RetireMeasurementInvalid):
-        composer.add_retire(meteringpoint=Mock(), amount=100)
+        composer.add_retire(meteringpoint=Mock(user_id=1), amount=100)
 
 
 @patch('origin.ggo.composer.datahub')
@@ -79,7 +97,7 @@ def test__GgoComposer__add_retire__measurement_and_ggo_different_begin__should_r
     """
 
     # Arrange
-    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), sector='DK1')
+    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), sector='DK1', user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
 
@@ -90,7 +108,7 @@ def test__GgoComposer__add_retire__measurement_and_ggo_different_begin__should_r
 
     # Act + Assert
     with pytest.raises(composer.RetireMeasurementInvalid):
-        composer.add_retire(meteringpoint=Mock(), amount=100)
+        composer.add_retire(meteringpoint=Mock(user_id=1), amount=100)
 
 
 @patch('origin.ggo.composer.datahub')
@@ -101,7 +119,7 @@ def test__GgoComposer__add_retire__invalid_amount__should_raise_AssertionError(d
     """
 
     # Arrange
-    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0))
+    ggo = Mock(amount=100, begin=datetime(2020, 1, 1, 0, 0, 0), user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
 
@@ -110,7 +128,7 @@ def test__GgoComposer__add_retire__invalid_amount__should_raise_AssertionError(d
 
     # Act + Assert
     with pytest.raises(AssertionError):
-        composer.add_retire(meteringpoint=Mock(), amount=retire_amount)
+        composer.add_retire(meteringpoint=Mock(user_id=1), amount=retire_amount)
 
 
 @patch('origin.ggo.composer.datahub')
@@ -133,7 +151,7 @@ def test__GgoComposer__add_retire__should_retire_actual_amount(
     sector = 'DK1'
     begin = datetime(2020, 1, 1, 0, 0, 0)
 
-    ggo = Mock(amount=100, begin=begin, sector=sector)
+    ggo = Mock(amount=100, begin=begin, sector=sector, user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
 
@@ -146,7 +164,7 @@ def test__GgoComposer__add_retire__should_retire_actual_amount(
     composer.get_retired_amount.return_value = retired
 
     # Act
-    composer.add_retire(meteringpoint=Mock(), amount=requested)
+    composer.add_retire(meteringpoint=Mock(user_id=1), amount=requested)
 
     # Assert
     if actual is None:
@@ -188,7 +206,7 @@ def test__GgoComposer__build_batch__total_amount_exceeds_available_amount__shoul
     sector = 'DK1'
     begin = datetime(2020, 1, 1, 0, 0, 0)
 
-    ggo = Mock(amount=100, begin=begin, sector=sector)
+    ggo = Mock(amount=100, begin=begin, sector=sector, user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
 
@@ -207,7 +225,7 @@ def test__GgoComposer__build_batch__total_amount_exceeds_available_amount__shoul
     for transfer_amount in transfer_amounts:
         composer.add_transfer(user=Mock(), amount=transfer_amount)
     for retire_amount in retire_amounts:
-        composer.add_retire(meteringpoint=Mock(), amount=retire_amount)
+        composer.add_retire(meteringpoint=Mock(user_id=1), amount=retire_amount)
 
     with pytest.raises(composer.AmountUnavailable):
         composer.build_batch()
@@ -284,12 +302,12 @@ def test__GgoComposer__build_batch__retire_full_amount_to_one_gsrn__should_build
     sector = 'DK1'
     begin = datetime(2020, 1, 1, 0, 0, 0)
 
-    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True)
+    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True, user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
     ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user)
 
-    meteringpoint = Mock(gsrn='GSRN1')
+    meteringpoint = Mock(gsrn='GSRN1', user_id=1)
     measurement = Mock(sector=sector, begin=begin, amount=100, address='MEASUREMENT-ADDRESS')
 
     datahub.get_consumption.return_value = Mock(measurement=measurement)
@@ -323,13 +341,13 @@ def test__GgoComposer__build_batch__multiple_retires__should_build_batch_with_on
     sector = 'DK1'
     begin = datetime(2020, 1, 1, 0, 0, 0)
 
-    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True)
+    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True, user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
     ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user, begin=begin)
 
-    meteringpoint1 = Mock(gsrn='GSRN1')
-    meteringpoint2 = Mock(gsrn='GSRN2')
+    meteringpoint1 = Mock(gsrn='GSRN1', user_id=1)
+    meteringpoint2 = Mock(gsrn='GSRN2', user_id=1)
     measurement = Mock(sector=sector, begin=begin, amount=100, address='MEASUREMENT-ADDRESS')
 
     datahub.get_consumption.return_value = Mock(measurement=measurement)
@@ -386,7 +404,7 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     sector = 'DK1'
     begin = datetime(2020, 1, 1, 0, 0, 0)
 
-    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True)
+    ggo = Mock(amount=100, begin=begin, sector=sector, stored=True, retired=False, locked=False, synchronized=True, user_id=1)
     ggo.is_tradable.return_value = True
     ggo.is_expired.return_value = False
     ggo.create_child.side_effect = lambda amount, user: Mock(amount=amount, user=user, begin=begin)
@@ -394,8 +412,8 @@ def test__GgoComposer__build_batch__multiple_retires_and_transfers__should_build
     user1 = Mock()
     user2 = Mock()
 
-    meteringpoint1 = Mock(gsrn='GSRN1')
-    meteringpoint2 = Mock(gsrn='GSRN2')
+    meteringpoint1 = Mock(gsrn='GSRN1', user_id=1)
+    meteringpoint2 = Mock(gsrn='GSRN2', user_id=1)
     measurement = Mock(sector=sector, begin=begin, amount=100, address='MEASUREMENT-ADDRESS')
 
     datahub.get_consumption.return_value = Mock(measurement=measurement)

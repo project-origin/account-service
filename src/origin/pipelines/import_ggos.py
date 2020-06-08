@@ -5,7 +5,7 @@ from celery import group
 from datetime import datetime
 
 from origin import logger
-from origin.db import inject_session
+from origin.db import inject_session, atomic
 from origin.tasks import celery_app
 from origin.webhooks import WebhookService
 from origin.auth import UserQuery
@@ -44,24 +44,33 @@ def start_import_issued_ggos(request):
     pipeline='import_ggos',
     task='import_ggos_and_insert_to_db',
 )
-@inject_session
-def import_ggos_and_insert_to_db(subject, gsrn, begin, session):
+def import_ggos_and_insert_to_db(subject, gsrn, begin):
     """
     :param str subject:
     :param str gsrn:
     :param str begin:
-    :param Session session:
     """
-    user = UserQuery(session) \
-        .has_sub(subject) \
-        .has_gsrn(gsrn) \
-        .one_or_none()
+    begin_dt = datetime.fromisoformat(begin)
 
-    if user is None:
-        return
+    @atomic
+    def __import_and_insert_to_db(session):
+        user = UserQuery(session) \
+            .has_sub(subject) \
+            .has_gsrn(gsrn) \
+            .one_or_none()
 
-    begin = datetime.fromisoformat(begin)
-    ggos = controller.import_ggos(user, gsrn, begin, begin)
+        if user is None:
+            return
+
+        return controller.import_ggos(
+            user=user,
+            gsrn=gsrn,
+            begin_from=begin_dt,
+            begin_to=begin_dt,
+            session=session,
+        )
+
+    ggos = __import_and_insert_to_db()
     tasks = [invoke_webhook.si(subject=subject, ggo_id=ggo.id) for ggo in ggos]
 
     if tasks:
