@@ -1,5 +1,4 @@
 from origin import logger
-from origin.db import atomic
 from origin.common import DateTimeRange
 from origin.services.datahub import DataHubService, GetGgoListRequest
 
@@ -12,7 +11,8 @@ datahub = DataHubService()
 
 class GgoIssueController(object):
     """
-    TODO
+    Imports GGO(s) from DataHubService and saves them in the
+    database with an ISSUED state.
     """
 
     def import_ggos(self, user, gsrn, begin_from, begin_to, session):
@@ -21,7 +21,7 @@ class GgoIssueController(object):
         :param str gsrn:
         :param datetime.datetime begin_from:
         :param datetime.datetime begin_to:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: list[Ggo]
         """
         logger.info(f'Importing GGOs for GSRN: {gsrn}', extra={
@@ -64,7 +64,7 @@ class GgoIssueController(object):
         """
         :param User user:
         :param list[origin.services.datahub.Ggo] imported_ggos:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: list[Ggo]
         """
         ggos = []

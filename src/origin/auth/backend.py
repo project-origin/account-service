@@ -19,11 +19,15 @@ from origin.settings import (
 
 class AuthBackend(object):
     """
-    TODO
+    This class provides an interface to interact with the Hydra
+    authentication service via OAuth2.
     """
+
     @property
     def client(self):
         """
+        Returns an OAuth2 client.
+
         :rtype: OAuth2Session
         """
         return OAuth2Session(
@@ -34,6 +38,11 @@ class AuthBackend(object):
 
     def register_login_state(self):
         """
+        Register a login state. Is used before redirecting the client
+        to Hydra, to perform login. Returns a tuple of (login_url, state)
+        where the state is used to identify the client when its redirected
+        back to the callback URL.
+
         :rtype: (str, str)
         :returns: Tuple of (login_url, state)
         """
@@ -48,6 +57,13 @@ class AuthBackend(object):
 
     def fetch_token(self, code, state):
         """
+        Provided a code and a state (provided by the client once redirected
+        back to the login callback URL), fetches a token from Hydra.
+        The token contains ID token, Access token, Refresh token,
+        among other things.
+
+        Use self.get_id_token() to decode the ID token.
+
         :param str code:
         :param str state:
         :rtype: collections.abc.Mapping
@@ -67,8 +83,12 @@ class AuthBackend(object):
 
     def refresh_token(self, refresh_token):
         """
+        Fetches a new access token using a refresh token.
+
+        Use self.get_id_token() to decode the ID token.
+
         :param str refresh_token:
-        :rtype:
+        :rtype: collections.abc.Mapping
         """
         try:
             return self.client.refresh_token(
@@ -82,6 +102,8 @@ class AuthBackend(object):
 
     def get_id_token(self, token):
         """
+        Decodes the ID token from the provided token dictionary.
+
         :param collections.abc.Mapping token:
         :rtype: collections.abc.Mapping
         """
@@ -92,7 +114,7 @@ class AuthBackend(object):
 
     def get_jwks(self):
         """
-        TODO cache?
+        Fetches and returns the OAuth2 server's JSON Web Key Set.
 
         :rtype: str
         """

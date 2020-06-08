@@ -20,7 +20,8 @@ from .models import (
     SetKeyResponse,
     WebhookSubscribeRequest,
     WebhookSubscribeResponse,
-    GetTechnologiesResponse)
+    GetTechnologiesResponse,
+)
 
 
 class DataHubService(object):

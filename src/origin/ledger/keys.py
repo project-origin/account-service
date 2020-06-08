@@ -1,15 +1,24 @@
 from bip32utils import BIP32Key
 
 
+def minutes_since_epoch(begin):
+    """
+    :param datetime.datetime begin:
+    :rtype: int
+    """
+    return int(begin.replace(second=0, microsecond=0).timestamp())
+
+
 class KeyGenerator(object):
     """
-    TODO
+    Generates ledger keys for various object types.
+    These are the keys used when encrypting blocks on the ledger.
     """
 
     @staticmethod
     def get_key_for_user(user):
         """
-        :param User user:
+        :param origin.auth.User user:
         :rtype: BIP32Key
         """
         return BIP32Key.fromExtendedKey(user.master_extended_key)
@@ -17,7 +26,7 @@ class KeyGenerator(object):
     @staticmethod
     def set_key_for_user(user, key):
         """
-        :param User user:
+        :param origin.auth.User user:
         :param BIP32Key key:
         """
         user.master_extended_key = key.ExtendedKey()
@@ -25,7 +34,7 @@ class KeyGenerator(object):
     @staticmethod
     def set_key_for_user_from_entropy(user, entropy):
         """
-        :param User user:
+        :param origin.auth.User user:
         :param bytes entropy:
         """
         KeyGenerator.set_key_for_user(
@@ -34,7 +43,7 @@ class KeyGenerator(object):
     @staticmethod
     def get_key_for_metering_point(meteringpoint):
         """
-        :param MeteringPoint meteringpoint:
+        :param origin.auth.MeteringPoint meteringpoint:
         :rtype: BIP32Key
         """
         return KeyGenerator \
@@ -45,21 +54,18 @@ class KeyGenerator(object):
     @staticmethod
     def get_key_for_measurement(meteringpoint, begin):
         """
-        :param MeteringPoint meteringpoint:
+        :param origin.auth.MeteringPoint meteringpoint:
         :param datetime.datetime begin:
         :rtype: BIP32Key
         """
-        # Begin in minutes since epoch
-        m = int(begin.replace(second=0, microsecond=0).timestamp())
-
         return KeyGenerator \
             .get_key_for_metering_point(meteringpoint) \
-            .ChildKey(m)
+            .ChildKey(minutes_since_epoch(begin))
 
     @staticmethod
     def get_key_for_traded_ggo_at_index(user, index):
         """
-        :param User user:
+        :param origin.auth.User user:
         :param int index:
         :rtype: BIP32Key
         """
@@ -71,7 +77,7 @@ class KeyGenerator(object):
     @staticmethod
     def get_key_for_traded_ggo(ggo):
         """
-        :param Ggo ggo:
+        :param origin.ggo.Ggo ggo:
         :rtype: BIP32Key
         """
         assert ggo.issued is False
@@ -83,15 +89,12 @@ class KeyGenerator(object):
     @staticmethod
     def get_key_for_issued_ggo(ggo):
         """
-        :param Ggo ggo:
+        :param origin.ggo.Ggo ggo:
         :rtype: BIP32Key
         """
         assert ggo.issued is True
         assert ggo.issue_meteringpoint is not None
 
-        # Begin in minutes since epoch
-        m = int(ggo.begin.replace(second=0, microsecond=0).timestamp())
-
         return KeyGenerator \
             .get_key_for_metering_point(ggo.issue_meteringpoint) \
-            .ChildKey(m)
+            .ChildKey(minutes_since_epoch(ggo.begin))

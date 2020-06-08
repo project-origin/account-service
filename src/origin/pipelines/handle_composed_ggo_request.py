@@ -1,5 +1,11 @@
 """
-TODO write this
+Asynchronous tasks for submitting a composed GGO to the ledger.
+Invokes the "GGO RECEIVED" webhook on completion.
+
+One entrypoint exists:
+
+    start_handle_composed_ggo_pipeline()
+
 """
 from celery import group
 
@@ -8,6 +14,7 @@ from origin.db import inject_session
 from origin.tasks import celery_app
 from origin.webhooks import WebhookService
 from origin.auth import User
+from origin.ledger import Batch
 from origin.ggo import Ggo, GgoQuery
 
 from .submit_batch_to_ledger import start_submit_batch_pipeline
@@ -52,7 +59,7 @@ def invoke_webhook(subject, ggo_id, session):
     """
     :param str subject:
     :param int ggo_id:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
     ggo = GgoQuery(session) \
         .has_id(ggo_id) \

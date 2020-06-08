@@ -1,5 +1,10 @@
 """
-TODO write this
+Asynchronous tasks for importing MeteringPoints from DataHubService.
+
+One entrypoint exists:
+
+    start_import_meteringpoints()
+
 """
 from origin import logger
 from origin.db import atomic
@@ -40,7 +45,7 @@ def start_import_meteringpoints(user):
 def import_meteringpoints_and_insert_to_db(subject, session):
     """
     :param str subject:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
 
     user = UserQuery(session) \

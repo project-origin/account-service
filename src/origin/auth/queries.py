@@ -1,6 +1,5 @@
-from datetime import datetime, timezone
-
 from sqlalchemy.orm import raiseload
+from datetime import datetime, timezone
 
 from origin.settings import TOKEN_REFRESH_AT
 
@@ -9,12 +8,33 @@ from .models import User, MeteringPoint
 
 class UserQuery(object):
     """
-    TODO
+    Abstraction around querying User objects from the database,
+    supporting cascade calls to combine filters.
+
+    Usage example::
+
+        query = UserQuery(session) \
+            .has_gsrn('123456789012345') \
+            .should_refresh_token()
+
+        for user in query:
+            pass
+
+    Attributes not present on the UserQuery class is redirected to
+    SQLAlchemy's Query object, like count(), all() etc., for example::
+
+        query = UserQuery(session) \
+            .has_gsrn('123456789012345') \
+            .should_refresh_token() \
+            .offset(100) \
+            .limit(20) \
+            .count()
+
     """
     def __init__(self, session, q=None):
         """
-        :param Session session:
-        :param Query q:
+        :param sqlalchemy.orm.Session session:
+        :param sqlalchemy.orm.Query q:
         """
         self.session = session
         if q is None:
@@ -30,6 +50,8 @@ class UserQuery(object):
 
     def has_id(self, id):
         """
+        Only include the user with a specific ID.
+
         :param int id:
         :rtype: UserQuery
         """
@@ -39,6 +61,8 @@ class UserQuery(object):
 
     def has_sub(self, sub):
         """
+        Only include the user with a specific subject.
+
         :param str sub:
         :rtype: UserQuery
         """
@@ -48,6 +72,9 @@ class UserQuery(object):
 
     def has_gsrn(self, gsrn):
         """
+        Only include users which owns the MeteringPoint identified with
+        the provided GSRN number.
+
         :param str gsrn:
         :rtype: UserQuery
         """
@@ -57,6 +84,8 @@ class UserQuery(object):
 
     def should_refresh_token(self):
         """
+        Only include users which should have their tokens refreshed.
+
         :rtype: UserQuery
         """
         return UserQuery(self.session, self.q.filter(
@@ -66,12 +95,33 @@ class UserQuery(object):
 
 class MeteringPointQuery(object):
     """
-    TODO
+    Abstraction around querying MeteringPoint objects from the database,
+    supporting cascade calls to combine filters.
+
+    Usage example::
+
+        query = MeteringPointQuery(session) \
+            .belongs_to(user) \
+            .has_gsrn('123456789012345')
+
+        for meteringpoint in query:
+            pass
+
+    Attributes not present on the UserQuery class is redirected to
+    SQLAlchemy's Query object, like count(), all() etc., for example::
+
+        query = MeteringPointQuery(session) \
+            .belongs_to(user) \
+            .has_gsrn('123456789012345') \
+            .offset(100) \
+            .limit(20) \
+            .count()
+
     """
     def __init__(self, session, q=None):
         """
-        :param Session session:
-        :param Query q:
+        :param sqlalchemy.orm.Session session:
+        :param sqlalchemy.orm.Query q:
         """
         self.session = session
         if q is None:
@@ -87,7 +137,7 @@ class MeteringPointQuery(object):
 
     def belongs_to(self, user):
         """
-        TODO
+        Only include meteringpoints which belong to the provided user.
 
         :param User user:
         :rtype: MeteringPointQuery
@@ -98,6 +148,8 @@ class MeteringPointQuery(object):
 
     def has_gsrn(self, gsrn):
         """
+        Only include the meteringpoint with the provided GSRN number.
+
         :param str gsrn:
         :rtype: MeteringPointQuery
         """
