@@ -7,8 +7,7 @@ from itertools import product
 
 from origin.db import ModelBase
 from origin.auth import User, MeteringPoint
-from origin.ggo import Ggo, GgoQuery
-
+from origin.ggo import Ggo, GgoQuery, Technology
 
 GGO_AMOUNT = 100
 
@@ -86,12 +85,13 @@ def seed_ggo_test_data(session):
     # Combinations
     combinations = product(
         users, issue_meteringpoints, retire_meteringpoints, retire_address,
-        issued, stored, retired, synchronized, locked, sector, begin,
+        issued, stored, retired, synchronized, locked, sector, begin
     )
 
     # Seed GGOs
     for i, (usr, iss_mp, ret_mp, ret_addr, iss,
-            st, ret, sync, loc, sec, begin) in enumerate(combinations, start=1):
+            st, ret, sync, loc, sec, begin) \
+            in enumerate(combinations, start=1):
 
         session.add(Ggo(
             id=i,
@@ -103,8 +103,8 @@ def seed_ggo_test_data(session):
             end=begin + timedelta(hours=1),
             amount=GGO_AMOUNT,
             sector=sec,
-            technology_code='T010000',
-            fuel_code='F00000000',
+            technology_code='T010101',
+            fuel_code='F01010101',
             issued=iss,
             stored=st,
             retired=ret,
@@ -130,13 +130,14 @@ def seeded_session():
         engine = create_engine(psql.url())
         ModelBase.metadata.create_all(engine)
         Session = sessionmaker(bind=engine, expire_on_commit=False)
-        session = Session()
 
-        seed_ggo_test_data(session)
+        session1 = Session()
+        seed_ggo_test_data(session1)
+        session1.close()
 
-        yield session
-
-        session.close()
+        session2 = Session()
+        yield session2
+        session2.close()
 
 
 # -- TEST CASES --------------------------------------------------------------

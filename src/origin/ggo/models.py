@@ -36,8 +36,7 @@ class Ggo(ModelBase):
 
     # If this is a child of another GGO (in case a split/transfer happened)
     parent_id = sa.Column(sa.Integer(), sa.ForeignKey('ggo_ggo.id'), index=True)
-    parent = relationship('Ggo', foreign_keys=[parent_id], uselist=False)
-    children = relationship('Ggo', remote_side=[id], back_populates='parent', uselist=True)
+    parent = relationship('Ggo', foreign_keys=[parent_id], remote_side=[id], uselist=False)
 
     # Ledger data
     address = sa.Column(sa.String(), index=True, nullable=False)
@@ -104,8 +103,8 @@ class Ggo(ModelBase):
             key_index=key_index,
             issue_time=self.issue_time,
             expire_time=self.expire_time,
-            begin=self.begin,
             sector=self.sector,
+            begin=self.begin,
             end=self.end,
             technology_code=self.technology_code,
             fuel_code=self.fuel_code,
