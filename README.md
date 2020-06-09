@@ -2,10 +2,65 @@
 
 # Project Origin AccountService
 
-TODO Describe the project here
+This is the repository for Project Origin's AccountService.
+
+This service is responsible for:
+
+- Keeps track of user's stored, retired, and transferred GGOs (ie. their "account")
+- Exposing endpoints to transfer GGOs to other users
+- Exposing endpoints to retire GGOs to any of the user's metering points
+- Exposing endpoints to access information and statistics about user's account
+- Submit transfers and retires to the blockchain ledger, and keep its database synchronized blockchain ledger
 
 
-# Environment variables
+## Installation and running locally
+
+The following sections describes how to install and run the project locally for development and debugging.
+
+
+## Requirements
+
+- Python 3.7
+- Pip
+- Pipenv
+- A PostgreSQL database
+- A Unix/Linux machine
+
+### First time installation
+
+
+Initially, make sure to define necessary environment variables (listed below).
+You can define them in the .env file in the root of the project
+([more details on this here](https://pipenv-fork.readthedocs.io/en/latest/advanced.html#automatic-loading-of-env)).
+
+Also, make sure to upgrade your system packages for good measure:
+   
+    pip install --upgrade --user setuptools pip pipenv
+
+Then install project dependencies:
+
+    pipenv install
+
+Then apply database migrations:
+
+    cd src/migrations
+    pipenv run migrate
+    cd ../../
+
+### Running locally (development)
+
+This starts the local development server (NOT for production use):
+
+    pipenv run develop
+
+### Running tests
+
+Run unit- and integration tests:
+
+    pipenv run pytest
+
+
+## Environment variables
 
 Name | Description | Example
 :--- | :--- | :--- |
