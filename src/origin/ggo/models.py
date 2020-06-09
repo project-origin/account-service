@@ -1,5 +1,7 @@
+import marshmallow
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
+from marshmallow_dataclass import NewType
 
 from sqlalchemy.orm import relationship
 from enum import Enum
@@ -52,6 +54,7 @@ class Ggo(ModelBase):
     sector = sa.Column(sa.String(), nullable=False, index=True)
     technology_code = sa.Column(sa.String(), nullable=False, index=True)
     fuel_code = sa.Column(sa.String(), nullable=False, index=True)
+    technology = relationship('Technology', primaryjoin='and_(foreign(Ggo.technology_code) == Technology.technology_code, foreign(Ggo.fuel_code) == Technology.fuel_code)', lazy='joined')
 
     # Whether or not this GGO was originally issued (False means its
     # product of a trade/split)
@@ -207,6 +210,14 @@ class Technology(ModelBase):
 # -- Common ------------------------------------------------------------------
 
 
+GgoTechnology = NewType(
+    name='GgoTechnology',
+    typ=str,
+    field=marshmallow.fields.Function,
+    serialize=lambda ggo: ggo.technology.technology if ggo.technology else None,
+)
+
+
 @dataclass
 class MappedGgo:
     """
@@ -218,6 +229,7 @@ class MappedGgo:
     begin: datetime
     end: datetime
     amount: int
+    technology: GgoTechnology
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
 
