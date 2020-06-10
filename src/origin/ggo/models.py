@@ -1,5 +1,7 @@
+import marshmallow
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
+from marshmallow_dataclass import NewType
 
 from sqlalchemy.orm import relationship
 from enum import Enum
@@ -34,8 +36,7 @@ class Ggo(ModelBase):
 
     # If this is a child of another GGO (in case a split/transfer happened)
     parent_id = sa.Column(sa.Integer(), sa.ForeignKey('ggo_ggo.id'), index=True)
-    parent = relationship('Ggo', foreign_keys=[parent_id], uselist=False)
-    children = relationship('Ggo', remote_side=[id], back_populates='parent', uselist=True)
+    parent = relationship('Ggo', foreign_keys=[parent_id], remote_side=[id], uselist=False)
 
     # Ledger data
     address = sa.Column(sa.String(), index=True, nullable=False)
@@ -52,6 +53,7 @@ class Ggo(ModelBase):
     sector = sa.Column(sa.String(), nullable=False, index=True)
     technology_code = sa.Column(sa.String(), nullable=False, index=True)
     fuel_code = sa.Column(sa.String(), nullable=False, index=True)
+    technology = relationship('Technology', primaryjoin='and_(foreign(Ggo.technology_code) == Technology.technology_code, foreign(Ggo.fuel_code) == Technology.fuel_code)', lazy='joined')
 
     # Whether or not this GGO was originally issued (False means its
     # product of a trade/split)
@@ -101,8 +103,8 @@ class Ggo(ModelBase):
             key_index=key_index,
             issue_time=self.issue_time,
             expire_time=self.expire_time,
-            begin=self.begin,
             sector=self.sector,
+            begin=self.begin,
             end=self.end,
             technology_code=self.technology_code,
             fuel_code=self.fuel_code,
@@ -207,6 +209,14 @@ class Technology(ModelBase):
 # -- Common ------------------------------------------------------------------
 
 
+GgoTechnology = NewType(
+    name='GgoTechnology',
+    typ=str,
+    field=marshmallow.fields.Function,
+    serialize=lambda ggo: ggo.technology.technology if ggo.technology else None,
+)
+
+
 @dataclass
 class MappedGgo:
     """
@@ -218,6 +228,7 @@ class MappedGgo:
     begin: datetime
     end: datetime
     amount: int
+    technology: GgoTechnology
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
 

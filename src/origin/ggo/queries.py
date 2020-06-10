@@ -532,12 +532,15 @@ class GgoSummary(object):
         groups = []
         orders = []
 
-        q = self.query.subquery()
+        s = self.query.subquery()
 
-        q = self.session.query(q, func.coalesce(Technology.technology, UNKNOWN_TECHNOLOGY_LABEL).label('technology')) \
+        q = self.session.query(
+                s,
+                func.coalesce(Technology.technology, UNKNOWN_TECHNOLOGY_LABEL).label('technology')
+            ) \
             .outerjoin(Technology, sa.and_(
-                Technology.technology_code == q.c.technology_code,
-                Technology.fuel_code == q.c.fuel_code,
+                Technology.technology_code == s.c.technology_code,
+                Technology.fuel_code == s.c.fuel_code,
             )).subquery()
 
         # -- Resolution ------------------------------------------------------

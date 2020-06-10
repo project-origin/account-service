@@ -126,8 +126,8 @@ class Ggo:
     end: datetime
     sector: str
     amount: int
-    issue_time: str = field(metadata=dict(data_key='issueTime'))
-    expire_time: str = field(metadata=dict(data_key='expireTime'))
+    issue_time: datetime = field(metadata=dict(data_key='issueTime'))
+    expire_time: datetime = field(metadata=dict(data_key='expireTime'))
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
 

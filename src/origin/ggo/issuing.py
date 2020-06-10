@@ -35,18 +35,21 @@ class GgoIssueController(object):
 
         # Import GGOs from DataHub
         imported_ggos = self.fetch_ggos(user, gsrn, begin_from, begin_to)
+        mapped_ggos = (self.map_imported_ggo(user, ggo) for ggo in imported_ggos)
+        filtered_ggos = (
+            ggo for ggo in mapped_ggos
+            if not self.ggo_exists(ggo.address, session)
+        )
+
+        new_ggos = []
 
         # Filter out GGOs that already exists and map to Ggo type
-        filtered_ggos = [
-            self.map_imported_ggo(user, ggo)
-            for ggo in imported_ggos
-            if not self.ggo_exists(ggo.address, session)
-        ]
+        for ggo in filtered_ggos:
+            session.add(ggo)
+            session.flush()
+            new_ggos.append(ggo)
 
-        # Insert to database
-        session.add_all(filtered_ggos)
-
-        logger.info(f'Imported {len(filtered_ggos)} GGOs for GSRN: {gsrn}', extra={
+        logger.info(f'Imported {len(new_ggos)} GGOs for GSRN: {gsrn}', extra={
             'gsrn': gsrn,
             'subject': user.sub,
             'begin_from': str(begin_from),
@@ -55,7 +58,7 @@ class GgoIssueController(object):
             'task': 'import_ggos_and_insert_to_db',
         })
 
-        return filtered_ggos
+        return new_ggos
 
     def fetch_ggos(self, user, gsrn, begin_from, begin_to):
         """
@@ -93,9 +96,9 @@ class GgoIssueController(object):
             issue_time=imported_ggo.issue_time,
             expire_time=imported_ggo.expire_time,
             begin=imported_ggo.begin,
+            end=imported_ggo.end,
             amount=imported_ggo.amount,
             sector=imported_ggo.sector,
-            end=imported_ggo.end,
             technology_code=imported_ggo.technology_code,
             fuel_code=imported_ggo.fuel_code,
             synchronized=True,
