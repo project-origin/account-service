@@ -16,10 +16,38 @@ info:
 schemes:
   - https
 tags:
+  - name: Users and Accounts
   - name: GGO
   - name: Transfers
   - name: Retires
 paths:
+  /accounts:
+    post:
+      summary: Get a list of the user's accounts
+      description: >
+        Returns an array of GGO objects which belongs to the account.
+        The database contains a historical record of prioir received, sent, and
+        retired GGOs, so this endpoint will return GGOs that are no longer
+        available, unless filtered out.
+        
+      security:
+        - Bearer: []
+      tags:
+        - Users and Accounts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  results:
+                    type: array
+                    description: Array of Account objects
+                    items:
+                      $ref: '#/definitions/Account'
+
+
+
   /ggo:
     post:
       summary: Get a list of GGOs
@@ -639,3 +667,12 @@ definitions:
         type: string
         description: GSRN number
         example: '123456789012345'
+
+  Account:
+    type: object
+    description: An account which can store and transfer GGOs
+    properties:
+      id:
+        type: string
+        description: Account ID
+        example: '619ed366-8f3b-431b-bdea-fb489df75ebd'
