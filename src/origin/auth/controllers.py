@@ -10,13 +10,17 @@ from origin.cache import redis
 from origin.services.datahub import DataHubService
 from origin.webhooks import validate_hmac
 
+from .token import Token
+from .decorators import require_oauth, inject_token
 from .queries import UserQuery
 from .backend import AuthBackend
 from .models import (
     User,
+    Account,
     LoginRequest,
     VerifyLoginCallbackRequest,
     OnMeteringPointsAvailableWebhookRequest,
+    GetAccountsResponse,
 )
 
 
@@ -155,6 +159,25 @@ class LoginCallback(Controller):
         :rtype: flask.Response
         """
         return redirect(f'{return_url}?success=0&msg={msg}', code=303)
+
+
+class GetAccounts(Controller):
+    """
+    Returns a list of all of the user's accounts.
+    """
+    Response = md.class_schema(GetAccountsResponse)
+
+    @require_oauth('profile')
+    @inject_token
+    def handle_request(self, token):
+        """
+        :param Token token:
+        :rtype: GetAccountsResponse
+        """
+        return GetAccountsResponse(
+            success=True,
+            accounts=[Account(id=token.subject)],
+        )
 
 
 class OnMeteringPointsAvailableWebhook(Controller):
