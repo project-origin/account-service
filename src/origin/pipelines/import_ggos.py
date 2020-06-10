@@ -17,13 +17,13 @@ from origin.webhooks import WebhookService
 from origin.auth import UserQuery
 from origin.ggo import (
     GgoQuery,
-    GgoIssueController,
+    GgoImportController,
     OnGgosIssuedWebhookRequest,
 )
 
 
 webhook = WebhookService()
-controller = GgoIssueController()
+controller = GgoImportController()
 
 
 def start_import_issued_ggos(request):

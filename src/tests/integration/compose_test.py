@@ -18,7 +18,7 @@ from origin.ggo import (
     Ggo,
     GgoIndexSequence,
     GgoComposer,
-    GgoIssueController,
+    GgoImportController,
     GgoQuery,
     RetireQuery,
     TransactionQuery,
@@ -109,8 +109,8 @@ def session():
 
 
 @patch('origin.ggo.composer.datahub_service')
-@patch('origin.ggo.issuing.datahub_service')
-def test__integration__compose(datahub_issuing, datahub_composer, session):
+@patch('origin.ggo.importing.datahub_service')
+def test__integration__compose(datahub_importing, datahub_composer, session):
 
     sector = 'DK1'
     begin = datetime(2020, 5, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -127,8 +127,8 @@ def test__integration__compose(datahub_issuing, datahub_composer, session):
         end=end,
         sector=sector,
         amount=100,
-        issue_time=str(datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)),
-        expire_time=str(datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc)),
+        issue_time=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        expire_time=datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         technology_code='T000000',
         fuel_code='F00000000',
     )
@@ -140,8 +140,8 @@ def test__integration__compose(datahub_issuing, datahub_composer, session):
         end=end,
         sector=sector,
         amount=100,
-        issue_time=str(datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)),
-        expire_time=str(datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc)),
+        issue_time=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+        expire_time=datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         technology_code='T000000',
         fuel_code='F00000000',
     )
@@ -187,7 +187,7 @@ def test__integration__compose(datahub_issuing, datahub_composer, session):
 
     # -- ARRANGE DATAHUB MOCK (for issuer) -----------------------------------
 
-    datahub_issuing.get_ggo_list.side_effect = \
+    datahub_importing.get_ggo_list.side_effect = \
         lambda *args, **kwargs: GetGgoListResponse(success=True, ggos=[issued_ggo1, issued_ggo2])
 
     # -- ARRANGE DATAHUB MOCK (for composer) ---------------------------------
@@ -206,7 +206,7 @@ def test__integration__compose(datahub_issuing, datahub_composer, session):
 
     # -- ISSUE GGOS ----------------------------------------------------------
 
-    issuer = GgoIssueController()
+    issuer = GgoImportController()
     issuer.import_ggos(user1, meteringpoint1.gsrn, begin, begin, session)
 
     session.commit()

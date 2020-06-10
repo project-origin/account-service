@@ -4,11 +4,11 @@ import marshmallow_dataclass as md
 from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from origin.db import ModelBase
 from origin.auth import User, MeteringPoint
-from origin.ggo import GgoIssueController, Ggo, GgoQuery
+from origin.ggo import GgoImportController, Ggo, GgoQuery
 from origin.services.datahub import Ggo as DataHubGgo, GetGgoListResponse
 
 from .import_ggo_data import IMPORT_GGO_DATA1
@@ -65,14 +65,14 @@ def session():
 # -- TEST CASES --------------------------------------------------------------
 
 
-@patch('origin.ggo.issuing.datahub_service')
-def test__GgoIssueController__fetch_ggos__invokes_datahub_with_correct_parameters(datahub_service):
+@patch('origin.ggo.importing.datahub_service')
+def test__GgoImportController__fetch_ggos__invokes_datahub_with_correct_parameters(datahub_service):
 
     # Arrange
     gsrn = '123456789012345'
     begin_from = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     begin_to = datetime(2020, 12, 31, 23, 0, 0, tzinfo=timezone.utc)
-    uut = GgoIssueController()
+    uut = GgoImportController()
 
     # Act
     uut.fetch_ggos(user, gsrn, begin_from, begin_to)
@@ -85,7 +85,7 @@ def test__GgoIssueController__fetch_ggos__invokes_datahub_with_correct_parameter
     assert datahub_service.get_ggo_list.call_args[0][1].begin_range.end == begin_to
 
 
-def test__GgoIssueController__map_imported_ggo__maps_Ggo_correctly():
+def test__GgoImportController__map_imported_ggo__maps_Ggo_correctly():
 
     # Arrange
     imported_ggo = DataHubGgo(
@@ -101,7 +101,7 @@ def test__GgoIssueController__map_imported_ggo__maps_Ggo_correctly():
         fuel_code='F09090909',
     )
 
-    uut = GgoIssueController()
+    uut = GgoImportController()
 
     # Act
     mapped_ggo = uut.map_imported_ggo(user, imported_ggo)
@@ -125,8 +125,8 @@ def test__GgoIssueController__map_imported_ggo__maps_Ggo_correctly():
     assert mapped_ggo.locked is False
 
 
-@patch('origin.ggo.issuing.datahub_service')
-def test__GgoIssueController__integration(datahub_service, session):
+@patch('origin.ggo.importing.datahub_service')
+def test__GgoImportController__integration(datahub_service, session):
 
     def __get_ggo_list(access_token, request):
         datahub_response_schema = md.class_schema(GetGgoListResponse)
@@ -137,7 +137,7 @@ def test__GgoIssueController__integration(datahub_service, session):
     datahub_service.get_ggo_list.side_effect = __get_ggo_list
     begin_from = datetime(2020, 9, 1, 0, 0, tzinfo=timezone.utc)
     begin_to = datetime(2020, 9, 30, 23, 0, tzinfo=timezone.utc)
-    uut = GgoIssueController()
+    uut = GgoImportController()
 
     # Act
     uut.import_ggos(user, '571313180400240049', begin_from, begin_to, session)

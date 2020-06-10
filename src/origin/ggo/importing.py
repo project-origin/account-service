@@ -9,7 +9,7 @@ from .queries import GgoQuery
 datahub_service = DataHubService()
 
 
-class GgoIssueController(object):
+class GgoImportController(object):
     """
     Imports GGO(s) from DataHubService and saves them in the
     database with an ISSUED state.

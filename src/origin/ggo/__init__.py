@@ -1,4 +1,4 @@
 from .models import *
 from .composer import GgoComposer
-from .issuing import GgoIssueController
+from .importing import GgoImportController
 from .queries import GgoQuery, RetireQuery, TransactionQuery
