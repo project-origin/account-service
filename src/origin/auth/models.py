@@ -78,6 +78,7 @@ class MeteringPoint(ModelBase):
     """
     __tablename__ = 'accounts_meteringpoint'
     __table_args__ = (
+        sa.UniqueConstraint('gsrn'),
         sa.UniqueConstraint('user_id', 'key_index'),
     )
 
