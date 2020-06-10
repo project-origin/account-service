@@ -303,10 +303,10 @@ class ComposeGgo(Controller):
         :param TransferRequest request:
         :param sqlalchemy.orm.Session session:
         """
-        target_user = self.get_user(request.sub, session)
+        target_user = self.get_user(request.account, session)
 
         if target_user is None:
-            raise BadRequest(f'Account unavailable ({request.sub})')
+            raise BadRequest(f'Account unavailable ({request.account})')
 
         composer.add_transfer(target_user, request.amount, request.reference)
 

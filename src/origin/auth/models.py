@@ -198,3 +198,17 @@ class VerifyLoginCallbackRequest:
     scope: Scope
     code: str
     state: str
+
+
+# -- GetAccounts request and response ----------------------------------------
+
+
+@dataclass
+class Account:
+    id: str
+
+
+@dataclass
+class GetAccountsResponse:
+    success: bool
+    accounts: List[Account]

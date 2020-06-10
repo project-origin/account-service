@@ -276,7 +276,7 @@ class TransferDirection(Enum):
 class TransferRequest:
     amount: int = field(metadata=dict(validate=validate.Range(min=1)))
     reference: str
-    sub: str = field(metadata=dict(required=True, validate=sub_exists))
+    account: str = field(metadata=dict(required=True, validate=sub_exists))
 
 
 @dataclass

@@ -10,6 +10,9 @@ urls = (
     ('/auth/login', auth.Login()),
     ('/auth/login/callback', auth.LoginCallback()),
 
+    # Accounts
+    ('/accounts', auth.GetAccounts()),
+
     ('/ggo', ggo.GetGgoList()),
     ('/ggo/summary', ggo.GetGgoSummary()),
     ('/compose', ggo.ComposeGgo()),
