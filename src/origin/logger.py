@@ -76,7 +76,7 @@ def wrap_task(pipeline, task, title):
             })
 
             formatted_title = title % kwargs
-            info(f'Task: {formatted_title}', extra=extra)
+            info(f'Task: {formatted_title} (args: {str(args)}, kwargs: {str(kwargs)})', extra=extra)
 
             try:
                 with tracer.span('Task: %s' % formatted_title):
