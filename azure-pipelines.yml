@@ -16,7 +16,7 @@ variables:
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     kubeCon: 'kubecon-eloprindelse-prod'
     namespace: 'eloprindelse'
-    tag: '$(Build.BuildId)\nlatest'
+    tag: '$(Build.BuildId)'
   ${{ if eq(variables['Build.SourceBranchName'], 'test') }}:
     kubeCon: 'test-kube-con'
     namespace: 'test-project-origin'
@@ -24,7 +24,7 @@ variables:
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     kubeCon: 'dev-kube-con'
     namespace: 'dev-project-origin'
-    tag: 'canary\nlatest'
+    tag: 'canary'
 
 jobs:  
   - job: build_deploy
@@ -39,8 +39,16 @@ jobs:
           command: build
           repository: $(imageName)
           Dockerfile: Dockerfile
-          tags: |
-            $(tag)
+          tags: $(tag)
+      
+      - task: Docker@2
+        displayName: Build docker image
+        condition: eq(variables['Build.SourceBranchName'], 'master')
+        inputs:
+          command: build
+          repository: $(imageName)
+          Dockerfile: Dockerfile
+          tags: latest
 
       - task: Docker@2
         displayName: Push image
@@ -48,8 +56,16 @@ jobs:
           command: push
           repository: $(imageName)
           containerRegistry: dockerHub
-          tags: |
-            $(tag)
+          tags: $(tag)
+          
+      - task: Docker@2
+        displayName: Push latest image
+        condition: eq(variables['Build.SourceBranchName'], 'master')
+        inputs:
+          command: push
+          repository: $(imageName)
+          containerRegistry: dockerHub
+          tags: latest
 
       - task: HelmDeploy@0
         displayName: Helm upgrade
