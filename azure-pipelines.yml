@@ -12,7 +12,9 @@ resources:
 - repo: self
 
 variables:
+  releaseName: 'account-service'
   imageName: 'projectorigin/account-service'
+
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     kubeCon: 'kubecon-eloprindelse-prod'
     namespace: 'eloprindelse'
@@ -26,12 +28,12 @@ variables:
     namespace: 'dev-project-origin'
     tag: 'canary'
 
-jobs:  
-  - job: build_deploy
-    displayName: Build and Deploy
-    pool:
-      vmImage: 'ubuntu-latest'
+pool:
+  vmImage: 'ubuntu-latest'
 
+jobs:  
+  - job: build_and_release
+    displayName: Build and Release
     steps:
       - task: Docker@2
         displayName: Build docker image
@@ -67,6 +69,11 @@ jobs:
           containerRegistry: dockerHub
           tags: latest
 
+  - job: deploy
+    displayName: Deploy
+    dependsOn: build_and_release
+    condition: succeeded()
+    steps:
       - task: HelmDeploy@0
         displayName: Helm upgrade
         inputs:
@@ -76,7 +83,22 @@ jobs:
           command: upgrade
           chartType: filepath
           chartPath: ./chart
-          releaseName: account-service
+          releaseName: $(releaseName)
           overrideValues: tag=$(tag)
           install: true
+          waitForExecution: true
+
+  - job: rollback
+    displayName: Rollback
+    dependsOn: deploy
+    condition: and(failed('deploy'), nq(variables['Build.SourceBranchName'], 'develop'))
+    steps:
+      - task: HelmDeploy@0
+        displayName: Helm rollback
+        inputs:
+          connectionType: 'Kubernetes Service Connection'
+          kubernetesServiceConnection: $(kubeCon)
+          namespace: $(namespace)
+          command: rollback
+          releaseName: $(releaseName)
           waitForExecution: true
