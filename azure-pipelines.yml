@@ -89,7 +89,7 @@ jobs:
           chartType: filepath
           chartPath: ./chart
           releaseName: $(releaseName)
-          overrideValues: tag=$(tag)
+          overrideValues: tag='$(tag)'
           install: true
           waitForExecution: true
 
@@ -105,5 +105,5 @@ jobs:
           kubernetesServiceConnection: $(kubeCon)
           namespace: $(namespace)
           command: rollback
-          releaseName: $(releaseName)
+          arguments: $(releaseName)
           waitForExecution: true
