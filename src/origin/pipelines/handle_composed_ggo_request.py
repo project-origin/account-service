@@ -32,7 +32,7 @@ def start_handle_composed_ggo_pipeline(batch, recipients):
     # On success, invoke a webhook GgoReceived for each recipient
     # of a new GGO
     on_success = group(
-        invoke_webhook.si(subject=user.sub, ggo_id=ggo.id)
+        invoke_webhook.si(subject=user.sub, ggo_id=ggo.id, batch_id=batch.id)
         for user, ggo in recipients
     )
 
@@ -55,10 +55,11 @@ def start_handle_composed_ggo_pipeline(batch, recipients):
     task='invoke_webhook',
 )
 @inject_session
-def invoke_webhook(subject, ggo_id, session):
+def invoke_webhook(subject, ggo_id, batch_id, session):
     """
     :param str subject:
     :param int ggo_id:
+    :param int batch_id:
     :param sqlalchemy.orm.Session session:
     """
     ggo = GgoQuery(session) \
