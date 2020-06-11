@@ -15,25 +15,22 @@ variables:
   imageName: 'projectorigin/account-service'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     kubeCon: 'kubecon-eloprindelse-prod'
-    tag: '$(Build.BuildId)'
     namespace: 'eloprindelse'
+    tag: '$(Build.BuildId)\nlatest'
   ${{ if eq(variables['Build.SourceBranchName'], 'test') }}:
     kubeCon: 'test-kube-con'
-    tag: '$(Build.BuildId)'
     namespace: 'test-project-origin'
+    tag: 'test.$(Build.BuildId)'
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     kubeCon: 'dev-kube-con'
-    tag: 'dev.$(Build.BuildId)'
     namespace: 'dev-project-origin'
+    tag: 'canary\nlatest'
 
 jobs:  
   - job: build_deploy
     displayName: Build and Deploy
     pool:
-      ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
-        name: eloprindelse-prod
-      ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
-        vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-latest'
 
     steps:
       - task: Docker@2
@@ -43,7 +40,6 @@ jobs:
           repository: $(imageName)
           Dockerfile: Dockerfile
           tags: |
-            latest
             $(tag)
 
       - task: Docker@2
@@ -53,7 +49,6 @@ jobs:
           repository: $(imageName)
           containerRegistry: dockerHub
           tags: |
-            latest
             $(tag)
 
       - task: HelmDeploy@0
