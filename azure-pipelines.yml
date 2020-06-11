@@ -26,7 +26,7 @@ variables:
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     kubeCon: 'dev-kube-con'
     namespace: 'dev-project-origin'
-    tag: "$(git describe --tags --long | sed '0,/-/s/-/./')"
+    tag: 'canary'
 
 pool:
   vmImage: 'ubuntu-latest'
