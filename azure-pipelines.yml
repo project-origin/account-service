@@ -91,7 +91,7 @@ jobs:
   - job: rollback
     displayName: Rollback
     dependsOn: deploy
-    condition: and(failed('deploy'), nq(variables['Build.SourceBranchName'], 'develop'))
+    condition: and(failed('deploy'), ne(variables['Build.SourceBranchName'], 'develop'))
     steps:
       - task: HelmDeploy@0
         displayName: Helm rollback
