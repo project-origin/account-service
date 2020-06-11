@@ -13,16 +13,16 @@ resources:
 
 variables:
   releaseName: 'account-service'
-  imageName: 'projectorigin/account-service'
+  imageName: 'projectorigin/$(releaseName)'
 
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     kubeCon: 'kubecon-eloprindelse-prod'
     namespace: 'eloprindelse'
-    tag: '$(Build.BuildId)'
+    tag: '${git describe --tags --long | sed "0,/-/s/-/./"}'
   ${{ if eq(variables['Build.SourceBranchName'], 'test') }}:
     kubeCon: 'test-kube-con'
     namespace: 'test-project-origin'
-    tag: 'test.$(Build.BuildId)'
+    tag: 'rc-${git describe --tags --long | sed "0,/-/s/-/./"}'
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     kubeCon: 'dev-kube-con'
     namespace: 'dev-project-origin'
@@ -44,7 +44,7 @@ jobs:
           tags: $(tag)
       
       - task: Docker@2
-        displayName: Build docker image
+        displayName: Build docker latest image
         condition: eq(variables['Build.SourceBranchName'], 'master')
         inputs:
           command: build
