@@ -16,7 +16,6 @@ spec:
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
-          imagePullPolicy: Always
           ports:
             - containerPort: 8085
 
@@ -59,7 +58,6 @@ spec:
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
-          imagePullPolicy: Always
           args: ["./entrypoint.beat.sh"]
           envFrom:
             - configMapRef:
@@ -96,7 +94,6 @@ spec:
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
-          imagePullPolicy: Always
           args: ["./entrypoint.worker.sh"]
           envFrom:
             - configMapRef:
