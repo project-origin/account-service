@@ -93,17 +93,16 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
         logger.exception('Failed to submit batch to ledger', extra=__log_extra)
         raise task.retry(exc=e)
     except ols.LedgerException as e:
-        if e.code == 31:
-            logger.info(f'Ledger queue is full', extra=__log_extra)
-            raise task.retry(exc=e)  # Queue is full
+        if e.code in (15, 17, 18):
+            logger.exception(f'Ledger validator error (code {e.code}), retrying...', extra=__log_extra)
+            raise task.retry(exc=e)
+        elif e.code == 31:
+            logger.info(f'Ledger queue is full, retrying...', extra=__log_extra)
+            raise task.retry(exc=e)
         else:
             raise
 
     logger.info(f'Batch submitted to ledger', extra=__log_extra)
-
-    # Batch submitted successfully
-    # TODO move this to a seperate task?
-    # batch.on_submitted(handle)
 
     return handle
 
@@ -197,8 +196,6 @@ def poll_batch_status(task, subject, batch_id, session):
     # Assert status
     if response.status == ols.BatchStatus.COMMITTED:
         logger.info('Ledger batch status: COMMITTED', extra=__log_extra)
-        # TODO move this to a seperate task?
-        # batch.on_commit()
     elif response.status == ols.BatchStatus.INVALID:
         logger.error('Ledger batch status: INVALID', extra=__log_extra)
         # Raising exception triggers the ON ERROR task (rollback_batch())
