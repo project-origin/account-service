@@ -13,7 +13,7 @@ from datetime import datetime
 from origin import logger
 from origin.db import inject_session, atomic
 from origin.tasks import celery_app
-from origin.webhooks import WebhookService
+from origin.webhooks import WebhookService, WebhookEvent
 from origin.auth import UserQuery
 from origin.ggo import (
     GgoQuery,
@@ -105,4 +105,11 @@ def invoke_webhook(subject, ggo_id, session):
         .has_id(ggo_id) \
         .one_or_none()
 
-    webhook.on_ggo_received(subject, ggo)
+    subscriptions = webhook.get_subscriptions(
+        event=WebhookEvent.ON_GGO_RECEIVED,
+        subject=subject,
+        session=session,
+    )
+
+    for subscription in subscriptions:
+        webhook.on_ggo_received(subscription, ggo)

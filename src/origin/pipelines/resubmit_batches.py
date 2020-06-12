@@ -39,6 +39,8 @@ def resubmit_batches(session):
     """
     :param sqlalchemy.orm.Session session:
     """
+
+    # TODO move to / create a BatchQuery class
     batches = session.query(Batch) \
         .filter(
             sa.or_(

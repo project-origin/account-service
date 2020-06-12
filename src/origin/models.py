@@ -1,6 +1,6 @@
 from .ggo import Ggo, GgoIndexSequence, Technology
 from .auth import User, MeteringPoint, MeteringPointIndexSequence
-from .webhooks import Subscription
+from .webhooks import WebhookSubscription
 from .ledger import (
     Batch,
     Transaction,
@@ -23,5 +23,5 @@ VERSIONED_DB_MODELS = (
     Transaction,
     SplitTransaction,
     RetireTransaction,
-    Subscription,
+    WebhookSubscription,
 )
