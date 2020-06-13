@@ -69,7 +69,7 @@ def wrap_task(pipeline, task, title):
         def wrap_task_wrapper(*args, **kwargs):
             formatted_title = 'Task: %s (args: %s, kwargs: %s)' % (
                 (title % kwargs),
-                str(a for a in args if not isinstance(a, Task)),
+                str(tuple(a for a in args if not isinstance(a, Task))),
                 str(kwargs),
             )
 
