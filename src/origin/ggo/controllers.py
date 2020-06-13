@@ -248,10 +248,12 @@ class ComposeGgo(Controller):
 
     @require_oauth(['ggo.transfer', 'ggo.retire'])
     @inject_user
-    def handle_request(self, request, user):
+    @inject_session
+    def handle_request(self, request, user, session):
         """
         :param ComposeGgoRequest request:
         :param User user:
+        :param sqlalchemy.orm.Session session:
         :rtype: ComposeGgoResponse
         """
         batch, recipients = self.compose(
@@ -261,7 +263,7 @@ class ComposeGgo(Controller):
             retires=request.retires,
         )
 
-        start_handle_composed_ggo_pipeline(batch, recipients)
+        start_handle_composed_ggo_pipeline(batch, recipients, session)
 
         return ComposeGgoResponse(success=True)
 
@@ -393,6 +395,10 @@ class OnGgosIssuedWebhook(Controller):
         :param OnGgosIssuedWebhookRequest request:
         :rtype: bool
         """
-        start_import_issued_ggos(request)
+        start_import_issued_ggos(
+            subject=request.sub,
+            gsrn=request.gsrn,
+            begin=request.begin,
+        )
 
         return True

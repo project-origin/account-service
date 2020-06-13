@@ -1,2 +1,6 @@
-from .service import DataHubService
 from .models import *
+from .service import (
+    DataHubService,
+    DataHubServiceError,
+    DataHubServiceConnectionError,
+)

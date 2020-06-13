@@ -1,6 +1,11 @@
 from origin import logger
 from origin.common import DateTimeRange
-from origin.services.datahub import DataHubService, GetGgoListRequest
+from origin.services.datahub import (
+    DataHubService,
+    DataHubServiceError,
+    DataHubServiceConnectionError,
+    GetGgoListRequest,
+)
 
 from .models import Ggo
 from .queries import GgoQuery
@@ -14,6 +19,9 @@ class GgoImportController(object):
     Imports GGO(s) from DataHubService and saves them in the
     database with an ISSUED state.
     """
+
+    ImportError = DataHubServiceError
+    ImportConnectionError = DataHubServiceConnectionError
 
     def import_ggos(self, user, gsrn, begin_from, begin_to, session):
         """

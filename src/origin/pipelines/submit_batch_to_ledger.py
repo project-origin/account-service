@@ -83,7 +83,6 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
     except orm.exc.NoResultFound:
         raise
     except Exception as e:
-        logger.exception('Failed to load Batch from database', extra=__log_extra)
         raise task.retry(exc=e)
 
     # Submit batch to ledger

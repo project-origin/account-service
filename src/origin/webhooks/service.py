@@ -20,7 +20,7 @@ from .models import (
 class WebhookConnectionError(Exception):
     """
     Raised when publishing an event to a webhook results
-    in a connection error.
+    in a connection error
     """
     pass
 
@@ -28,7 +28,7 @@ class WebhookConnectionError(Exception):
 class WebhookError(Exception):
     """
     Raised when publishing an event to a webhook results
-    in a status code != 200 from recipient service.
+    in a status code != 200 from recipient service
     """
     def __init__(self, message, status_code, response_body):
         super(WebhookError, self).__init__(message)
@@ -110,7 +110,10 @@ class WebhookService(object):
 
         if response.status_code != 200:
             raise WebhookError(
-                'Invoking webhook resulted in status code != 200',
+                (
+                    f'Invoking webhook resulted in status code {response.status_code}: '
+                    f'{subscription.url}\n\n{response.content}'
+                ),
                 status_code=response.status_code,
                 response_body=str(response.content),
             )
