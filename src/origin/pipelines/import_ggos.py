@@ -16,11 +16,16 @@ from origin.db import inject_session, atomic
 from origin.tasks import celery_app
 from origin.auth import UserQuery
 from origin.ggo import GgoImportController
+from origin.services.datahub import (
+    DataHubServiceConnectionError,
+    DataHubServiceError,
+)
 
 from .webhooks import build_invoke_on_ggo_received_tasks
 
 
 # Settings
+
 RETRY_DELAY = 10
 MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 
@@ -102,9 +107,16 @@ def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
             begin_to=begin_dt,
             session=session,
         )
-    except (controller.ImportError, controller.ImportConnectionError) as e:
-        logger.exception(f'Failed to import GGOs, retrying...', extra=__log_extra)
+    except DataHubServiceConnectionError as e:
+        logger.exception(f'Failed to establish connection to DataHubService, retrying...', extra=__log_extra)
         raise task.retry(exc=e)
+    except DataHubServiceError as e:
+        if e.status_code == 400:
+            logger.exception('Got BAD REQUEST from DataHubService', extra=__log_extra)
+            raise
+        else:
+            logger.exception('Failed to import GGOs, retrying...', extra=__log_extra)
+            raise task.retry(exc=e)
 
     return [ggo.id for ggo in ggos]
 

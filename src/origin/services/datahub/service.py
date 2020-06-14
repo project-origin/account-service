@@ -3,7 +3,6 @@ import requests
 import marshmallow
 import marshmallow_dataclass as md
 
-from origin import logger
 from origin.settings import (
     PROJECT_URL,
     DATAHUB_SERVICE_URL,
