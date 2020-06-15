@@ -4,7 +4,6 @@ from origin import logger
 from origin.db import inject_session
 from origin.tasks import celery_app
 from origin.ggo import GgoQuery
-from origin.settings import BATCH_RESUBMIT_AFTER_HOURS
 from origin.webhooks import (
     WebhookEvent,
     WebhookService,
@@ -19,7 +18,7 @@ MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 
 
 # Services
-webhook = WebhookService()
+webhook_service = WebhookService()
 
 
 def build_invoke_on_ggo_received_tasks(subject, ggo_id, session, **logging_kwargs):
@@ -31,7 +30,7 @@ def build_invoke_on_ggo_received_tasks(subject, ggo_id, session, **logging_kwarg
     """
     tasks = []
 
-    subscriptions = webhook.get_subscriptions(
+    subscriptions = webhook_service.get_subscriptions(
         event=WebhookEvent.ON_GGO_RECEIVED,
         subject=subject,
         session=session,
@@ -90,7 +89,7 @@ def invoke_on_ggo_received(task, subject, ggo_id, subscription_id, session, **lo
 
     # Get webhook subscription from database
     try:
-        subscription = webhook.get_subscription(subscription_id, session)
+        subscription = webhook_service.get_subscription(subscription_id, session)
     except orm.exc.NoResultFound:
         raise
     except Exception as e:
@@ -99,7 +98,7 @@ def invoke_on_ggo_received(task, subject, ggo_id, subscription_id, session, **lo
 
     # Publish event to webhook
     try:
-        webhook.on_ggo_received(subscription, ggo)
+        webhook_service.on_ggo_received(subscription, ggo)
     except WebhookConnectionError as e:
         logger.exception('Failed to invoke webhook: ON_GGO_RECEIVED (Connection error)', extra=__log_extra)
         raise task.retry(exc=e)

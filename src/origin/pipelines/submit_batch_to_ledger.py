@@ -30,6 +30,7 @@ def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     :param Batch batch:
     :param celery.Task success: Success callback task
     :param celery.Task error: Error callback task
+    :rtype: celery.Task
     """
     pipeline = chain(
         submit_batch_to_ledger.si(subject=subject, batch_id=batch.id),
@@ -45,7 +46,7 @@ def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     if error:
         error_pipeline.append(error)
 
-    pipeline.apply_async(link=success, link_error=error_pipeline)
+    return pipeline.apply_async(link=success, link_error=error_pipeline)
 
 
 @celery_app.task(

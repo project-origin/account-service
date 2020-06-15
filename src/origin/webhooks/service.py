@@ -113,13 +113,6 @@ class WebhookService(object):
             HMAC_HEADER: hmac_header
         }
 
-        logger.info(f'Invoking webhook: {subscription.event.value}', extra={
-            'subject': subscription.subject,
-            'event': subscription.event.value,
-            'url': subscription.url,
-            'request': str(body),
-        })
-
         try:
             response = requests.post(
                 url=subscription.url,
