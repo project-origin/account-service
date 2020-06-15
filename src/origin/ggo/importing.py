@@ -14,7 +14,6 @@ class GgoImportController(object):
     Imports GGO(s) from DataHubService and saves them in the
     database with an ISSUED state.
     """
-
     def import_ggos(self, user, gsrn, begin_from, begin_to, session):
         """
         :param User user:

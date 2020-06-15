@@ -9,61 +9,30 @@ One entrypoint exists:
 """
 from celery import group
 
-from origin import logger
-from origin.db import inject_session
-from origin.tasks import celery_app
-from origin.webhooks import WebhookService
-from origin.auth import User
-from origin.ledger import Batch
-from origin.ggo import Ggo, GgoQuery
-
+from .webhooks import build_invoke_on_ggo_received_tasks
 from .submit_batch_to_ledger import start_submit_batch_pipeline
 
 
-webhook = WebhookService()
-
-
-def start_handle_composed_ggo_pipeline(batch, recipients):
+def start_handle_composed_ggo_pipeline(batch, recipients, session):
     """
-    :param Batch batch:
-    :param collections.abc.Iterable[(User, Ggo)] recipients:
+    :param origin.ledger.Batch batch:
+    :param collections.abc.Iterable[(origin.auth.User, origin.ggo.Ggo)] recipients:
+    :param sqlalchemy.orm.Session session:
     """
+    on_success_tasks = []
 
-    # On success, invoke a webhook GgoReceived for each recipient
-    # of a new GGO
-    on_success = group(
-        invoke_webhook.si(subject=user.sub, ggo_id=ggo.id, batch_id=batch.id)
-        for user, ggo in recipients
-    )
+    # On success, invoke a webhook GgoReceived for each recipient of a GGO
+    for user, ggo in recipients:
+        on_success_tasks.extend(build_invoke_on_ggo_received_tasks(
+            subject=user.sub,
+            ggo_id=ggo.id,
+            session=session,
+            batch_id=batch.id,
+        ))
 
+    # Start pipeline
     start_submit_batch_pipeline(
         subject=batch.user.sub,
         batch=batch,
-        success=on_success,
+        success=group(*on_success_tasks) if on_success_tasks else None,
     )
-
-
-@celery_app.task(
-    name='compose.invoke_webhook',
-    autoretry_for=(Exception,),
-    retry_backoff=2,
-    max_retries=5,
-)
-@logger.wrap_task(
-    title='Invoking webhook on_ggo_received',
-    pipeline='handle_composed_ggo_request',
-    task='invoke_webhook',
-)
-@inject_session
-def invoke_webhook(subject, ggo_id, batch_id, session):
-    """
-    :param str subject:
-    :param int ggo_id:
-    :param int batch_id:
-    :param sqlalchemy.orm.Session session:
-    """
-    ggo = GgoQuery(session) \
-        .has_id(ggo_id) \
-        .one()
-
-    webhook.on_ggo_received(subject, ggo)
