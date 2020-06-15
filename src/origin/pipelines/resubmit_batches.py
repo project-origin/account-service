@@ -30,7 +30,7 @@ def start_resubmit_batches_pipeline():
     max_retries=5,
 )
 @logger.wrap_task(
-    title='Resubmitting batches',
+    title='Getting non-completed Batches (to be re-submitted)',
     pipeline='resubmit_batches',
     task='resubmit_batches',
 )
