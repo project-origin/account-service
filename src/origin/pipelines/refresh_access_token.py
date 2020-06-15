@@ -45,7 +45,7 @@ def get_soon_to_expire_tokens(session):
     max_retries=5,
 )
 @logger.wrap_task(
-    title='Refreshing user\'s refresh_token',
+    title='Refreshing user\'s access token',
     pipeline='refresh_token',
     task='refresh_token',
 )
