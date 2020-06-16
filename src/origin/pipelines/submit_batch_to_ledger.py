@@ -24,6 +24,10 @@ POLL_MAX_RETRIES = (BATCH_RESUBMIT_AFTER_HOURS * 60 * 60) / POLL_RETRY_DELAY
 ledger = ols.Ledger(LEDGER_URL, verify=not DEBUG)
 
 
+class InvalidBatch(Exception):
+    pass
+
+
 def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     """
     :param str subject:
@@ -46,7 +50,10 @@ def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     if error:
         error_pipeline.append(error)
 
-    return pipeline.apply_async(link=success, link_error=error_pipeline)
+    return pipeline.apply_async(
+        link=success,
+        link_error=chain(*error_pipeline),
+    )
 
 
 @celery_app.task(
@@ -170,9 +177,6 @@ def poll_batch_status(task, subject, batch_id, session):
         'pipeline': 'submit_batch_to_ledger',
         'task': 'poll_batch_status',
     }
-
-    class InvalidBatch(Exception):
-        pass
 
     # Get batch from DB
     try:

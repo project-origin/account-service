@@ -1,4 +1,7 @@
 import os
+import time
+from uuid import uuid4
+
 import pytest
 import origin_ledger_sdk as ols
 
@@ -15,6 +18,7 @@ from origin.auth import User, MeteringPoint
 from origin.ledger import Batch, BatchState
 from origin.pipelines import start_handle_composed_ggo_pipeline
 from origin.ggo import Ggo, GgoComposer, GgoQuery
+from origin.pipelines.submit_batch_to_ledger import InvalidBatch
 from origin.tasks import celery_app
 from origin.webhooks import WebhookSubscription, WebhookEvent
 
@@ -113,9 +117,41 @@ def seed_users(session):
         sector='DK1',
     ))
 
+    # ggo = Ggo(
+    #     user=user1,
+    #     address='address1',
+    #     issue_time=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+    #     expire_time=datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+    #     begin=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+    #     end=datetime(2020, 1, 1, 1, 0, 0, tzinfo=timezone.utc),
+    #     amount=100,
+    #     sector='DK1',
+    #     technology_code='T000000',
+    #     fuel_code='F00000000',
+    #     issued=True,
+    #     stored=True,
+    #     retired=False,
+    #     synchronized=True,
+    #     locked=False,
+    #     issue_gsrn='GSRN1',
+    # )
+    #
+    # session.add(ggo)
+    #
+    # composer = GgoComposer(ggo=ggo, session=session)
+    # composer.add_transfer(user2, 50)
+    # composer.add_transfer(user3, 50)
+    # batch, recipients = composer.build_batch()
+    # session.add(batch)
+
+    session.commit()
+
+
+def create_batch(session):
+
     ggo = Ggo(
         user=user1,
-        address='address1',
+        address=str(uuid4()),
         issue_time=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         expire_time=datetime(2050, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
         begin=datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
@@ -135,12 +171,14 @@ def seed_users(session):
     session.add(ggo)
 
     composer = GgoComposer(ggo=ggo, session=session)
-    composer.add_transfer(user2, 50)
-    composer.add_transfer(user3, 50)
+    composer.add_transfer(user2, 25)
+    composer.add_transfer(user3, 75)
     batch, recipients = composer.build_batch()
     session.add(batch)
-
+    session.flush()
     session.commit()
+
+    return batch, recipients
 
 
 @pytest.fixture(scope='session')
@@ -183,7 +221,6 @@ def celery_config(compose):
     REDIS_BROKER_URL = f'{redis_url}/0'
 
     celery_app.backend = RedisBackend(app=celery_app, url=f'{redis_url}/1')
-
     celery_app.conf.broker_url = REDIS_BROKER_URL
     celery_app.conf.broker_read_url = REDIS_BROKER_URL
     celery_app.conf.broker_write_url = REDIS_BROKER_URL
@@ -202,17 +239,14 @@ def celery_config(compose):
 @patch('origin.pipelines.submit_batch_to_ledger.ledger')
 @patch('origin.pipelines.webhooks.webhook_service.on_ggo_received')
 @pytest.mark.usefixtures('celery_session_worker')
-def test__handle_composed_ggo__happy_path(
+def test__handle_composed_ggo__happy_path__Batch_should_be_COMPLETED(
         on_ggo_received_mock, ledger_mock, build_ledger_batch,
         make_session_mock, session, celery_session_worker):
 
-    handle = 'LEDGER-HANDLE'
-    ledger_batch = 'LEDGER BATCH'
-    ggo1 = GgoQuery(session).has_id(2).one()
-    ggo2 = GgoQuery(session).has_id(3).one()
+    # -- Arrange -------------------------------------------------------------
 
     make_session_mock.return_value = session
-    build_ledger_batch.return_value = ledger_batch
+    build_ledger_batch.return_value = 'LEDGER BATCH'
 
     # Executing batch: Raises Ledger exceptions a few times, then returns Handle
     ledger_mock.execute_batch.side_effect = (
@@ -221,7 +255,7 @@ def test__handle_composed_ggo__happy_path(
         ols.LedgerException('', code=17),
         ols.LedgerException('', code=18),
         ols.LedgerException('', code=31),
-        handle,
+        'LEDGER-HANDLE',
     )
 
     # Getting batch status: Raises LedgerConnectionError once, then returns BatchStatuses
@@ -232,13 +266,12 @@ def test__handle_composed_ggo__happy_path(
         BatchStatusResponse(id='', status=ols.BatchStatus.COMMITTED),
     )
 
-    # Build (compose) a new Batch with two SPLIT transactions
-    # (doesn't really matter, we just need at Batch)
-    batch = session.query(Batch).filter_by(id=1).one()
-    recipients = ((user2, ggo1), (user3, ggo2))
+    # -- Act -----------------------------------------------------------------
 
-    # Start pipeline
+    batch, recipients = create_batch(session)
     pipeline = start_handle_composed_ggo_pipeline(batch, recipients, session)
+
+    # -- Assert --------------------------------------------------------------
 
     # Wait for pipeline + linked tasks to finish
     pipeline.get(timeout=PIPELINE_TIMEOUT)
@@ -246,43 +279,185 @@ def test__handle_composed_ggo__happy_path(
 
     # ledger.execute_batch()
     assert ledger_mock.execute_batch.call_count == 6
-    assert all(args == ((ledger_batch,),) for args in ledger_mock.execute_batch.call_args_list)
+    assert all(args == (('LEDGER BATCH',),) for args in ledger_mock.execute_batch.call_args_list)
 
     # ledger.get_batch_status()
     assert ledger_mock.get_batch_status.call_count == 4
-    assert all(args == ((handle,),) for args in ledger_mock.get_batch_status.call_args_list)
+    assert all(args == (('LEDGER-HANDLE',),) for args in ledger_mock.get_batch_status.call_args_list)
 
     # webhook_service.on_ggo_received_mock()
     assert on_ggo_received_mock.call_count == 4
-    assert any(
-        isinstance(args[0][0], WebhookSubscription) and
-        args[0][0].id == subscription1.id and
-        isinstance(args[0][1], Ggo) and
-        args[0][1].id == ggo1.id
-        for args in on_ggo_received_mock.call_args_list
-    )
-    assert any(
-        isinstance(args[0][0], WebhookSubscription) and
-        args[0][0].id == subscription2.id and
-        isinstance(args[0][1], Ggo) and
-        args[0][1].id == ggo1.id
-        for args in on_ggo_received_mock.call_args_list
-    )
-    assert any(
-        isinstance(args[0][0], WebhookSubscription) and
-        args[0][0].id == subscription3.id and
-        isinstance(args[0][1], Ggo) and
-        args[0][1].id == ggo2.id
-        for args in on_ggo_received_mock.call_args_list
-    )
-    assert any(
-        isinstance(args[0][0], WebhookSubscription) and
-        args[0][0].id == subscription4.id and
-        isinstance(args[0][1], Ggo) and
-        args[0][1].id == ggo2.id
-        for args in on_ggo_received_mock.call_args_list
-    )
+
+    for split_target in batch.transactions[0].targets:
+        if split_target.ggo.user_id == user2.id:
+            assert any(
+                isinstance(args[0][0], WebhookSubscription) and
+                args[0][0].id == subscription1.id and
+                isinstance(args[0][1], Ggo) and
+                args[0][1].id == split_target.ggo.id
+                for args in on_ggo_received_mock.call_args_list
+            )
+            assert any(
+                isinstance(args[0][0], WebhookSubscription) and
+                args[0][0].id == subscription2.id and
+                isinstance(args[0][1], Ggo) and
+                args[0][1].id == split_target.ggo.id
+                for args in on_ggo_received_mock.call_args_list
+            )
+        elif split_target.ggo.user_id == user3.id:
+            assert any(
+                isinstance(args[0][0], WebhookSubscription) and
+                args[0][0].id == subscription3.id and
+                isinstance(args[0][1], Ggo) and
+                args[0][1].id == split_target.ggo.id
+                for args in on_ggo_received_mock.call_args_list
+            )
+            assert any(
+                isinstance(args[0][0], WebhookSubscription) and
+                args[0][0].id == subscription4.id and
+                isinstance(args[0][1], Ggo) and
+                args[0][1].id == split_target.ggo.id
+                for args in on_ggo_received_mock.call_args_list
+            )
+        else:
+            raise RuntimeError
 
     # Batch state after pipeline completes
-    batch = session.query(Batch).filter_by(id=1).one()
+    batch = session.query(Batch).filter_by(id=batch.id).one()
     assert batch.state is BatchState.COMPLETED
+
+
+@patch('origin.db.make_session')
+@patch('origin.ledger.models.Batch.build_ledger_batch')
+@patch('origin.pipelines.submit_batch_to_ledger.ledger')
+@patch('origin.pipelines.webhooks.webhook_service.on_ggo_received')
+@pytest.mark.usefixtures('celery_session_worker')
+def test__handle_composed_ggo__execute_batch_raises_LedgerException__Batch_should_be_DECLINED(
+        on_ggo_received_mock, ledger_mock, build_ledger_batch,
+        make_session_mock, session, celery_session_worker):
+
+    # -- Arrange -------------------------------------------------------------
+
+    make_session_mock.return_value = session
+    build_ledger_batch.return_value = 'LEDGER BATCH'
+
+    # Executing batch: Raises Ledger exceptions a few times, then returns Handle
+    ledger_mock.execute_batch.side_effect = (
+        ols.LedgerException('', code=10),
+    )
+
+    # -- Act -----------------------------------------------------------------
+
+    batch, recipients = create_batch(session)
+    pipeline = start_handle_composed_ggo_pipeline(batch, recipients, session)
+
+    # -- Assert --------------------------------------------------------------
+
+    # Wait for pipeline + linked tasks to finish
+    with pytest.raises(ols.LedgerException):
+        pipeline.get(timeout=PIPELINE_TIMEOUT)
+
+    time.sleep(5)
+
+    # ledger.execute_batch()
+    ledger_mock.execute_batch.assert_called_once_with('LEDGER BATCH')
+    ledger_mock.get_batch_status.assert_not_called()
+    on_ggo_received_mock.assert_not_called()
+
+    # Batch state after pipeline completes
+    batch = session.query(Batch).filter_by(id=batch.id).one()
+    assert batch.state is BatchState.DECLINED
+
+
+@patch('origin.db.make_session')
+@patch('origin.ledger.models.Batch.build_ledger_batch')
+@patch('origin.pipelines.submit_batch_to_ledger.ledger')
+@patch('origin.pipelines.webhooks.webhook_service.on_ggo_received')
+@pytest.mark.usefixtures('celery_session_worker')
+def test__handle_composed_ggo__get_batch_status_raises_LedgerException__Batch_should_be_DECLINED(
+        on_ggo_received_mock, ledger_mock, build_ledger_batch,
+        make_session_mock, session, celery_session_worker):
+
+    # -- Arrange -------------------------------------------------------------
+
+    make_session_mock.return_value = session
+    build_ledger_batch.return_value = 'LEDGER BATCH'
+
+    # Executing batch: Returns Handle
+    ledger_mock.execute_batch.side_effect = (
+        'LEDGER-HANDLE',
+    )
+
+    # Getting batch status: Raises LedgerException
+    ledger_mock.get_batch_status.side_effect = (
+        ols.LedgerException('', code=10),
+    )
+
+    # -- Act -----------------------------------------------------------------
+
+    batch, recipients = create_batch(session)
+    pipeline = start_handle_composed_ggo_pipeline(batch, recipients, session)
+
+    # -- Assert --------------------------------------------------------------
+
+    # Wait for pipeline + linked tasks to finish
+    with pytest.raises(ols.LedgerException):
+        pipeline.get(timeout=PIPELINE_TIMEOUT)
+
+    time.sleep(5)
+
+    # ledger.execute_batch()
+    ledger_mock.execute_batch.assert_called_once_with('LEDGER BATCH')
+    ledger_mock.get_batch_status.assert_called_once_with('LEDGER-HANDLE')
+    on_ggo_received_mock.assert_not_called()
+
+    # Batch state after pipeline completes
+    batch = session.query(Batch).filter_by(id=batch.id).one()
+    assert batch.state is BatchState.DECLINED
+
+
+@patch('origin.db.make_session')
+@patch('origin.ledger.models.Batch.build_ledger_batch')
+@patch('origin.pipelines.submit_batch_to_ledger.ledger')
+@patch('origin.pipelines.webhooks.webhook_service.on_ggo_received')
+@pytest.mark.usefixtures('celery_session_worker')
+def test__handle_composed_ggo__get_batch_status_returns_INVALID__Batch_should_be_DECLINED(
+        on_ggo_received_mock, ledger_mock, build_ledger_batch,
+        make_session_mock, session, celery_session_worker):
+
+    # -- Arrange -------------------------------------------------------------
+
+    make_session_mock.return_value = session
+    build_ledger_batch.return_value = 'LEDGER BATCH'
+
+    # Executing batch: Returns Handle
+    ledger_mock.execute_batch.side_effect = (
+        'LEDGER-HANDLE',
+    )
+
+    # Getting batch status: Raises LedgerException
+    ledger_mock.get_batch_status.side_effect = (
+        BatchStatusResponse(id='', status=ols.BatchStatus.INVALID),
+    )
+
+    # -- Act -----------------------------------------------------------------
+
+    batch, recipients = create_batch(session)
+    pipeline = start_handle_composed_ggo_pipeline(batch, recipients, session)
+
+    # -- Assert --------------------------------------------------------------
+
+    # Wait for pipeline + linked tasks to finish
+    with pytest.raises(InvalidBatch):
+        pipeline.get(timeout=PIPELINE_TIMEOUT)
+
+    time.sleep(5)
+
+    # ledger.execute_batch()
+    ledger_mock.execute_batch.assert_called_once_with('LEDGER BATCH')
+    ledger_mock.get_batch_status.assert_called_once_with('LEDGER-HANDLE')
+    on_ggo_received_mock.assert_not_called()
+
+    # Batch state after pipeline completes
+    batch = session.query(Batch).filter_by(id=batch.id).one()
+    assert batch.state is BatchState.DECLINED
