@@ -4,4 +4,4 @@ from .schedule import *
 from .import_ggos import *
 from .import_technologies import *
 from .import_meteringpoints import *
-from .handle_composed_ggo_request import *
+from .handle_composed_ggo import *

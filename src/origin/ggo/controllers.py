@@ -2,6 +2,7 @@ import marshmallow_dataclass as md
 
 from origin.db import inject_session, atomic
 from origin.http import Controller, BadRequest
+from origin.webhooks import validate_hmac
 from origin.pipelines import (
     start_handle_composed_ggo_pipeline,
     start_import_issued_ggos,
@@ -14,7 +15,6 @@ from origin.auth import (
     inject_user,
     require_oauth,
 )
-from origin.webhooks import validate_hmac
 
 from .composer import GgoComposer
 from .queries import GgoQuery, TransactionQuery, RetireQuery
@@ -41,22 +41,22 @@ from .models import (
 
 class GetGgoList(Controller):
     """
-    order: period | amount | sector | gsrn  # TODO asc/desc?
-
-    beginFrom: INCLUSIVE
-    beginTo: EXCLUSIVE
+    Returns a list of GGO objects which belongs to the account. The database
+    contains a historical record of prior received, sent, and retired GGOs,
+    so this endpoint will return GGOs that are no longer available,
+    unless filtered out.
     """
     Request = md.class_schema(GetGgoListRequest)
     Response = md.class_schema(GetGgoListResponse)
 
     @require_oauth('ggo.read')
-    @inject_user(required=True)
+    @inject_user
     @inject_session
     def handle_request(self, request, user, session):
         """
         :param GetGgoListRequest request:
         :param User user:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: GetGgoListResponse
         """
         query = GgoQuery(session) \
@@ -80,20 +80,22 @@ class GetGgoList(Controller):
 
 class GetGgoSummary(Controller):
     """
-    TODO
+    Returns a summary of the account's GGOs, or a subset hereof.
+    Useful for plotting or visualizing data.
+
     TODO resolutionIso: https://www.digi.com/resources/documentation/digidocs/90001437-13/reference/r_iso_8601_duration_format.htm
     """
     Request = md.class_schema(GetGgoSummaryRequest)
     Response = md.class_schema(GetGgoSummaryResponse)
 
     @require_oauth('ggo.read')
-    @inject_user(required=True)
+    @inject_user
     @inject_session
     def handle_request(self, request, user, session):
         """
         :param GetGgoSummaryRequest request:
         :param User user:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: GetGgoSummaryResponse
         """
         summary = GgoQuery(session) \
@@ -113,19 +115,21 @@ class GetGgoSummary(Controller):
 
 class GetTransferSummary(Controller):
     """
-    TODO
+    This endpoint works the same way as /ggo-summary, except it only
+    summarized transferred GGOs, either inbound or outbound
+    depending on the parameter "direction".
     """
     Request = md.class_schema(GetTransferSummaryRequest)
     Response = md.class_schema(GetTransferSummaryResponse)
 
     @require_oauth('ggo.transfer')
-    @inject_user(required=True)
+    @inject_user
     @inject_session
     def handle_request(self, request, user, session):
         """
         :param GetTransferSummaryRequest request:
         :param User user:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: GetTransferSummaryResponse
         """
         query = TransactionQuery(session) \
@@ -152,19 +156,21 @@ class GetTransferSummary(Controller):
 
 class GetTransferredAmount(Controller):
     """
-    TODO
+    Summarizes the amount of transferred GGOs and returns the total amount
+    of Wh as an integer. Takes the "filters" and "direction"
+    like /transfers/summary.
     """
     Request = md.class_schema(GetTransferredAmountRequest)
     Response = md.class_schema(GetTransferredAmountResponse)
 
     @require_oauth('ggo.transfer')
-    @inject_user(required=True)
+    @inject_user
     @inject_session
     def handle_request(self, request, user, session):
         """
         :param GetTransferredAmountRequest request:
         :param User user:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: GetTransferredAmountResponse
         """
         query = TransactionQuery(session) \
@@ -185,19 +191,20 @@ class GetTransferredAmount(Controller):
 
 class GetRetiredAmount(Controller):
     """
-    TODO
+    Summarizes the amount of retired GGOs and returns the total
+    amount of Wh as an integer.
     """
     Request = md.class_schema(GetRetiredAmountRequest)
     Response = md.class_schema(GetRetiredAmountResponse)
 
     @require_oauth('ggo.retire')
-    @inject_user(required=True)
+    @inject_user
     @inject_session
     def handle_request(self, request, user, session):
         """
         :param GetRetiredAmountRequest request:
         :param User user:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: GetRetiredAmountResponse
         """
         amount = RetireQuery(session) \
@@ -211,70 +218,42 @@ class GetRetiredAmount(Controller):
         )
 
 
-class TransferGgo(Controller):
-    """
-    TODO
-    """
-    # Request = md.class_schema(TransferGgoRequest)
-    # Response = md.class_schema(TransferGgoResponse)
-
-    # builder = BatchBuilder()
-
-    @require_oauth('ggo.transfer')
-    @inject_user(required=True)
-    def handle_request(self, request, user):
-        """
-        :param TransferGgoRequest request:
-        :param User user:
-        :rtype: TransferGgoResponse
-        """
-    #     claim = self.build_claim(request, user)
-    #
-    #     start_submit_transfer_claim_pipeline(claim)
-    #
-    #     return TransferGgoResponse(success=True)
-    #
-    # @atomic
-    # def build_claim(self, request, user, session):
-    #     """
-    #     :param TransferGgoRequest request:
-    #     :param User user:
-    #     :param Session session:
-    #     :rtype: TransferClaim
-    #     """
-    #     user = session.merge(user)
-    #
-    #     user_to = UserQuery(session) \
-    #         .has_account_number(request.account_number) \
-    #         .one()
-    #
-    #     claim = TransferClaim.from_request(
-    #         user_from=user,
-    #         user_to=user_to,
-    #         request=request,
-    #     )
-    #
-    #     claim.batch = self.builder.build_batch(claim, session)
-    #
-    #     session.add(claim)
-    #     session.flush()
-    #
-    #     return claim
-
-
 class ComposeGgo(Controller):
     """
-    TODO
+    Transfers or retires a single GGO to one or more accounts and/or
+    MeteringPoints. The operation splits the source GGO up into multiple
+    new GGOs if required to before transferring and retiring takes place.
+
+    The sum of these can not exceed the source GGO's amount, but can,
+    however deceed it. Any remaining amount is transferred back to
+    the owner of the source GGO.
+
+    Each transfer request contains an amount in Wh, a reference string
+    for future enquiry, and a subject (sub), which is the recipient user's
+    account number.
+
+    Each retire request contains an amount in Wh, and a GSRN number to
+    retire the specified amount to.
+
+    The requested transfers and retires are counted as complete upon a
+    successful response from this endpoint. This means that subsequent
+    requests to other endpoints will count the requested amount transferred
+    or retired immediately. However, due to the asynchronous nature of
+    the blockchain ledger, this operation may be rolled back later in
+    case of an error on the ledger, and will result in the source GGO
+    being stored and available to the source' account again.
     """
     Request = md.class_schema(ComposeGgoRequest)
     Response = md.class_schema(ComposeGgoResponse)
 
     @require_oauth(['ggo.transfer', 'ggo.retire'])
-    @inject_user(required=True)
-    def handle_request(self, request, user):
+    @inject_user
+    @inject_session
+    def handle_request(self, request, user, session):
         """
         :param ComposeGgoRequest request:
         :param User user:
+        :param sqlalchemy.orm.Session session:
         :rtype: ComposeGgoResponse
         """
         batch, recipients = self.compose(
@@ -284,7 +263,7 @@ class ComposeGgo(Controller):
             retires=request.retires,
         )
 
-        start_handle_composed_ggo_pipeline(batch, recipients)
+        start_handle_composed_ggo_pipeline(batch, recipients, session)
 
         return ComposeGgoResponse(success=True)
 
@@ -295,7 +274,7 @@ class ComposeGgo(Controller):
         :param str ggo_address:
         :param list[TransferRequest] transfers:
         :param list[RetireRequest] retires:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: (Batch, list[User])
         :returns: Tuple the composed Batch along with a list of users
             who receive GGO by transfers
@@ -324,12 +303,12 @@ class ComposeGgo(Controller):
         """
         :param GgoComposer composer:
         :param TransferRequest request:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         """
-        target_user = self.get_user(request.sub, session)
+        target_user = self.get_user(request.account, session)
 
         if target_user is None:
-            raise BadRequest(f'Account unavailable ({request.sub})')
+            raise BadRequest(f'Account unavailable ({request.account})')
 
         composer.add_transfer(target_user, request.amount, request.reference)
 
@@ -338,7 +317,7 @@ class ComposeGgo(Controller):
         :param User user:
         :param GgoComposer composer:
         :param RetireRequest request:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         """
         meteringpoint = self.get_metering_point(
             user, request.gsrn, session)
@@ -360,7 +339,7 @@ class ComposeGgo(Controller):
         """
         :param User user:
         :param str ggo_address:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: Ggo
         """
         ggo = GgoQuery(session) \
@@ -377,7 +356,7 @@ class ComposeGgo(Controller):
     def get_user(self, sub, session):
         """
         :param str sub:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: User
         """
         return UserQuery(session) \
@@ -388,7 +367,7 @@ class ComposeGgo(Controller):
         """
         :param User user:
         :param str gsrn:
-        :param Session session:
+        :param sqlalchemy.orm.Session session:
         :rtype: MeteringPoint
         """
         return MeteringPointQuery(session) \
@@ -416,6 +395,10 @@ class OnGgosIssuedWebhook(Controller):
         :param OnGgosIssuedWebhookRequest request:
         :rtype: bool
         """
-        start_import_issued_ggos(request)
+        start_import_issued_ggos(
+            subject=request.sub,
+            gsrn=request.gsrn,
+            begin=request.begin,
+        )
 
         return True

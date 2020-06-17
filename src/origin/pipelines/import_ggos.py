@@ -1,93 +1,160 @@
 """
-TODO write this
+Asynchronous tasks for importing GGOs from DataHubService.
+Invokes the "GGO RECEIVED" webhook for each new GGO.
+
+One entrypoint exists:
+
+    start_import_issued_ggos()
+
 """
-from celery import group
+from celery import group, chain
 from datetime import datetime
+from sqlalchemy import orm
 
 from origin import logger
-from origin.db import inject_session
+from origin.db import inject_session, atomic
 from origin.tasks import celery_app
-from origin.webhooks import WebhookService
 from origin.auth import UserQuery
-from origin.ggo import (
-    GgoQuery,
-    GgoIssueController,
-    OnGgosIssuedWebhookRequest,
+from origin.ggo import GgoImportController
+from origin.services.datahub import (
+    DataHubServiceConnectionError,
+    DataHubServiceError,
 )
 
-
-webhook = WebhookService()
-controller = GgoIssueController()
+from .webhooks import build_invoke_on_ggo_received_tasks
 
 
-def start_import_issued_ggos(request):
+# Settings
+
+RETRY_DELAY = 10
+MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
+
+
+# Services
+controller = GgoImportController()
+
+
+def start_import_issued_ggos(subject, gsrn, begin):
     """
-    :param OnGgosIssuedWebhookRequest request:
+    :param str subject:
+    :param str gsrn:
+    :param datetime.datetime begin:
     """
-    import_ggos_and_insert_to_db \
-        .s(
-            subject=request.sub,
-            gsrn=request.gsrn,
-            begin=request.begin.isoformat(),
-        ) \
-        .apply_async()
+    tasks = (
+        import_ggos_and_insert_to_db.s(
+            subject=subject,
+            gsrn=gsrn,
+            begin=begin.isoformat(),
+        ),
+        invoke_webhooks.s(
+            subject=subject,
+            gsrn=gsrn,
+        ),
+    )
+
+    chain(*tasks).apply_async()
 
 
 @celery_app.task(
+    bind=True,
     name='import_ggos.import_ggos_and_insert_to_db',
-    autoretry_for=(Exception,),
-    retry_backoff=2,
-    max_retries=5,
+    default_retry_delay=RETRY_DELAY,
+    max_retries=MAX_RETRIES,
 )
 @logger.wrap_task(
     title='Importing GGOs for GSRN: %(gsrn)s',
     pipeline='import_ggos',
     task='import_ggos_and_insert_to_db',
 )
-@inject_session
-def import_ggos_and_insert_to_db(subject, gsrn, begin, session):
+@atomic
+def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
     """
+    :param celery.Task task:
     :param str subject:
     :param str gsrn:
     :param str begin:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
+    :rtype: list[int]
+    :returns: A list of IDs of all new imported GGOs
     """
-    user = UserQuery(session) \
-        .has_sub(subject) \
-        .has_gsrn(gsrn) \
-        .one_or_none()
+    __log_extra = {
+        'subject': subject,
+        'gsrn': gsrn,
+        'begin': begin,
+        'pipeline': 'import_ggos',
+        'task': 'import_ggos_and_insert_to_db',
+    }
 
-    if user is None:
-        return
+    begin_dt = datetime.fromisoformat(begin)
 
-    begin = datetime.fromisoformat(begin)
-    ggos = controller.import_ggos(user, gsrn, begin, begin)
-    tasks = [invoke_webhook.si(subject=subject, ggo_id=ggo.id) for ggo in ggos]
+    # Get User from DB
+    try:
+        user = UserQuery(session) \
+            .has_sub(subject) \
+            .has_gsrn(gsrn) \
+            .one()
+    except orm.exc.NoResultFound:
+        raise
+    except Exception as e:
+        raise task.retry(exc=e)
 
-    if tasks:
-        group(tasks).apply_async()
+    # Import GGOs
+    try:
+        ggos = controller.import_ggos(
+            user=user,
+            gsrn=gsrn,
+            begin_from=begin_dt,
+            begin_to=begin_dt,
+            session=session,
+        )
+    except DataHubServiceConnectionError as e:
+        logger.exception(f'Failed to establish connection to DataHubService, retrying...', extra=__log_extra)
+        raise task.retry(exc=e)
+    except DataHubServiceError as e:
+        if e.status_code == 400:
+            logger.exception('Got BAD REQUEST from DataHubService', extra=__log_extra)
+            raise
+        else:
+            logger.exception('Failed to import GGOs, retrying...', extra=__log_extra)
+            raise task.retry(exc=e)
+
+    return [ggo.id for ggo in ggos]
 
 
 @celery_app.task(
-    name='import_ggos.invoke_webhook',
+    name='import_ggos.invoke_webhooks',
     autoretry_for=(Exception,),
-    retry_backoff=2,
-    max_retries=5,
+    default_retry_delay=RETRY_DELAY,
+    max_retries=MAX_RETRIES,
 )
 @logger.wrap_task(
-    title='Invoking webhook on_ggo_received',
+    title='Importing GGOs for GSRN: %(gsrn)s',
     pipeline='import_ggos',
-    task='invoke_webhook',
+    task='invoke_webhooks',
 )
 @inject_session
-def invoke_webhook(subject, ggo_id, session):
+def invoke_webhooks(ggo_ids, subject, gsrn, session):
     """
+    :param list[int] ggo_ids:
     :param str subject:
-    :param int ggo_id:
-    :param Session session:
+    :param str gsrn:
+    :param sqlalchemy.orm.Session session:
     """
-    ggo = GgoQuery(session) \
-        .has_id(ggo_id) \
-        .one_or_none()
+    __log_extra = {
+        'subject': subject,
+        'gsrn': gsrn,
+        'pipeline': 'import_ggos',
+        'task': 'invoke_webhooks',
+    }
 
-    webhook.on_ggo_received(subject, ggo)
+    tasks = []
+
+    for ggo_id in ggo_ids:
+        tasks.extend(build_invoke_on_ggo_received_tasks(
+            subject=subject,
+            ggo_id=ggo_id,
+            session=session,
+        ))
+
+    if tasks:
+        group(tasks).apply_async()

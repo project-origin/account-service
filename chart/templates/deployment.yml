@@ -59,7 +59,6 @@ spec:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
           args: ["./entrypoint.beat.sh"]
-          
           envFrom:
             - configMapRef:
                 name: namespace-config
@@ -96,7 +95,6 @@ spec:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
           args: ["./entrypoint.worker.sh"]
-          
           envFrom:
             - configMapRef:
                 name: namespace-config

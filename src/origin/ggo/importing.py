@@ -1,24 +1,26 @@
 from origin import logger
-from origin.db import atomic
-from origin.ggo import GgoQuery, Ggo
 from origin.common import DateTimeRange
 from origin.services.datahub import DataHubService, GetGgoListRequest
 
+from .models import Ggo
+from .queries import GgoQuery
 
-datahub = DataHubService()
+
+datahub_service = DataHubService()
 
 
-class GgoIssueController(object):
+class GgoImportController(object):
     """
-    TODO
+    Imports GGO(s) from DataHubService and saves them in the
+    database with an ISSUED state.
     """
-
-    def import_ggos(self, user, gsrn, begin_from, begin_to):
+    def import_ggos(self, user, gsrn, begin_from, begin_to, session):
         """
         :param User user:
         :param str gsrn:
         :param datetime.datetime begin_from:
         :param datetime.datetime begin_to:
+        :param sqlalchemy.orm.Session session:
         :rtype: list[Ggo]
         """
         logger.info(f'Importing GGOs for GSRN: {gsrn}', extra={
@@ -30,10 +32,23 @@ class GgoIssueController(object):
             'task': 'import_ggos_and_insert_to_db',
         })
 
+        # Import GGOs from DataHub
         imported_ggos = self.fetch_ggos(user, gsrn, begin_from, begin_to)
-        issued_ggos = self.insert_to_db(user, imported_ggos)
+        mapped_ggos = (self.map_imported_ggo(user, ggo) for ggo in imported_ggos)
+        filtered_ggos = (
+            ggo for ggo in mapped_ggos
+            if not self.ggo_exists(ggo.address, session)
+        )
 
-        logger.info(f'Imported {len(issued_ggos)} GGOs for GSRN: {gsrn}', extra={
+        new_ggos = []
+
+        # Filter out GGOs that already exists and map to Ggo type
+        for ggo in filtered_ggos:
+            session.add(ggo)
+            session.flush()
+            new_ggos.append(ggo)
+
+        logger.info(f'Imported {len(new_ggos)} GGOs for GSRN: {gsrn}', extra={
             'gsrn': gsrn,
             'subject': user.sub,
             'begin_from': str(begin_from),
@@ -42,7 +57,7 @@ class GgoIssueController(object):
             'task': 'import_ggos_and_insert_to_db',
         })
 
-        return issued_ggos
+        return new_ggos
 
     def fetch_ggos(self, user, gsrn, begin_from, begin_to):
         """
@@ -50,37 +65,23 @@ class GgoIssueController(object):
         :param str gsrn:
         :param datetime.datetime begin_from:
         :param datetime.datetime begin_to:
-        :rtype: list[Ggo]
+        :rtype: list[origin.services.datahub.Ggo]
         """
         begin_range = DateTimeRange(begin=begin_from, end=begin_to)
         request = GetGgoListRequest(gsrn=gsrn, begin_range=begin_range)
-        response = datahub.get_ggo_list(user.access_token, request)
+        response = datahub_service.get_ggo_list(user.access_token, request)
         return response.ggos
 
-    @atomic
-    def insert_to_db(self, user, imported_ggos, session):
+    def ggo_exists(self, address, session):
         """
-        :param User user:
-        :param list[origin.services.datahub.Ggo] imported_ggos:
-        :param Session session:
-        :rtype: list[Ggo]
+        :param str address:
+        :param sqlalchemy.orm.Session session:
         """
-        ggos = []
+        count = GgoQuery(session) \
+            .has_address(address) \
+            .count()
 
-        for i, imported_ggo in enumerate(imported_ggos):
-            count = GgoQuery(session) \
-                .has_address(imported_ggo.address) \
-                .count()
-
-            if count == 0:
-                ggo = self.map_imported_ggo(user, imported_ggo)
-                session.add(ggo)
-                ggos.append(ggo)
-
-                if i % 100 == 0:
-                    session.flush()
-
-        return ggos
+        return count > 0
 
     def map_imported_ggo(self, user, imported_ggo):
         """
@@ -94,9 +95,9 @@ class GgoIssueController(object):
             issue_time=imported_ggo.issue_time,
             expire_time=imported_ggo.expire_time,
             begin=imported_ggo.begin,
+            end=imported_ggo.end,
             amount=imported_ggo.amount,
             sector=imported_ggo.sector,
-            end=imported_ggo.end,
             technology_code=imported_ggo.technology_code,
             fuel_code=imported_ggo.fuel_code,
             synchronized=True,

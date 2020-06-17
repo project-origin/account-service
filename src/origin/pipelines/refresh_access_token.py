@@ -1,5 +1,6 @@
 """
-TODO write this
+Asynchronous tasks for refreshing access tokens which
+are close to expiring.
 """
 from datetime import datetime, timezone
 from celery import group
@@ -27,7 +28,7 @@ backend = AuthBackend()
 @inject_session
 def get_soon_to_expire_tokens(session):
     """
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
     users = UserQuery(session) \
         .should_refresh_token()
@@ -44,7 +45,7 @@ def get_soon_to_expire_tokens(session):
     max_retries=5,
 )
 @logger.wrap_task(
-    title='Refreshing user\'s refresh_token',
+    title='Refreshing user\'s access token',
     pipeline='refresh_token',
     task='refresh_token',
 )
@@ -52,7 +53,7 @@ def get_soon_to_expire_tokens(session):
 def refresh_token(subject, session):
     """
     :param str subject:
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
     user = UserQuery(session) \
         .has_sub(subject) \

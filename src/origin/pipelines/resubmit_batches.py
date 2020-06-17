@@ -4,7 +4,6 @@ which has not been successfully submitted to the ledger for some reason,
 for instance if the ledger has been down for a period of time etc.
 """
 import sqlalchemy as sa
-from sqlalchemy import text
 
 from origin import logger
 from origin.db import inject_session
@@ -31,26 +30,28 @@ def start_resubmit_batches_pipeline():
     max_retries=5,
 )
 @logger.wrap_task(
-    title='Resubmitting batches',
+    title='Getting non-completed Batches (to be re-submitted)',
     pipeline='resubmit_batches',
     task='resubmit_batches',
 )
 @inject_session
 def resubmit_batches(session):
     """
-    :param Session session:
+    :param sqlalchemy.orm.Session session:
     """
+
+    # TODO move to / create a BatchQuery class
     batches = session.query(Batch) \
         .filter(
             sa.or_(
                 sa.and_(
                     Batch.state == BatchState.PENDING,
-                    Batch.created <= text(
+                    Batch.created <= sa.text(
                         "NOW() - INTERVAL '%d HOURS'" % BATCH_RESUBMIT_AFTER_HOURS),
                 ),
                 sa.and_(
                     Batch.state == BatchState.SUBMITTED,
-                    Batch.submitted <= text(
+                    Batch.submitted <= sa.text(
                         "NOW() - INTERVAL '%d HOURS'" % BATCH_RESUBMIT_AFTER_HOURS),
                 ),
             ),

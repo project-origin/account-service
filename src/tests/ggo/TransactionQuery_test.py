@@ -114,6 +114,9 @@ def seed_transaction_test_data(session):
             locked=False,
         )
 
+        session.add(ggo)
+        session.flush()
+
         transaction = SplitTransaction(parent_ggo=ggo)
         other_users = [u for u in users if u is not usr]
 
@@ -121,7 +124,7 @@ def seed_transaction_test_data(session):
             transaction.add_target(
                 reference=ref,
                 ggo=Ggo(
-                    parent=ggo,
+                    parent_id=ggo.id,
                     user=target_user,
                     address=str(i**5 + j),
                     issue_time=datetime(2020, 1, 1, 0, 0, 0),
@@ -148,6 +151,7 @@ def seed_transaction_test_data(session):
 
         session.add(batch)
 
+    session.flush()
     session.commit()
 
 
@@ -160,13 +164,14 @@ def seeded_session():
         engine = create_engine(psql.url())
         ModelBase.metadata.create_all(engine)
         Session = sessionmaker(bind=engine, expire_on_commit=False)
-        session = Session()
 
-        seed_transaction_test_data(session)
+        session1 = Session()
+        seed_transaction_test_data(session1)
+        session1.close()
 
-        yield session
-
-        session.close()
+        session2 = Session()
+        yield session2
+        session2.close()
 
 
 # -- TEST CASES --------------------------------------------------------------

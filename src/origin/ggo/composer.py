@@ -10,12 +10,16 @@ from .queries import RetireQuery
 from .models import Ggo
 
 
-datahub = DataHubService()
+datahub_service = DataHubService()
 
 
 class GgoComposer(object):
     """
-    TODO
+    Implements functionality to transfer and/or retire a GGO.
+
+    The method build_batch() compiles together a Batch object, which can
+    be save to the database, and later executed on the ledger. It creates
+    a Batch with Transactions, along with the necessary new Ggo(s).
     """
 
     class Empty(Exception):
@@ -31,19 +35,26 @@ class GgoComposer(object):
         pass
 
     class RetireMeasurementUnavailable(Exception):
+        """
+        Raised when trying to retire to a measurement that doesn't exists
+        """
         def __init__(self, gsrn, begin):
             self.gsrn = gsrn
             self.begin = begin
 
     class RetireMeasurementInvalid(Exception):
+        """
+        Raised when trying to retire to a measurement that it can not
+        retire to
+        """
         def __init__(self, ggo, measurement):
             self.ggo = ggo
             self.measurement = measurement
 
     def __init__(self, ggo, session):
         """
-        :param Ggo ggo:
-        :param Session session:
+        :param Ggo ggo: The GGO to transfer/retire
+        :param sqlalchemy.orm.Session session:
         """
         assert ggo.is_tradable()
         assert not ggo.is_expired()
@@ -56,6 +67,8 @@ class GgoComposer(object):
     @property
     def total_amount(self):
         """
+        Returns the total amount of all added transfers and retires.
+
         :rtype: int
         """
         sum_of_transfers = sum(t[1] for t in self.transfers)
@@ -65,12 +78,17 @@ class GgoComposer(object):
     @property
     def remaining_amount(self):
         """
+        Returns the remaining available amount to transfer and/or retire.
+
         :rtype: int
         """
         return self.ggo.amount - self.total_amount
 
     def add_transfer(self, user, amount, reference=None):
         """
+        Transfer the provided amount to the provided user.
+        Optionally adds an arbitrary reference string for future enquiry.
+
         :param User user:
         :param int amount:
         :param str reference:
@@ -81,10 +99,13 @@ class GgoComposer(object):
 
     def add_retire(self, meteringpoint, amount):
         """
+        Transfer the provided amount to the provided meteringpoint.
+
         :param MeteringPoint meteringpoint:
         :param int amount:
         """
         assert 0 < amount <= self.ggo.amount
+        assert meteringpoint.user_id == self.ggo.user_id
 
         # The published consumption measurement to retire to
         measurement = self.get_consumption(meteringpoint.gsrn, self.ggo.begin)
@@ -184,6 +205,9 @@ class GgoComposer(object):
 
     def eligible_to_retire_measurement(self, measurement):
         """
+        Check whether the GGO is eligible to be retired to the
+        provided measurement.
+
         :param Measurement measurement:
         :rtype: bool
         """
@@ -192,6 +216,8 @@ class GgoComposer(object):
 
     def get_retired_amount(self, measurement):
         """
+        Get the already retired amount for a specific measurement.
+
         :param Measurement measurement:
         :rtype: int
         """
@@ -212,7 +238,7 @@ class GgoComposer(object):
         :rtype: Measurement
         """
         request = GetMeasurementRequest(gsrn=gsrn, begin=begin)
-        response = datahub.get_consumption(
+        response = datahub_service.get_consumption(
             self.ggo.user.access_token, request)
 
         return response.measurement

@@ -26,7 +26,24 @@ class BatchState(Enum):
 
 class Batch(ModelBase):
     """
-    TODO
+    Represents a batch of transactions, which can be executed on the ledger
+    atomically. Use build_ledger_batch() to build a Batch object from the
+    origin_ledger_sdk library.
+
+    Transactions are executed in the order that are added using
+    add_transaction().
+
+    Invoke lifecycle hooks to synchronize the database with the batch status:
+
+        - Invoke on_begin() immediately after creating the batch, before
+          inserting it into the database
+
+        - Invoke on_submitted() once the batch has been submitted to the ledger
+
+        - Invoke on_commit() once/if the batch has been completed on the ledger
+
+        - Invoke on_rollback() once/if the batch has been declined on the ledger
+
     """
     __tablename__ = 'ledger_batch'
 
@@ -40,7 +57,7 @@ class Batch(ModelBase):
     # Relationships
     user_id = sa.Column(sa.Integer(), sa.ForeignKey('auth_user.id'), index=True, nullable=False)
     user = relationship('User', foreign_keys=[user_id])
-    transactions = relationship('Transaction', back_populates='batch', uselist=True)
+    transactions = relationship('Transaction', back_populates='batch', uselist=True, order_by='asc(Transaction.order)')
 
     # The handle returned by the ledger used to enquiry for status
     handle = sa.Column(sa.String())
@@ -63,9 +80,6 @@ class Batch(ModelBase):
             self.add_transaction(transaction)
 
     def on_begin(self):
-        """
-        TODO
-        """
         self.state = BatchState.PENDING
 
         for transaction in self.transactions:
@@ -73,8 +87,6 @@ class Batch(ModelBase):
 
     def on_submitted(self, handle):
         """
-        TODO
-
         :param str handle:
         """
         self.state = BatchState.SUBMITTED
@@ -82,18 +94,12 @@ class Batch(ModelBase):
         self.submitted = func.now()
 
     def on_commit(self):
-        """
-        TODO
-        """
         self.state = BatchState.COMPLETED
 
         for transaction in self.transactions:
             transaction.on_commit()
 
     def on_rollback(self):
-        """
-        TODO
-        """
         self.state = BatchState.DECLINED
 
         session = Session.object_session(self)
@@ -104,7 +110,7 @@ class Batch(ModelBase):
 
     def build_ledger_batch(self):
         """
-        TODO
+        :rtype: ols.Batch
         """
         batch = ols.Batch(self.user.key.PrivateKey())
 
@@ -116,7 +122,8 @@ class Batch(ModelBase):
 
 class Transaction(ModelBase):
     """
-    TODO
+    Abstract base class for ledger transactions. Available transactions
+    are implemented below this class.
     """
     __abstract__ = False
     __tablename__ = 'ledger_transaction'
@@ -152,33 +159,22 @@ class Transaction(ModelBase):
         return relationship('Ggo', foreign_keys=[cls.parent_ggo_id])
 
     def on_begin(self):
-        """
-        TODO
-        """
         raise NotImplementedError
 
     def on_commit(self):
-        """
-        TODO
-        """
         raise NotImplementedError
 
     def on_rollback(self):
-        """
-        TODO
-        """
         raise NotImplementedError
 
     def build_ledger_request(self):
-        """
-        TODO
-        """
         raise NotImplementedError
 
 
 class SplitTransaction(Transaction):
     """
-    TODO
+    Splits parent_ggo into multiple new GGOs. The sum of the target GGOs
+    must be equal to the parent_ggo's amount.
     """
     __abstract__ = False
     __tablename__ = 'ledger_transaction'
@@ -202,9 +198,6 @@ class SplitTransaction(Transaction):
         ))
 
     def on_begin(self):
-        """
-        TODO
-        """
         assert sum(t.ggo.amount for t in self.targets) == self.parent_ggo.amount
         assert self.parent_ggo.stored is True
         assert self.parent_ggo.retired is False
@@ -221,9 +214,6 @@ class SplitTransaction(Transaction):
             target.ggo.synchronized = False
 
     def on_commit(self):
-        """
-        TODO
-        """
         self.parent_ggo.stored = False
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
@@ -234,9 +224,6 @@ class SplitTransaction(Transaction):
             target.ggo.synchronized = True
 
     def on_rollback(self):
-        """
-        TODO WHAT EVEN TODO HERE?
-        """
         self.parent_ggo.stored = True
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
@@ -248,6 +235,9 @@ class SplitTransaction(Transaction):
             session.delete(target.ggo)
 
     def build_ledger_request(self):
+        """
+        :rtype: ols.SplitGGORequest
+        """
         parts = []
 
         for target in self.targets:
@@ -265,7 +255,11 @@ class SplitTransaction(Transaction):
 
 class SplitTarget(ModelBase):
     """
-    TODO
+    A target GGO when splitting a GGO into multiple GGOs.
+    Is used in conjunction with SplitTransaction.
+
+    "reference" is an arbitrary string provided by the user, which can be
+    used for future enquiry into transferring statistics.
     """
     __tablename__ = 'ledger_split_target'
     __table_args__ = (
@@ -286,7 +280,9 @@ class SplitTarget(ModelBase):
 
 class RetireTransaction(Transaction):
     """
-    TODO
+    Retires parent_ggo to the provided measurement of the provided
+    meteringpoint. The sum of the target GGOs must be equal to the
+    parent_ggo's amount.
     """
     __abstract__ = False
     __tablename__ = 'ledger_transaction'
@@ -327,27 +323,18 @@ class RetireTransaction(Transaction):
         )
 
     def on_begin(self):
-        """
-        TODO
-        """
         self.parent_ggo.stored = False
         self.parent_ggo.retired = True
         self.parent_ggo.locked = True
         self.parent_ggo.synchronized = False
 
     def on_commit(self):
-        """
-        TODO
-        """
         self.parent_ggo.stored = False
         self.parent_ggo.retired = True
         self.parent_ggo.locked = False
         self.parent_ggo.synchronized = True
 
     def on_rollback(self):
-        """
-        TODO WHAT EVEN TODO HERE?
-        """
         self.parent_ggo.stored = True  # TODO test this
         self.parent_ggo.retired = False
         self.parent_ggo.locked = False
@@ -357,7 +344,7 @@ class RetireTransaction(Transaction):
 
     def build_ledger_request(self):
         """
-        TODO
+        :rtype: ols.RetireGGORequest
         """
         measurement_key = KeyGenerator.get_key_for_measurement(
             self.meteringpoint, self.begin)

@@ -1,19 +1,18 @@
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
-from sqlalchemy.exc import IntegrityError
 from bip32utils import BIP32Key
 from typing import List
 from dataclasses import dataclass, field
 from marshmallow import fields
 from marshmallow_dataclass import NewType
 
-from origin.db import ModelBase, atomic, inject_session
+from origin.db import ModelBase
 from origin.ledger import KeyGenerator
 
 
 class User(ModelBase):
     """
-    Represents one used in the system who is able to authenticate.
+    Implementation of a single user in the system who is able to authenticate.
     """
     __tablename__ = 'auth_user'
     __table_args__ = (
@@ -66,10 +65,20 @@ class User(ModelBase):
 
 class MeteringPoint(ModelBase):
     """
-    TODO
+    Implementation of a single MeteringPoint, which belongs to a user.
+
+    MeteringPoints are imported from DataHubService, and should always be
+    a 1-to-1 reflection of the MeteringPoints available in DataHub.
+
+    Each MeteringPoint has a key_index, which is unique per user.
+    The table MeteringPointIndexSequence (below) is used to increment the
+    key_index every time a new MeteringPoint i created using the
+    MeteringPoint.create() method. The key_index is used when calculating/
+    generating a key for the specific MeteringPoint.
     """
     __tablename__ = 'accounts_meteringpoint'
     __table_args__ = (
+        sa.UniqueConstraint('gsrn'),
         sa.UniqueConstraint('user_id', 'key_index'),
     )
 
@@ -93,7 +102,7 @@ class MeteringPoint(ModelBase):
         :rtype: MeteringPoint
         """
         return MeteringPoint(
-            user=user,
+            user_id=user.id,
             key_index=MeteringPointIndexSequence.get_next_position(user.id, session),
             **kwargs
         )
@@ -115,7 +124,13 @@ class MeteringPoint(ModelBase):
 
 class MeteringPointIndexSequence(ModelBase):
     """
-    TODO
+    Keeps track of indexes for MeteringPoints, which are unique per user.
+    Call get_next_position() to increment the index while simultaneously
+    returning the new index.
+
+    Be aware that this operation locks the table row, possible the entire
+    table, so its important to commit/rollback the transaction as soon as
+    possible.
     """
     __tablename__ = 'accounts_meteringpoint_index_sequence'
     __table_args__ = (
@@ -183,3 +198,17 @@ class VerifyLoginCallbackRequest:
     scope: Scope
     code: str
     state: str
+
+
+# -- GetAccounts request and response ----------------------------------------
+
+
+@dataclass
+class Account:
+    id: str
+
+
+@dataclass
+class GetAccountsResponse:
+    success: bool
+    accounts: List[Account]

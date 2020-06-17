@@ -24,12 +24,33 @@ from .models import (
 
 class GgoQuery(object):
     """
-    TODO
+    Abstraction around querying Ggo objects from the database,
+    supporting cascade calls to combine filters.
+
+    Usage example::
+
+        query = GgoQuery(session) \
+            .belongs_to(user) \
+            .begins_at(datetime(2020, 1, 1, 0, 0))
+
+        for ggo in query:
+            pass
+
+    Attributes not present on the GgoQuery class is redirected to
+    SQLAlchemy's Query object, like count(), all() etc., for example::
+
+        query = GgoQuery(session) \
+            .belongs_to(user) \
+            .begins_at(datetime(2020, 1, 1, 0, 0)) \
+            .offset(100) \
+            .limit(20) \
+            .count()
+
     """
     def __init__(self, session, q=None):
         """
-        :param Session session:
-        :param Query q:
+        :param sa.orm.Session session:
+        :param sa.orm.Query q:
         """
         self.session = session
         if q is not None:
@@ -81,7 +102,7 @@ class GgoQuery(object):
 
     def has_id(self, id):
         """
-        TODO
+        Only include the Ggo with a specific ID.
 
         :param int id:
         :rtype: GgoQuery
@@ -92,7 +113,7 @@ class GgoQuery(object):
 
     def has_address(self, address):
         """
-        TODO
+        Only include the Ggo with a specific address.
 
         :param str address:
         :rtype: GgoQuery
@@ -103,7 +124,7 @@ class GgoQuery(object):
 
     def belongs_to(self, user):
         """
-        TODO
+        Only include GGOs which belong to the provided user.
 
         :param User user:
         :rtype: GgoQuery
@@ -114,7 +135,7 @@ class GgoQuery(object):
 
     def begins_at(self, begin):
         """
-        TODO
+        Only include GGOs which begins at the provided datetime.
 
         :param datetime begin:
         :rtype: GgoQuery
@@ -125,7 +146,8 @@ class GgoQuery(object):
 
     def is_issued(self, value=True):
         """
-        TODO
+        Include or exclude GGOs which were issued from producing energy,
+        ie. is not a result og transferring/splitting.
 
         :param bool value:
         :rtype: GgoQuery
@@ -137,7 +159,7 @@ class GgoQuery(object):
 
     def is_stored(self, value=True):
         """
-        TODO
+        Include or exclude GGOs which are currently stored.
 
         :param bool value:
         :rtype: GgoQuery
@@ -148,7 +170,7 @@ class GgoQuery(object):
 
     def is_retired(self, value=True):
         """
-        TODO
+        Include or exclude GGOs which have been retired.
 
         :param bool value:
         :rtype: GgoQuery
@@ -166,7 +188,7 @@ class GgoQuery(object):
 
     def is_retired_to_address(self, address):
         """
-        TODO
+        Only include GGOs which have been retired to a measurement address.
 
         :param str address:
         :rtype: GgoQuery
@@ -179,7 +201,7 @@ class GgoQuery(object):
 
     def is_retired_to_gsrn(self, gsrn):
         """
-        TODO
+        Only include GGOs which have been retired to a GSRN number.
 
         :param str gsrn:
         :rtype: GgoQuery
@@ -192,7 +214,7 @@ class GgoQuery(object):
 
     def is_expired(self, value=True):
         """
-        TODO
+        Include or exclude GGOs which are expired.
 
         :param bool value:
         :rtype: GgoQuery
@@ -208,7 +230,7 @@ class GgoQuery(object):
 
     def is_synchronized(self, value=True):
         """
-        TODO
+        Include or exclude GGOs which are synchronized on the ledger.
 
         :param bool value:
         :rtype: GgoQuery
@@ -219,7 +241,7 @@ class GgoQuery(object):
 
     def is_locked(self, value=True):
         """
-        TODO
+        Include or exclude GGOs which are locked by operations on the ledger.
 
         :param bool value:
         :rtype: GgoQuery
@@ -230,7 +252,7 @@ class GgoQuery(object):
 
     def is_tradable(self):
         """
-        TODO
+        Only include GGOs which are currently tradable (or retireable).
 
         :rtype: GgoQuery
         """
@@ -243,7 +265,7 @@ class GgoQuery(object):
 
     def is_retirable(self):
         """
-        TODO
+        Only include GGOs which are currently retireable.
 
         :rtype: GgoQuery
         """
@@ -251,6 +273,8 @@ class GgoQuery(object):
 
     def get_total_amount(self):
         """
+        Returns the total amount of the result set.
+
         :rtype: int
         """
         total_amount = self.session.query(
@@ -259,8 +283,7 @@ class GgoQuery(object):
 
     def get_distinct_begins(self):
         """
-        Returns an iterable of all distinct Ggo.begin
-        as a result of this query.
+        Returns a list of all distinct begins in the result set.
 
         :rtype: list[datetime]
         """
@@ -269,6 +292,8 @@ class GgoQuery(object):
 
     def get_summary(self, resolution, grouping):
         """
+        Returns a summary of the result set.
+
         :param SummaryResolution resolution:
         :param list[str] grouping:
         :rtype: GgoSummary
@@ -278,15 +303,16 @@ class GgoQuery(object):
 
 class TransactionQuery(GgoQuery):
     """
-    TODO
+    The same as GgoQuery except it only includes GGOs which have
+    been transferred.
     """
 
     parent_ggo = aliased(Ggo, name='parent')
 
     def __init__(self, session, q=None):
         """
-        :param Session session:
-        :param Query q:
+        :param sa.orm.Session session:
+        :param sa.orm.Query q:
         """
         if q is None:
             q = session.query(Ggo) \
@@ -365,12 +391,13 @@ class TransactionQuery(GgoQuery):
 
 class RetireQuery(GgoQuery):
     """
-    TODO
+    The same as GgoQuery except it only includes GGOs which have
+    been retired.
     """
     def __init__(self, session, q=None):
         """
-        :param Session session:
-        :param Query q:
+        :param sa.orm.Session session:
+        :param sa.orm.Query q:
         """
         super(RetireQuery, self).__init__(session, q)
 
@@ -383,6 +410,9 @@ class RetireQuery(GgoQuery):
         """
         q = super(RetireQuery, self).apply_filters(filters).q
 
+        # TODO refactor to use self.is_retired_to_address()
+        # TODO   and self.is_retired_to_gsrn()
+
         if filters.gsrn:
             q = q.filter(Ggo.retire_gsrn.in_(filters.gsrn))
         if filters.address:
@@ -393,7 +423,15 @@ class RetireQuery(GgoQuery):
 
 class GgoSummary(object):
     """
-    TODO Describe
+    Implements a summary/aggregation of GGOs.
+
+    Provided a GgoQuery, this class compiles together a list of
+    SummaryGroups, where each group is defined by the "grouping" parameter.
+    The aggregated data is based on the result set of the query provided.
+    It essentially works by wrapping a SQL "GROUP BY" statement.
+
+    The parameter "resolution" defined the returned data resolution.
+    Call .fill() before accessing .labels or .groups to fill gaps in data.
     """
 
     GROUPINGS = (
@@ -430,7 +468,7 @@ class GgoSummary(object):
 
     def __init__(self, session, query, resolution, grouping):
         """
-        :param Session session:
+        :param sa.orm.Session session:
         :param GgoQuery query:
         :param SummaryResolution resolution:
         :param list[str] grouping:
@@ -494,12 +532,15 @@ class GgoSummary(object):
         groups = []
         orders = []
 
-        q = self.query.subquery()
+        s = self.query.subquery()
 
-        q = self.session.query(q, func.coalesce(Technology.technology, UNKNOWN_TECHNOLOGY_LABEL).label('technology')) \
+        q = self.session.query(
+                s,
+                func.coalesce(Technology.technology, UNKNOWN_TECHNOLOGY_LABEL).label('technology')
+            ) \
             .outerjoin(Technology, sa.and_(
-                Technology.technology_code == q.c.technology_code,
-                Technology.fuel_code == q.c.fuel_code,
+                Technology.technology_code == s.c.technology_code,
+                Technology.fuel_code == s.c.fuel_code,
             )).subquery()
 
         # -- Resolution ------------------------------------------------------

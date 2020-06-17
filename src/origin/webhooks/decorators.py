@@ -9,7 +9,8 @@ from origin.settings import HMAC_HEADER, WEBHOOK_SECRET
 
 def validate_hmac(func):
     """
-    TODO
+    Function decorator which checks that the client has provided
+    a valid webhook secret. Otherwise raises an Unauthorized exception.
     """
     def _validate_hmac_wrapper(*args, **kwargs):
         hmac_header = request.headers.get(HMAC_HEADER)
