@@ -18,6 +18,7 @@ def start_handle_composed_ggo_pipeline(batch, recipients, session):
     :param origin.ledger.Batch batch:
     :param collections.abc.Iterable[(origin.auth.User, origin.ggo.Ggo)] recipients:
     :param sqlalchemy.orm.Session session:
+    :rtype: celery.Task
     """
     on_success_tasks = []
 
@@ -31,7 +32,7 @@ def start_handle_composed_ggo_pipeline(batch, recipients, session):
         ))
 
     # Start pipeline
-    start_submit_batch_pipeline(
+    return start_submit_batch_pipeline(
         subject=batch.user.sub,
         batch=batch,
         success=group(*on_success_tasks) if on_success_tasks else None,
