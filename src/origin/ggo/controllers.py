@@ -19,6 +19,7 @@ from origin.auth import (
 from .composer import GgoComposer
 from .queries import GgoQuery, TransactionQuery, RetireQuery
 from .models import (
+    Ggo,
     TransferDirection,
     TransferRequest,
     RetireRequest,
@@ -26,6 +27,8 @@ from .models import (
     GetGgoListResponse,
     GetGgoSummaryRequest,
     GetGgoSummaryResponse,
+    GetTotalAmountRequest,
+    GetTotalAmountResponse,
     GetTransferSummaryRequest,
     GetTransferSummaryResponse,
     GetTransferredAmountRequest,
@@ -35,7 +38,6 @@ from .models import (
     GetRetiredAmountResponse,
     GetRetiredAmountRequest,
     OnGgosIssuedWebhookRequest,
-    Ggo,
 )
 
 
@@ -61,20 +63,21 @@ class GetGgoList(Controller):
         """
         query = GgoQuery(session) \
             .belongs_to(user) \
+            .is_synchronized(True) \
+            .is_locked(False) \
             .apply_filters(request.filters)
 
         results = query \
             .order_by(Ggo.begin) \
-            .offset(request.offset) \
-            .limit(request.limit) \
-            .all()
+            .offset(request.offset)
 
-        total = query.count()
+        if request.limit:
+            results = results.limit(request.limit)
 
         return GetGgoListResponse(
             success=True,
-            total=total,
-            results=results,
+            total=query.count(),
+            results=results.all(),
         )
 
 
@@ -110,6 +113,33 @@ class GetGgoSummary(Controller):
             success=True,
             labels=summary.labels,
             groups=summary.groups,
+        )
+
+
+class GetTotalAmount(Controller):
+    """
+    TODO
+    """
+    Request = md.class_schema(GetTotalAmountRequest)
+    Response = md.class_schema(GetTotalAmountResponse)
+
+    @require_oauth('ggo.read')
+    @inject_user
+    @inject_session
+    def handle_request(self, request, user, session):
+        """
+        :param GetTotalAmountRequest request:
+        :param User user:
+        :param sqlalchemy.orm.Session session:
+        :rtype: GetTotalAmountResponse
+        """
+        query = GgoQuery(session) \
+            .belongs_to(user) \
+            .apply_filters(request.filters)
+
+        return GetTotalAmountResponse(
+            success=True,
+            amount=query.get_total_amount(),
         )
 
 
