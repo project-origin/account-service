@@ -15,6 +15,7 @@ urls = (
 
     ('/ggo', ggo.GetGgoList()),
     ('/ggo/summary', ggo.GetGgoSummary()),
+    ('/ggo/get-total-amount', ggo.GetTotalAmount()),
     ('/compose', ggo.ComposeGgo()),
 
     # Retiring
