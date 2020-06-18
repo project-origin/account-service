@@ -305,8 +305,8 @@ class SummaryGroup:
 @dataclass
 class GetGgoListRequest:
     filters: GgoFilters
-    offset: int
-    limit: int
+    offset: int = field(default=0)
+    limit: int = field(default=None)
     order: List[str] = field(default_factory=list)
 
 
@@ -336,6 +336,20 @@ class GetGgoSummaryResponse:
     success: bool
     labels: List[str] = field(default_factory=list)
     groups: List[SummaryGroup] = field(default_factory=list)
+
+
+# -- GetTotalAmount request and response -------------------------------------
+
+
+@dataclass
+class GetTotalAmountRequest:
+    filters: GgoFilters
+
+
+@dataclass
+class GetTotalAmountResponse:
+    success: bool
+    amount: int
 
 
 # -- GetTransferSummary request and response ---------------------------------

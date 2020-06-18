@@ -209,7 +209,7 @@ class SplitTransaction(Transaction):
         self.parent_ggo.synchronized = False
 
         for target in self.targets:
-            target.ggo.stored = False
+            target.ggo.stored = True
             target.ggo.locked = True
             target.ggo.synchronized = False
 
