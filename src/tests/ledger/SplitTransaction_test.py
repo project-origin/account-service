@@ -112,11 +112,11 @@ def test__SplitTransaction__on_begin__valid_parent_ggo__should_update_state_on_s
     assert parent_ggo.locked is True
     assert parent_ggo.synchronized is False
 
-    assert target_ggo1.stored is False
+    assert target_ggo1.stored is True
     assert target_ggo1.locked is True
     assert target_ggo1.synchronized is False
 
-    assert target_ggo2.stored is False
+    assert target_ggo2.stored is True
     assert target_ggo2.locked is True
     assert target_ggo2.synchronized is False
 
