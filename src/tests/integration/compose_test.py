@@ -247,9 +247,9 @@ def test__integration__compose(datahub_importing, datahub_composer, session):
 
     # -- ASSERT --------------------------------------------------------------
 
-    assert GgoQuery(session).belongs_to(user1).is_stored().get_total_amount() == 100
-    assert GgoQuery(session).belongs_to(user2).is_stored().get_total_amount() == 0
-    assert GgoQuery(session).belongs_to(user3).is_stored().get_total_amount() == 0
+    assert GgoQuery(session).belongs_to(user1).is_stored().get_total_amount() == 145
+    assert GgoQuery(session).belongs_to(user2).is_stored().get_total_amount() == 10
+    assert GgoQuery(session).belongs_to(user3).is_stored().get_total_amount() == 30
     assert TransactionQuery(session).sent_by_user(user1).get_total_amount() == 40
     assert TransactionQuery(session).sent_by_user(user2).get_total_amount() == 0
     assert TransactionQuery(session).sent_by_user(user3).get_total_amount() == 0
@@ -300,9 +300,9 @@ def test__integration__compose(datahub_importing, datahub_composer, session):
 
     # -- ASSERT --------------------------------------------------------------
 
-    assert GgoQuery(session).belongs_to(user1).is_stored().get_total_amount() == 45
-    assert GgoQuery(session).belongs_to(user2).is_stored().get_total_amount() == 10
-    assert GgoQuery(session).belongs_to(user3).is_stored().get_total_amount() == 30
+    assert GgoQuery(session).belongs_to(user1).is_stored().get_total_amount() == 100
+    assert GgoQuery(session).belongs_to(user2).is_stored().get_total_amount() == 20
+    assert GgoQuery(session).belongs_to(user3).is_stored().get_total_amount() == 60
     assert TransactionQuery(session).sent_by_user(user1).get_total_amount() == 80
     assert TransactionQuery(session).sent_by_user(user2).get_total_amount() == 0
     assert TransactionQuery(session).sent_by_user(user3).get_total_amount() == 0
