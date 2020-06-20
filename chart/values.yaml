@@ -2,3 +2,8 @@ tag: latest
 workers: 3
 workerconnections: 10
 concurrency: 10
+
+${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+  workerreplicas: 2
+${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+  workerreplicas: 1
