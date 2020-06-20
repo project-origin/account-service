@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   name: account-deployment
 spec:
-  replicas: {{ .Values.workerreplicas }}
+  replicas: 1
   selector:
     matchLabels:
       app: account-deployment
@@ -82,7 +82,10 @@ kind: Deployment
 metadata:
   name: account-worker-deployment
 spec:
-  replicas: 2
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    replicas: 2
+  ${{ if ne(variables['Build.SourceBranchName'], 'master') }}:
+    replicas: 3
   selector:
     matchLabels:
       app: account-worker-deployment
