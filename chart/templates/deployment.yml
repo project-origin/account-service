@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   name: account-deployment
 spec:
-  replicas: 1
+  replicas: {{ .Values.workerreplicas }}
   selector:
     matchLabels:
       app: account-deployment
