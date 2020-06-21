@@ -14,6 +14,29 @@ from origin.tasks import celery_app
 backend = AuthBackend()
 
 
+def start_refresh_expiring_tokens_pipeline():
+    """
+    Starts a pipeline which refreshes all tokens that are
+    soon to expire.
+
+    :rtype: celery.Task
+    """
+    return get_soon_to_expire_tokens \
+        .s() \
+        .apply_async()
+
+
+def start_refresh_token_for_subject_pipeline(subject):
+    """
+    Starts a pipeline which refreshes token for a specific subject.
+
+    :rtype: celery.Task
+    """
+    return refresh_token \
+        .s(subject=subject) \
+        .apply_async()
+
+
 @celery_app.task(
     name='refresh_token.get_soon_to_expire_tokens',
     autoretry_for=(Exception,),
