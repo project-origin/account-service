@@ -1,11 +1,7 @@
 import pytest
-import testing.postgresql
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
 from itertools import product
 
-from origin.db import ModelBase
 from origin.auth import User
 from origin.ggo.models import Ggo
 from origin.ggo.queries import TransactionQuery
@@ -81,9 +77,8 @@ user5 = User(
 )
 
 
-def seed_transaction_test_data(session):
-
-    # Dependencies
+@pytest.fixture(scope='module')
+def seeded_session(session):
     session.add(user1)
     session.add(user2)
     session.add(user3)
@@ -154,24 +149,7 @@ def seed_transaction_test_data(session):
     session.flush()
     session.commit()
 
-
-@pytest.fixture(scope='module')
-def seeded_session():
-    """
-    Returns a Session object with Ggo + User data seeded for testing
-    """
-    with testing.postgresql.Postgresql() as psql:
-        engine = create_engine(psql.url())
-        ModelBase.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine, expire_on_commit=False)
-
-        session1 = Session()
-        seed_transaction_test_data(session1)
-        session1.close()
-
-        session2 = Session()
-        yield session2
-        session2.close()
+    yield session
 
 
 # -- TEST CASES --------------------------------------------------------------

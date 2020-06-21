@@ -1,11 +1,7 @@
 import pytest
-import testing.postgresql
-from sqlalchemy import create_engine
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
-from origin.db import ModelBase
 from origin.auth import User
 from origin.ggo.models import GgoIndexSequence
 
@@ -40,27 +36,14 @@ user2 = User(
 )
 
 
-def seed_user_data(session):
+@pytest.fixture(scope='module')
+def seeded_session(session):
     session.add(user1)
     session.add(user2)
     session.flush()
     session.commit()
 
-
-@pytest.fixture(scope='module')
-def seeded_session():
-    with testing.postgresql.Postgresql() as psql:
-        engine = create_engine(psql.url())
-        ModelBase.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine, expire_on_commit=False)
-
-        session1 = Session()
-        seed_user_data(session1)
-        session1.close()
-
-        session2 = Session()
-        yield session2
-        session2.close()
+    yield session
 
 
 # -- TEST CASES --------------------------------------------------------------
