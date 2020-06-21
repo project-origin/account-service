@@ -130,7 +130,7 @@ def import_meteringpoints_and_insert_to_db(task, subject, session):
     pipeline='import_meteringpoints',
     task='send_key_to_datahub_service',
 )
-@atomic
+@inject_session
 def send_key_to_datahub_service(task, subject, gsrn, session):
     """
     :param celery.Task task:
@@ -195,6 +195,7 @@ def save_imported_meteringpoints(user, response, session):
     :param origin.auth.User user:
     :param origin.services.datahub.GetMeteringPointsResponse response:
     :param sqlalchemy.orm.Session session:
+    :rtype: list[MeteringPoint]
     """
     imported_meteringpoints = []
 
