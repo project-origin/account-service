@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock
 from bip32utils import BIP32Key
 
@@ -67,7 +67,7 @@ def test__KeyGenerator__get_key_for_metering_point():
 def test__KeyGenerator__get_key_for_measurement():
 
     # Arrange
-    input_begin = datetime(2020, 1, 1, 0, 0, 12, 21)
+    input_begin = datetime(2020, 1, 1, 0, 0, 12, 21, tzinfo=timezone.utc)
     user = Mock(master_extended_key=A_VALID_EXTENDED_KEY)
     meteringpoint = Mock(user=user, key_index=123)
 
@@ -75,7 +75,7 @@ def test__KeyGenerator__get_key_for_measurement():
     key = KeyGenerator.get_key_for_measurement(meteringpoint, input_begin)
 
     # Assert
-    assert key.ExtendedKey() == A_VALID_KEY.ChildKey(1).ChildKey(123).ChildKey(1577833200).ExtendedKey()
+    assert key.ExtendedKey() == A_VALID_KEY.ChildKey(1).ChildKey(123).ChildKey(1577836800).ExtendedKey()
 
 
 def test__KeyGenerator__get_key_for_traded_ggo_at_index():
@@ -108,7 +108,7 @@ def test__KeyGenerator__get_key_for_issued_ggo():
     # Arrange
     user = Mock(master_extended_key=A_VALID_EXTENDED_KEY)
     ggo = Mock(
-        begin=datetime(2020, 1, 1, 0, 0, 12, 21),
+        begin=datetime(2020, 1, 1, 0, 0, 12, 21, tzinfo=timezone.utc),
         issued=True,
         issue_meteringpoint=Mock(user=user, key_index=123),
     )
@@ -117,4 +117,4 @@ def test__KeyGenerator__get_key_for_issued_ggo():
     key = KeyGenerator.get_key_for_issued_ggo(ggo)
 
     # Assert
-    assert key.ExtendedKey() == A_VALID_KEY.ChildKey(1).ChildKey(123).ChildKey(1577833200).ExtendedKey()
+    assert key.ExtendedKey() == A_VALID_KEY.ChildKey(1).ChildKey(123).ChildKey(1577836800).ExtendedKey()
