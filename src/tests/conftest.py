@@ -13,9 +13,6 @@ from origin.db import ModelBase
 
 @pytest.fixture(scope='module')
 def session():
-    """
-    Returns a Session object with Ggo + User data seeded for testing
-    """
     with PostgresContainer('postgres:9.6') as psql:
         engine = create_engine(psql.get_connection_url())
         ModelBase.metadata.create_all(engine)
@@ -28,9 +25,6 @@ def session():
 
 @pytest.fixture(scope='module')
 def redis():
-    """
-    Returns a Session object with Ggo + User data seeded for testing
-    """
     with DockerContainer('redis:latest').with_bind_ports(6379, 6380) as container:
         yield (
             container.get_container_host_ip(),
