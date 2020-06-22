@@ -1,5 +1,5 @@
-from unittest.mock import MagicMock, Mock, patch
 import origin_ledger_sdk as ols
+from unittest.mock import MagicMock, Mock, patch
 
 from origin.ledger.models import Batch, BatchState
 

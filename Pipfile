@@ -5,7 +5,6 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
-"testing.postgresql" = "*"
 waitress = "*"
 testcontainers = "*"
 
@@ -32,6 +31,7 @@ opencensus-ext-flask = "*"
 opencensus-ext-azure = "*"
 opencensus-ext-requests = "*"
 opencensus-ext-sqlalchemy = "*"
+fire = "*"
 
 [requires]
 python_version = "3.7"
@@ -40,3 +40,4 @@ python_version = "3.7"
 migrate = "alembic upgrade head"
 revision = "alembic revision --autogenerate"
 develop = "python -m waitress --port=8085 origin:app"
+task = "python trigger-pipeline.py"

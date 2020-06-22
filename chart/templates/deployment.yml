@@ -82,7 +82,7 @@ kind: Deployment
 metadata:
   name: account-worker-deployment
 spec:
-  replicas: 1
+  replicas: {{ .Values.workerreplicas }}
   selector:
     matchLabels:
       app: account-worker-deployment

@@ -25,7 +25,6 @@ from .webhooks import build_invoke_on_ggo_received_tasks
 
 
 # Settings
-
 RETRY_DELAY = 10
 MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 
@@ -96,6 +95,7 @@ def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
     except orm.exc.NoResultFound:
         raise
     except Exception as e:
+        logger.exception('Failed to load User from database, retrying...', extra=__log_extra)
         raise task.retry(exc=e)
 
     # Import GGOs

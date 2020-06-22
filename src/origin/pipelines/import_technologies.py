@@ -26,7 +26,8 @@ def start_import_technologies():
     name='import_technologies.import_technologies_and_insert_to_db',
     autoretry_for=(Exception,),
     retry_backoff=2,
-    max_retries=5,
+    retry_backoff_max=30,
+    max_retries=20,
 )
 @logger.wrap_task(
     title='Importing technologies from DataHub',

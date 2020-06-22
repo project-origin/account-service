@@ -1,12 +1,8 @@
 import pytest
-import testing.postgresql
 import marshmallow_dataclass as md
 from unittest.mock import patch
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timezone
 
-from origin.db import ModelBase
 from origin.auth import User, MeteringPoint
 from origin.ggo import GgoImportController, Ggo, GgoQuery
 from origin.services.datahub import Ggo as DataHubGgo, GetGgoListResponse
@@ -32,34 +28,27 @@ user = User(
 
 
 @pytest.fixture(scope='module')
-def session():
-    """
-    Returns a Session object with Ggo + User data seeded for testing
-    """
-    with testing.postgresql.Postgresql() as psql:
-        engine = create_engine(psql.url())
-        ModelBase.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine, expire_on_commit=False)
+def seeded_session(session):
+    session.add(user)
+    session.flush()
+    session.commit()
+    session.add(MeteringPoint.create(
+        user=user,
+        session=session,
+        gsrn='571313180400240049',
+        sector='DK1',
+    ))
+    session.add(MeteringPoint.create(
+        user=user,
+        session=session,
+        gsrn='GSRN2',
+        sector='DK1',
+    ))
 
-        session = Session()
-        session.add(user)
-        session.flush()
-        session.commit()
-        session.add(MeteringPoint.create(
-            user=user,
-            session=session,
-            gsrn='571313180400240049',
-            sector='DK1',
-        ))
-        session.add(MeteringPoint.create(
-            user=user,
-            session=session,
-            gsrn='GSRN2',
-            sector='DK1',
-        ))
-        session.commit()
-        yield session
-        session.close()
+    session.flush()
+    session.commit()
+
+    yield session
 
 
 # -- TEST CASES --------------------------------------------------------------
@@ -126,7 +115,7 @@ def test__GgoImportController__map_imported_ggo__maps_Ggo_correctly():
 
 
 @patch('origin.ggo.importing.datahub_service')
-def test__GgoImportController__integration(datahub_service, session):
+def test__GgoImportController__integration(datahub_service, seeded_session):
 
     def __get_ggo_list(access_token, request):
         datahub_response_schema = md.class_schema(GetGgoListResponse)
@@ -140,22 +129,22 @@ def test__GgoImportController__integration(datahub_service, session):
     uut = GgoImportController()
 
     # Act
-    uut.import_ggos(user, '571313180400240049', begin_from, begin_to, session)
-    session.commit()
+    uut.import_ggos(user, '571313180400240049', begin_from, begin_to, seeded_session)
+    seeded_session.commit()
 
     # Assert
-    query = GgoQuery(session).belongs_to(user)
+    query = GgoQuery(seeded_session).belongs_to(user)
     begins = query.get_distinct_begins()
     assert query.count() == 720
     assert min(begins).astimezone(timezone.utc) == datetime(2019, 9, 1, 0, 0, tzinfo=timezone.utc)
     assert max(begins).astimezone(timezone.utc) == datetime(2019, 9, 30, 23, 0, tzinfo=timezone.utc)
 
     # Second time should not do anything
-    uut.import_ggos(user, '571313180400240049', begin_from, begin_to, session)
-    session.commit()
+    uut.import_ggos(user, '571313180400240049', begin_from, begin_to, seeded_session)
+    seeded_session.commit()
 
     # Assert
-    query = GgoQuery(session).belongs_to(user)
+    query = GgoQuery(seeded_session).belongs_to(user)
     begins = query.get_distinct_begins()
     assert query.count() == 720
     assert min(begins).astimezone(timezone.utc) == datetime(2019, 9, 1, 0, 0, tzinfo=timezone.utc)
