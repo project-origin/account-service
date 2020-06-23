@@ -6,9 +6,10 @@ One entrypoint exists:
     start_import_technologies()
 
 """
+from celery import shared_task
+
 from origin import logger
 from origin.db import atomic
-from origin.tasks import celery_app
 from origin.ggo import Technology
 from origin.services.datahub import DataHubService
 
@@ -28,7 +29,7 @@ def start_import_technologies():
         .apply_async()
 
 
-@celery_app.task(
+@shared_task(
     name='import_technologies.import_technologies_and_insert_to_db',
     autoretry_for=(Exception,),
     default_retry_delay=RETRY_DELAY,

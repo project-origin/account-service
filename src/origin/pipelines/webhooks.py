@@ -1,8 +1,8 @@
+from celery import shared_task
 from sqlalchemy import orm
 
 from origin import logger
 from origin.db import inject_session
-from origin.tasks import celery_app
 from origin.ggo import GgoQuery
 from origin.webhooks import (
     WebhookEvent,
@@ -47,7 +47,7 @@ def build_invoke_on_ggo_received_tasks(subject, ggo_id, session, **logging_kwarg
     return tasks
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='webhooks.invoke_on_ggo_received',
     default_retry_delay=RETRY_DELAY,

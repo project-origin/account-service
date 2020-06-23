@@ -6,12 +6,11 @@ One entrypoint exists:
     start_import_meteringpoints()
 
 """
-from celery import group
 from sqlalchemy import orm
+from celery import group, shared_task
 
 from origin import logger
 from origin.db import atomic, inject_session
-from origin.tasks import celery_app
 from origin.services.datahub import (
     DataHubService,
     DataHubServiceError,
@@ -42,7 +41,7 @@ def start_import_meteringpoints(subject):
         .apply_async()
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='import_meteringpoints.import_meteringpoints_and_insert_to_db',
     default_retry_delay=RETRY_DELAY,
@@ -119,7 +118,7 @@ def import_meteringpoints_and_insert_to_db(task, subject, session):
     group(*tasks).apply_async()
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='import_meteringpoints.send_key_to_datahub_service',
     default_retry_delay=RETRY_DELAY,

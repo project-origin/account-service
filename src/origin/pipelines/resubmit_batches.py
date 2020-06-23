@@ -4,10 +4,10 @@ which has not been successfully submitted to the ledger for some reason,
 for instance if the ledger has been down for a period of time etc.
 """
 import sqlalchemy as sa
+from celery import shared_task
 
 from origin import logger
 from origin.db import inject_session
-from origin.tasks import celery_app
 from origin.ledger import Batch, BatchState
 from origin.settings import BATCH_RESUBMIT_AFTER_HOURS
 
@@ -23,7 +23,7 @@ def start_resubmit_batches_pipeline():
         .apply_async()
 
 
-@celery_app.task(
+@shared_task(
     name='resubmit_batches.resubmit_batches',
     autoretry_for=(Exception,),
     retry_backoff=2,

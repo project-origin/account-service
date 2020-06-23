@@ -2,13 +2,12 @@
 Asynchronous tasks for submitting a Batch to the ledger.
 """
 import origin_ledger_sdk as ols
-from celery import chain
 from sqlalchemy import orm
+from celery import chain, shared_task
 
 from origin import logger
-from origin.db import atomic, inject_session
-from origin.tasks import celery_app
 from origin.ledger import Batch
+from origin.db import atomic, inject_session
 from origin.settings import LEDGER_URL, DEBUG, BATCH_RESUBMIT_AFTER_HOURS
 
 
@@ -34,7 +33,7 @@ def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     :param Batch batch:
     :param celery.Task success: Success callback task
     :param celery.Task error: Error callback task
-    :rtype: celery.Task
+    :rtype: celery.result.AsyncResult
     """
     pipeline = chain(
         submit_batch_to_ledger.si(subject=subject, batch_id=batch.id),
@@ -56,7 +55,7 @@ def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     )
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='submit_batch_to_ledger.submit_to_ledger',
     default_retry_delay=SUBMIT_RETRY_DELAY,
@@ -114,7 +113,7 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
     return handle
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='submit_batch_to_ledger.batch_on_submitted',
     default_retry_delay=POLL_RETRY_DELAY,
@@ -152,7 +151,7 @@ def batch_on_submitted(task, handle, subject, batch_id, session):
         raise task.retry(exc=e)
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='submit_batch_to_ledger.poll_batch_status',
     default_retry_delay=POLL_RETRY_DELAY,
@@ -214,7 +213,7 @@ def poll_batch_status(task, subject, batch_id, session):
         raise RuntimeError('Unknown batch status returned, should NOT have happened!')
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='submit_batch_to_ledger.batch_on_commit',
     default_retry_delay=POLL_RETRY_DELAY,
@@ -251,7 +250,7 @@ def batch_on_commit(task, subject, batch_id, session):
         raise task.retry(exc=e)
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='submit_batch_to_ledger.batch_on_rollback',
     default_retry_delay=POLL_RETRY_DELAY,
