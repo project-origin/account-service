@@ -132,13 +132,44 @@ def test__GgoComposer__add_retire__invalid_amount__should_raise_AssertionError(d
 
 @patch('origin.ggo.composer.datahub_service')
 @pytest.mark.parametrize(
+    'measured, retired, requested', (
+    (100,      1,       100),
+    (1,        1,       1),
+))
+def test__GgoComposer__add_retire__amount_greater_than_remaining__should_retire_actual_amount(
+        datahub, measured, retired, requested):
+    """
+    The requested amount should not exceed the remaining amount
+    (measurement minus whats already retired)
+    """
+
+    # Arrange
+    sector = 'DK1'
+    begin = datetime(2020, 1, 1, 0, 0, 0)
+
+    ggo = Mock(amount=100, begin=begin, sector=sector, user_id=1)
+    ggo.is_tradable.return_value = True
+    ggo.is_expired.return_value = False
+
+    measurement = Mock(sector=sector, begin=begin, amount=measured)
+
+    datahub.get_consumption.return_value = Mock(measurement=measurement)
+
+    composer = GgoComposer(ggo=ggo, session=Mock())
+    composer.get_retired_amount = Mock()
+    composer.get_retired_amount.return_value = retired
+
+    # Act
+    with pytest.raises(composer.RetireAmountInvalid):
+        composer.add_retire(meteringpoint=Mock(user_id=1), amount=requested)
+
+
+@patch('origin.ggo.composer.datahub_service')
+@pytest.mark.parametrize(
     'measured, retired, requested, actual', (
     (200,      0,       100,       100),
     (200,      50,      100,       100),
-    (50,       0,       100,       50),
-    (200,      200,     100,       None),
-    (50,       100,     100,       None),
-    (0,        0,       100,       None),
+    (200,      100,     100,       100),
 ))
 def test__GgoComposer__add_retire__should_retire_actual_amount(
         datahub, measured, retired, requested, actual):

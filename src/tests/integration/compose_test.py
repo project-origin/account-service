@@ -14,7 +14,6 @@ from origin.ggo import (
     GgoComposer,
     GgoImportController,
     GgoQuery,
-    RetireQuery,
     TransactionQuery,
 )
 
@@ -204,11 +203,11 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     assert TransactionQuery(seeded_session).received_by_user(user1).get_total_amount() == 0
     assert TransactionQuery(seeded_session).received_by_user(user2).get_total_amount() == 0
     assert TransactionQuery(seeded_session).received_by_user(user3).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user1).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user2).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user3).get_total_amount() == 0
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 0
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user1).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user2).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user3).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 0
 
     # -- ACT -----------------------------------------------------------------
 
@@ -217,7 +216,7 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     composer.add_transfer(user2, 10, ref1)
     composer.add_transfer(user3, 30, ref2)
     composer.add_retire(meteringpoint1, 5)   # Measurement = 10
-    composer.add_retire(meteringpoint2, 15)  # Measurement = 10, so actually only 10 (5 is ignored)
+    composer.add_retire(meteringpoint2, 10)  # Measurement = 10
 
     batch1, recipients = composer.build_batch()
 
@@ -235,11 +234,11 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     assert TransactionQuery(seeded_session).received_by_user(user1).get_total_amount() == 0
     assert TransactionQuery(seeded_session).received_by_user(user2).get_total_amount() == 10
     assert TransactionQuery(seeded_session).received_by_user(user3).get_total_amount() == 30
-    assert RetireQuery(seeded_session).belongs_to(user1).get_total_amount() == 15
-    assert RetireQuery(seeded_session).belongs_to(user2).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user3).get_total_amount() == 0
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 5
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user1).get_total_amount() == 15
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user2).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user3).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 5
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
 
     # -- ACT -----------------------------------------------------------------
 
@@ -257,11 +256,11 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     assert TransactionQuery(seeded_session).received_by_user(user1).get_total_amount() == 0
     assert TransactionQuery(seeded_session).received_by_user(user2).get_total_amount() == 10
     assert TransactionQuery(seeded_session).received_by_user(user3).get_total_amount() == 30
-    assert RetireQuery(seeded_session).belongs_to(user1).get_total_amount() == 15
-    assert RetireQuery(seeded_session).belongs_to(user2).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user3).get_total_amount() == 0
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 5
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user1).get_total_amount() == 15
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user2).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user3).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 5
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
 
     # -- ACT -----------------------------------------------------------------
 
@@ -269,8 +268,7 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     composer = GgoComposer(ggo=parent_ggo2, session=seeded_session)
     composer.add_transfer(user2, 10, ref1)
     composer.add_transfer(user3, 30, ref2)
-    composer.add_retire(meteringpoint1, 5)   # Measurement = 10, so actually only 5 (5 already retired)
-    composer.add_retire(meteringpoint2, 15)  # Measurement = 10, so actually 0 (10 already retired)
+    composer.add_retire(meteringpoint1, 5)
 
     batch2, recipients = composer.build_batch()
 
@@ -288,11 +286,11 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     assert TransactionQuery(seeded_session).received_by_user(user1).get_total_amount() == 0
     assert TransactionQuery(seeded_session).received_by_user(user2).get_total_amount() == 20
     assert TransactionQuery(seeded_session).received_by_user(user3).get_total_amount() == 60
-    assert RetireQuery(seeded_session).belongs_to(user1).get_total_amount() == 20
-    assert RetireQuery(seeded_session).belongs_to(user2).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user3).get_total_amount() == 0
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 10
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user1).get_total_amount() == 20
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user2).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user3).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 10
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
 
     # -- ACT -----------------------------------------------------------------
 
@@ -310,8 +308,8 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
     assert TransactionQuery(seeded_session).received_by_user(user1).get_total_amount() == 0
     assert TransactionQuery(seeded_session).received_by_user(user2).get_total_amount() == 10
     assert TransactionQuery(seeded_session).received_by_user(user3).get_total_amount() == 30
-    assert RetireQuery(seeded_session).belongs_to(user1).get_total_amount() == 15
-    assert RetireQuery(seeded_session).belongs_to(user2).get_total_amount() == 0
-    assert RetireQuery(seeded_session).belongs_to(user3).get_total_amount() == 0
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 5
-    assert RetireQuery(seeded_session).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user1).get_total_amount() == 15
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user2).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).belongs_to(user3).get_total_amount() == 0
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint1.gsrn).get_total_amount() == 5
+    assert GgoQuery(seeded_session).is_retired(True).is_retired_to_gsrn(meteringpoint2.gsrn).get_total_amount() == 10

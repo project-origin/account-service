@@ -18,9 +18,6 @@ urls = (
     ('/ggo/get-total-amount', ggo.GetTotalAmount()),
     ('/compose', ggo.ComposeGgo()),
 
-    # Retiring
-    ('/retire/get-retired-amount', ggo.GetRetiredAmount()),
-
     # Transfers
     ('/transfer/summary', ggo.GetTransferSummary()),
     ('/transfer/get-transferred-amount', ggo.GetTransferredAmount()),
