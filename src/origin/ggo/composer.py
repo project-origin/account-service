@@ -6,7 +6,7 @@ from origin.services.datahub import (
     GetMeasurementRequest,
 )
 
-from .queries import RetireQuery
+from .queries import GgoQuery
 from .models import Ggo
 
 
@@ -33,6 +33,14 @@ class GgoComposer(object):
         Raised if the sum of transfers+retires exceeds the GGO provided
         """
         pass
+
+    class RetireAmountInvalid(Exception):
+        """
+        Raised when trying to retire more than allowed
+        """
+        def __init__(self, amount, allowed_amount):
+            self.amount = amount
+            self.allowed_amount = allowed_amount
 
     class RetireMeasurementUnavailable(Exception):
         """
@@ -123,10 +131,11 @@ class GgoComposer(object):
         # amount minus whats already been retired
         retired_amount = self.get_retired_amount(measurement)
         remaining_amount = measurement.amount - retired_amount
-        actual_amount = min(remaining_amount, amount)
 
-        if actual_amount > 0:
-            self.retires.append((measurement, meteringpoint, actual_amount))
+        if amount > remaining_amount:
+            raise self.RetireAmountInvalid(amount, remaining_amount)
+
+        self.retires.append((measurement, meteringpoint, amount))
 
     # -- Compose  ------------------------------------------------------------
 
@@ -221,8 +230,9 @@ class GgoComposer(object):
         :param Measurement measurement:
         :rtype: int
         """
-        return RetireQuery(self.session) \
+        return GgoQuery(self.session) \
             .belongs_to(self.ggo.user) \
+            .is_retired(True) \
             .is_retired_to_address(measurement.address) \
             .get_total_amount()
 

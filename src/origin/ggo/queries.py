@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from sqlalchemy import func, bindparam
-from sqlalchemy.orm import aliased, load_only, Load
+from sqlalchemy.orm import aliased
 from datetime import datetime
 from itertools import groupby
 from functools import lru_cache
@@ -18,7 +18,6 @@ from .models import (
     GgoFilters,
     GgoCategory,
     SummaryResolution,
-    RetireFilters,
 )
 
 
@@ -76,6 +75,8 @@ class GgoQuery(object):
         elif filters.begin_range:
             q = q.filter(Ggo.begin >= filters.begin_range.begin)
             q = q.filter(Ggo.begin <= filters.begin_range.end)
+        if filters.address:
+            q = q.filter(Ggo.address.in_(filters.address))
         if filters.sector:
             q = q.filter(Ggo.sector.in_(filters.sector))
         if filters.technology_code:
@@ -86,6 +87,8 @@ class GgoQuery(object):
             q = q.filter(Ggo.issue_gsrn.in_(filters.issue_gsrn))
         if filters.retire_gsrn:
             q = q.filter(Ggo.retire_gsrn.in_(filters.retire_gsrn))
+        if filters.retire_address:
+            q = q.filter(Ggo.retire_address.in_(filters.retire_address))
 
         new_query = self.__class__(self.session, q)
 
@@ -323,6 +326,18 @@ class TransactionQuery(GgoQuery):
 
         super(TransactionQuery, self).__init__(session, q)
 
+    def apply_filters(self, filters):
+        """
+        :param TransferFilters filters:
+        :rtype: TransactionQuery
+        """
+        q = super(TransactionQuery, self).apply_filters(filters)
+
+        if filters.reference:
+            q = q.has_any_reference(filters.reference)
+
+        return q
+
     def sent_by_user(self, user):
         """
         TODO
@@ -357,19 +372,6 @@ class TransactionQuery(GgoQuery):
             Ggo.user_id == user.id,
         )))
 
-    def apply_filters(self, filters):
-        """
-        :param TransferFilters filters:
-        :rtype: TransactionQuery
-        """
-        q = super(TransactionQuery, self) \
-            .apply_filters(filters)
-
-        if filters.reference:
-            q = q.has_any_reference(filters.reference)
-
-        return q
-
     def has_reference(self, reference):
         """
         :param str reference:
@@ -387,38 +389,6 @@ class TransactionQuery(GgoQuery):
         return self.__class__(self.session, self.q.filter(
             SplitTarget.reference.in_(references),
         ))
-
-
-class RetireQuery(GgoQuery):
-    """
-    The same as GgoQuery except it only includes GGOs which have
-    been retired.
-    """
-    def __init__(self, session, q=None):
-        """
-        :param sa.orm.Session session:
-        :param sa.orm.Query q:
-        """
-        super(RetireQuery, self).__init__(session, q)
-
-        if q is None:
-            self.q = self.q.filter(Ggo.retired.is_(True))
-
-    def apply_filters(self, filters):
-        """
-        :param RetireFilters filters:
-        """
-        q = super(RetireQuery, self).apply_filters(filters).q
-
-        # TODO refactor to use self.is_retired_to_address()
-        # TODO   and self.is_retired_to_gsrn()
-
-        if filters.gsrn:
-            q = q.filter(Ggo.retire_gsrn.in_(filters.gsrn))
-        if filters.address:
-            q = q.filter(Ggo.retire_address.in_(filters.address))
-
-        return self.__class__(self.session, q)
 
 
 class GgoSummary(object):

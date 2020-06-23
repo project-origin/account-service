@@ -17,7 +17,7 @@ from origin.auth import (
 )
 
 from .composer import GgoComposer
-from .queries import GgoQuery, TransactionQuery, RetireQuery
+from .queries import GgoQuery, TransactionQuery
 from .models import (
     Ggo,
     TransferDirection,
@@ -35,8 +35,6 @@ from .models import (
     GetTransferredAmountResponse,
     ComposeGgoRequest,
     ComposeGgoResponse,
-    GetRetiredAmountResponse,
-    GetRetiredAmountRequest,
     OnGgosIssuedWebhookRequest,
 )
 
@@ -219,35 +217,6 @@ class GetTransferredAmount(Controller):
         )
 
 
-class GetRetiredAmount(Controller):
-    """
-    Summarizes the amount of retired GGOs and returns the total
-    amount of Wh as an integer.
-    """
-    Request = md.class_schema(GetRetiredAmountRequest)
-    Response = md.class_schema(GetRetiredAmountResponse)
-
-    @require_oauth('ggo.retire')
-    @inject_user
-    @inject_session
-    def handle_request(self, request, user, session):
-        """
-        :param GetRetiredAmountRequest request:
-        :param User user:
-        :param sqlalchemy.orm.Session session:
-        :rtype: GetRetiredAmountResponse
-        """
-        amount = RetireQuery(session) \
-            .belongs_to(user) \
-            .apply_filters(request.filters) \
-            .get_total_amount()
-
-        return GetRetiredAmountResponse(
-            success=True,
-            amount=amount,
-        )
-
-
 class ComposeGgo(Controller):
     """
     Transfers or retires a single GGO to one or more accounts and/or
@@ -364,6 +333,11 @@ class ComposeGgo(Controller):
             ))
         except composer.RetireMeasurementInvalid as e:
             raise BadRequest(f'Can not retire GGO to measurement {e.measurement.address}')
+        except composer.RetireAmountInvalid as e:
+            raise BadRequest((
+                f'Can only retire up to {e.allowed_amount} '
+                f'(you tried to retire {e.amount})'
+            ))
 
     def get_ggo(self, user, ggo_address, session):
         """
