@@ -13,7 +13,13 @@ from origin.ggo import Technology
 from origin.services.datahub import DataHubService
 
 
-service = DataHubService()
+# Settings
+RETRY_DELAY = 60
+MAX_RETRIES = (6 * 60 * 60) / RETRY_DELAY
+
+
+# Services
+datahub_service = DataHubService()
 
 
 def start_import_technologies():
@@ -25,9 +31,8 @@ def start_import_technologies():
 @celery_app.task(
     name='import_technologies.import_technologies_and_insert_to_db',
     autoretry_for=(Exception,),
-    retry_backoff=2,
-    retry_backoff_max=30,
-    max_retries=20,
+    default_retry_delay=RETRY_DELAY,
+    max_retries=MAX_RETRIES,
 )
 @logger.wrap_task(
     title='Importing technologies from DataHub',
@@ -39,7 +44,7 @@ def import_technologies_and_insert_to_db(session):
     """
     :param sqlalchemy.orm.Session session:
     """
-    response = service.get_technologies()
+    response = datahub_service.get_technologies()
 
     # Empty table
     session.query(Technology).delete()
