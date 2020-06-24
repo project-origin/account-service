@@ -84,7 +84,6 @@ def import_meteringpoints_and_insert_to_db(task, subject, session):
         raise task.retry(exc=e)
     except DataHubServiceError as e:
         if e.status_code == 400:
-            logger.exception('Got BAD REQUEST from DataHubService', extra=__log_extra)
             raise
         else:
             logger.exception('Failed to import MeteringPoints, retrying...', extra=__log_extra)
@@ -178,7 +177,6 @@ def send_key_to_datahub_service(task, subject, gsrn, session):
         raise task.retry(exc=e)
     except DataHubServiceError as e:
         if e.status_code == 400:
-            logger.exception('Got BAD REQUEST from DataHubService', extra=__log_extra)
             raise
         else:
             logger.exception('Failed to import MeteringPoints, retrying...', extra=__log_extra)

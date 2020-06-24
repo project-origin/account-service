@@ -200,7 +200,6 @@ def poll_batch_status(task, subject, batch_id, session):
     if response.status == ols.BatchStatus.COMMITTED:
         logger.info('Ledger batch status: COMMITTED', extra=__log_extra)
     elif response.status == ols.BatchStatus.INVALID:
-        logger.error('Ledger batch status: INVALID', extra=__log_extra)
         # Raising exception triggers the ON ERROR task (rollback_batch())
         raise InvalidBatch('Invalid batch')
     elif response.status == ols.BatchStatus.UNKNOWN:

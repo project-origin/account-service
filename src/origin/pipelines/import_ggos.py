@@ -111,7 +111,6 @@ def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
         raise task.retry(exc=e)
     except DataHubServiceError as e:
         if e.status_code == 400:
-            logger.exception('Got BAD REQUEST from DataHubService', extra=__log_extra)
             raise
         else:
             logger.exception('Failed to import GGOs, retrying...', extra=__log_extra)
