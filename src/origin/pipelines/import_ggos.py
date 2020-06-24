@@ -7,14 +7,13 @@ One entrypoint exists:
     start_import_issued_ggos()
 
 """
-from celery import group, chain
-from datetime import datetime
 from sqlalchemy import orm
+from datetime import datetime
+from celery import group, chain, shared_task
 
 from origin import logger
-from origin.db import inject_session, atomic
-from origin.tasks import celery_app
 from origin.auth import UserQuery
+from origin.db import inject_session, atomic
 from origin.ggo import GgoImportController
 from origin.services.datahub import (
     DataHubServiceConnectionError,
@@ -54,7 +53,7 @@ def start_import_issued_ggos(subject, gsrn, begin):
     chain(*tasks).apply_async()
 
 
-@celery_app.task(
+@shared_task(
     bind=True,
     name='import_ggos.import_ggos_and_insert_to_db',
     default_retry_delay=RETRY_DELAY,
@@ -112,7 +111,6 @@ def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
         raise task.retry(exc=e)
     except DataHubServiceError as e:
         if e.status_code == 400:
-            logger.exception('Got BAD REQUEST from DataHubService', extra=__log_extra)
             raise
         else:
             logger.exception('Failed to import GGOs, retrying...', extra=__log_extra)
@@ -121,7 +119,7 @@ def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
     return [ggo.id for ggo in ggos]
 
 
-@celery_app.task(
+@shared_task(
     name='import_ggos.invoke_webhooks',
     autoretry_for=(Exception,),
     default_retry_delay=RETRY_DELAY,

@@ -2,13 +2,12 @@
 Asynchronous tasks for refreshing access tokens which
 are close to expiring.
 """
+from celery import group, shared_task
 from datetime import datetime, timezone
-from celery import group
 
 from origin import logger
 from origin.db import inject_session, atomic
 from origin.auth import UserQuery, AuthBackend
-from origin.tasks import celery_app
 
 
 # Settings
@@ -43,7 +42,7 @@ def start_refresh_token_for_subject_pipeline(subject):
         .apply_async()
 
 
-@celery_app.task(
+@shared_task(
     name='refresh_token.get_soon_to_expire_tokens',
     autoretry_for=(Exception,),
     default_retry_delay=RETRY_DELAY,
@@ -67,7 +66,7 @@ def get_soon_to_expire_tokens(session):
     group(*tasks).apply_async()
 
 
-@celery_app.task(
+@shared_task(
     name='refresh_token.refresh_token_for_user',
     autoretry_for=(Exception,),
     default_retry_delay=RETRY_DELAY,

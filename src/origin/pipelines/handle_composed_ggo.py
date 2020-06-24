@@ -18,7 +18,7 @@ def start_handle_composed_ggo_pipeline(batch, recipients, session):
     :param origin.ledger.Batch batch:
     :param collections.abc.Iterable[(origin.auth.User, origin.ggo.Ggo)] recipients:
     :param sqlalchemy.orm.Session session:
-    :rtype: celery.Task
+    :rtype: celery.result.AsyncResult
     """
     on_success_tasks = []
 
