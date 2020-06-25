@@ -29,9 +29,16 @@ backend = AuthBackend()
 
 class Login(Controller):
     """
-    Redirects the client to the Authentication service. Once authentication
-    is complete, the client will be redirected back to the callback endpoint
-    below (LoginCallback).
+    Redirects the client to the authentication server to perform
+    authentication and grant necessary permissions (possibly signing
+    up and activating their account for the first time).
+    The redirect URL contains login tokens unique for, and personal to,
+    the client, and should never be reused.
+
+    Upon completing the login flow, the client is redirected back to
+    AccountService, which creates an account in its own database (if
+    one not already exists for the user) before redirecting the client
+    back to the provided returnUrl.
     """
     METHOD = 'GET'
 
@@ -163,7 +170,8 @@ class LoginCallback(Controller):
 
 class GetAccounts(Controller):
     """
-    Returns a list of all of the user's accounts.
+    Returns a list of the user's account IDs.
+    These are the IDs to use when transferring GGOs between users.
     """
     Response = md.class_schema(GetAccountsResponse)
 
@@ -201,7 +209,7 @@ class OnMeteringPointsAvailableWebhook(Controller):
             .one_or_none()
 
         if user:
-            start_import_meteringpoints(user)
+            start_import_meteringpoints(user.sub)
             return True
         else:
             return False

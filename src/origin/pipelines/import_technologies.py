@@ -6,14 +6,21 @@ One entrypoint exists:
     start_import_technologies()
 
 """
+from celery import shared_task
+
 from origin import logger
 from origin.db import atomic
-from origin.tasks import celery_app
 from origin.ggo import Technology
 from origin.services.datahub import DataHubService
 
 
-service = DataHubService()
+# Settings
+RETRY_DELAY = 60
+MAX_RETRIES = (6 * 60 * 60) / RETRY_DELAY
+
+
+# Services
+datahub_service = DataHubService()
 
 
 def start_import_technologies():
@@ -22,11 +29,11 @@ def start_import_technologies():
         .apply_async()
 
 
-@celery_app.task(
+@shared_task(
     name='import_technologies.import_technologies_and_insert_to_db',
     autoretry_for=(Exception,),
-    retry_backoff=2,
-    max_retries=5,
+    default_retry_delay=RETRY_DELAY,
+    max_retries=MAX_RETRIES,
 )
 @logger.wrap_task(
     title='Importing technologies from DataHub',
@@ -38,7 +45,7 @@ def import_technologies_and_insert_to_db(session):
     """
     :param sqlalchemy.orm.Session session:
     """
-    response = service.get_technologies()
+    response = datahub_service.get_technologies()
 
     # Empty table
     session.query(Technology).delete()

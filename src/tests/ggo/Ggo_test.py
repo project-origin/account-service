@@ -1,14 +1,10 @@
 import pytest
-import testing.postgresql
 from unittest.mock import patch
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta, timezone
-from itertools import product
+from datetime import datetime
 
-from origin.db import ModelBase
 from origin.auth import User, MeteringPoint
 from origin.ggo import Ggo, GgoQuery, Technology
+
 
 GGO_AMOUNT = 100
 
@@ -56,9 +52,8 @@ meteringpoint2 = MeteringPoint(
 )
 
 
-def seed_ggo_test_data(session):
-
-    # Dependencies
+@pytest.fixture(scope='module')
+def seeded_session(session):
     session.add(user1)
     session.add(user2)
     session.add(meteringpoint1)
@@ -133,24 +128,7 @@ def seed_ggo_test_data(session):
 
     session.commit()
 
-
-@pytest.fixture(scope='module')
-def seeded_session():
-    """
-    Returns a Session object with Ggo + User data seeded for testing
-    """
-    with testing.postgresql.Postgresql() as psql:
-        engine = create_engine(psql.url())
-        ModelBase.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine, expire_on_commit=False)
-
-        session1 = Session()
-        seed_ggo_test_data(session1)
-        session1.close()
-
-        session2 = Session()
-        yield session2
-        session2.close()
+    yield session
 
 
 # -- TEST CASES --------------------------------------------------------------

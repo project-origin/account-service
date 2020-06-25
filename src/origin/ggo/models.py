@@ -245,6 +245,7 @@ class GgoFilters:
     begin: datetime = field(default=None)
     begin_range: DateTimeRange = field(default=None, metadata=dict(data_key='beginRange'))
 
+    address: List[str] = field(default_factory=list)
     sector: List[str] = field(default_factory=list)
     technology_code: List[str] = field(default_factory=list, metadata=dict(data_key='technologyCode'))
     fuel_code: List[str] = field(default_factory=list, metadata=dict(data_key='fuelCode'))
@@ -252,6 +253,7 @@ class GgoFilters:
     category: GgoCategory = field(default=None, metadata=dict(by_value=True))
     issue_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='issueGsrn'))
     retire_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='retireGsrn'))
+    retire_address: List[str] = field(default_factory=list, metadata=dict(data_key='retireAddress'))
 
 
 @dataclass
@@ -259,12 +261,6 @@ class TransferFilters(GgoFilters):
     reference: List[str] = field(default_factory=list, metadata=dict(allow_none=True))
 
     # TODO add recipient user account?
-
-
-@dataclass
-class RetireFilters(GgoFilters):
-    gsrn: List[str] = field(default_factory=list)
-    address: List[str] = field(default_factory=list)
 
 
 class TransferDirection(Enum):
@@ -409,7 +405,7 @@ class GetTransferredAmountResponse:
 
 @dataclass
 class GetRetiredAmountRequest:
-    filters: RetireFilters
+    filters: GgoFilters
 
 
 @dataclass
