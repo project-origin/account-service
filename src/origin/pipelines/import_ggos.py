@@ -29,7 +29,7 @@ MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 
 
 # Services
-controller = GgoImportController()
+importer = GgoImportController()
 
 
 def start_import_issued_ggos(subject, gsrn, begin):
@@ -99,7 +99,7 @@ def import_ggos_and_insert_to_db(task, subject, gsrn, begin, session):
 
     # Import GGOs
     try:
-        ggos = controller.import_ggos(
+        ggos = importer.import_ggos(
             user=user,
             gsrn=gsrn,
             begin_from=begin_dt,
