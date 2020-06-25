@@ -219,28 +219,40 @@ class GetTransferredAmount(Controller):
 
 class ComposeGgo(Controller):
     """
-    Transfers or retires a single GGO to one or more accounts and/or
-    MeteringPoints. The operation splits the source GGO up into multiple
-    new GGOs if required to before transferring and retiring takes place.
+    Provided an address to a [parent] GGO, this endpoint will split it up
+    into multiple new GGOs ("composing" them from the parent) and transfer
+    the new GGOs (children) to other accounts and/or retire them to any
+    of the user's own MeteringPoints.
 
-    The sum of these can not exceed the source GGO's amount, but can,
-    however deceed it. Any remaining amount is transferred back to
-    the owner of the source GGO.
+    To do this, provide one or more TransferRequests along with one or
+    more RetireRequests.The sum of these can not exceed the parent GGO's
+    amount, but can, however deceed it. Any remaining amount is automatically
+    transferred back to the owner of the parent GGO.
 
-    Each transfer request contains an amount in Wh, a reference string
-    for future enquiry, and a subject (sub), which is the recipient user's
-    account number.
+    # Transfers
 
-    Each retire request contains an amount in Wh, and a GSRN number to
-    retire the specified amount to.
+    Each TransferRequests contains an amount in Wh, an account ID to
+    transfer the given amount to, and an arbitrary reference string
+    for future enquiry if necessary.
 
-    The requested transfers and retires are counted as complete upon a
-    successful response from this endpoint. This means that subsequent
-    requests to other endpoints will count the requested amount transferred
-    or retired immediately. However, due to the asynchronous nature of
-    the blockchain ledger, this operation may be rolled back later in
-    case of an error on the ledger, and will result in the source GGO
-    being stored and available to the source' account again.
+    # Retires
+
+    Each RetireRequests contains an amount in Wh, and a GSRN number to
+    retire the specified amount to. The MeteringPoint, identified by the
+    GSRN number, must belong to the user itself.
+
+    # Concurrency
+
+    The requested transfers and retires are considered successful upon
+    response from this endpoint if the returned value of "success" is true.
+    This means that subsequent requests to other endpoints will immediately
+    assume the transfers or retires valid.
+
+    However, due to the asynchronous nature of the blockchain ledger, this
+    operation may be rolled back later for reasons that could not be foreseen
+    at the time invoking this endpoint. This will result in the parent GGO
+    being stored and available to the user's account again, thus also cancelling
+    transfers and retires.
     """
     Request = md.class_schema(ComposeGgoRequest)
     Response = md.class_schema(ComposeGgoResponse)

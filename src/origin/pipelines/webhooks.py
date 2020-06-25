@@ -13,7 +13,7 @@ from origin.webhooks import (
 
 
 # Settings
-RETRY_DELAY = 10
+RETRY_DELAY = 60
 MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 
 
