@@ -16,14 +16,18 @@ from origin.services.datahub import (
 )
 
 
+gsrn1 = 'GSRN1'
+gsrn2 = 'GSRN2'
+
+
 meteringpoint1 = DataHubMeteringPoint(
-    gsrn='GSRN1',
+    gsrn=gsrn1,
     type=DataHubMeteringPointType.PRODUCTION,
     sector='DK1',
 )
 
 meteringpoint2 = DataHubMeteringPoint(
-    gsrn='GSRN2',
+    gsrn=gsrn2,
     type=DataHubMeteringPointType.PRODUCTION,
     sector='DK2'
 )
@@ -89,6 +93,13 @@ def test__import_meteringpoints__happy_path__should_send_MeteringPoint_key_to_Da
     # -- Assert --------------------------------------------------------------
 
     time.sleep(10)
+
+    # Database state
+    assert MeteringPointQuery(seeded_session).count() == 2
+    assert MeteringPointQuery(seeded_session).has_gsrn(gsrn1).count() == 1
+    assert MeteringPointQuery(seeded_session).has_gsrn(gsrn1).one().sector == 'DK1'
+    assert MeteringPointQuery(seeded_session).has_gsrn(gsrn2).count() == 1
+    assert MeteringPointQuery(seeded_session).has_gsrn(gsrn2).one().sector == 'DK2'
 
     # datahub_service.get_meteringpoints()
     assert datahub_service_mock.get_meteringpoints.call_count == 2 * 3
