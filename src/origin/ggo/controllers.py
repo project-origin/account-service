@@ -330,8 +330,7 @@ class ComposeGgo(Controller):
         :param RetireRequest request:
         :param sqlalchemy.orm.Session session:
         """
-        meteringpoint = self.get_metering_point(
-            user, request.gsrn, session)
+        meteringpoint = self.get_metering_point(user, request.gsrn, session)
 
         if meteringpoint is None:
             raise BadRequest(f'MeteringPoint unavailable (GSRN: {request.gsrn})')
@@ -389,6 +388,7 @@ class ComposeGgo(Controller):
         return MeteringPointQuery(session) \
             .belongs_to(user) \
             .has_gsrn(gsrn) \
+            .is_consumption() \
             .one_or_none()
 
     def get_composer(self, *args, **kwargs):

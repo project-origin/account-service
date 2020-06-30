@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime, timezone, timedelta
 
-from origin.auth import User, MeteringPoint
+from origin.auth import User, MeteringPoint, MeteringPointType
 from origin.services.datahub import (
     Measurement,
     MeasurementType,
@@ -149,6 +149,7 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
         session=seeded_session,
         gsrn=gsrn1,
         sector=sector,
+        type=MeteringPointType.CONSUMPTION,
     )
 
     meteringpoint2 = MeteringPoint.create(
@@ -156,6 +157,7 @@ def test__integration__compose(datahub_importing, datahub_composer, seeded_sessi
         session=seeded_session,
         gsrn=gsrn2,
         sector=sector,
+        type=MeteringPointType.CONSUMPTION,
     )
 
     seeded_session.add(meteringpoint1)

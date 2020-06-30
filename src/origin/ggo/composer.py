@@ -1,4 +1,4 @@
-from origin.auth import User, MeteringPoint
+from origin.auth import User, MeteringPoint, MeteringPointType
 from origin.ledger import Batch, SplitTransaction, RetireTransaction
 from origin.services.datahub import (
     DataHubService,
@@ -114,6 +114,7 @@ class GgoComposer(object):
         """
         assert 0 < amount <= self.ggo.amount
         assert meteringpoint.user_id == self.ggo.user_id
+        assert meteringpoint.type is MeteringPointType.CONSUMPTION
 
         # The published consumption measurement to retire to
         measurement = self.get_consumption(meteringpoint.gsrn, self.ggo.begin)
