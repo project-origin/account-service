@@ -1,5 +1,5 @@
-from celery import shared_task
 from sqlalchemy import orm
+from celery import shared_task, group
 
 from origin import logger
 from origin.db import inject_session
@@ -19,6 +19,11 @@ MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 
 # Services
 webhook_service = WebhookService()
+
+
+def start_invoke_on_ggo_received_tasks(*args, **kwargs):
+    tasks = build_invoke_on_ggo_received_tasks(*args, **kwargs)
+    group(*tasks).apply_async()
 
 
 def build_invoke_on_ggo_received_tasks(subject, ggo_id, session, **logging_kwargs):

@@ -15,6 +15,7 @@ from origin.db import ModelBase, Session
 from origin.auth import User, sub_exists
 from origin.common import DateTimeRange
 from origin.ledger import KeyGenerator
+from origin.services.datahub import Ggo as DataHubGgo
 
 
 # -- Database models ---------------------------------------------------------
@@ -420,5 +421,4 @@ class GetRetiredAmountResponse:
 @dataclass
 class OnGgosIssuedWebhookRequest:
     sub: str
-    gsrn: str
-    begin: datetime
+    ggo: DataHubGgo
