@@ -23,7 +23,7 @@ urls = (
     ('/transfer/get-total-amount', ggo.GetTransferredAmount()),
 
     # Webhooks
-    ('/webhook/on-ggos-issued', ggo.OnGgosIssuedWebhook()),
+    ('/webhook/on-ggo-issued', ggo.OnGgoIssuedWebhook()),
     ('/webhook/on-meteringpoints-available', auth.OnMeteringPointsAvailableWebhook()),
     ('/webhook/on-ggo-received/subscribe', webhooks.Subscribe(WebhookEvent.ON_GGO_RECEIVED)),
     ('/webhook/on-ggo-received/unsubscribe', webhooks.Unsubscribe(WebhookEvent.ON_GGO_RECEIVED)),
@@ -33,5 +33,9 @@ urls = (
     # of /ggo/compose in stead (be for backwards compatibility)
     ('/compose', ggo.ComposeGgo()),
     ('/transfer/get-transferred-amount', ggo.GetTransferredAmount()),
+
+    # TODO
+    # Remove once AccountService doesn't use this anymore
+    ('/webhook/on-ggos-issued', ggo.OnGgoIssuedWebhook()),
 
 )

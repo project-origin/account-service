@@ -398,7 +398,7 @@ class ComposeGgo(Controller):
         return GgoComposer(*args, **kwargs)
 
 
-class OnGgosIssuedWebhook(Controller):
+class OnGgoIssuedWebhook(Controller):
     """
     Invoked by DataHubService when new GGO(s) have been issued
     to a specific meteringpoint.

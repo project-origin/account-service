@@ -177,11 +177,11 @@ class DataHubService(object):
         :param str token:
         :rtype: WebhookSubscribeResponse
         """
-        url = f'{PROJECT_URL}/webhook/on-ggos-issued'
+        url = f'{PROJECT_URL}/webhook/on-ggo-issued'
 
         return self.invoke(
             token=token,
-            path='/webhook/on-ggos-issued/subscribe',
+            path='/webhook/on-ggo-issued/subscribe',
             request=WebhookSubscribeRequest(url=url, secret=WEBHOOK_SECRET),
             request_schema=md.class_schema(WebhookSubscribeRequest),
             response_schema=md.class_schema(WebhookSubscribeResponse),
