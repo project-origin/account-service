@@ -1,25 +1,29 @@
 """
 Asynchronous tasks for importing MeteringPoints from DataHubService.
 
-One entrypoint exists:
+Two entrypoints exists:
 
     start_import_meteringpoints()
+    start_import_meteringpoints_for(subject)
 
 """
 from sqlalchemy import orm
 from celery import group, shared_task
 
 from origin import logger
+from origin.auth import UserQuery
 from origin.db import atomic, inject_session
 from origin.services.datahub import (
     DataHubService,
     DataHubServiceError,
     DataHubServiceConnectionError,
+    MeteringPointType as DataHubMeteringPointType,
 )
 from origin.auth import (
     UserQuery,
     MeteringPointQuery,
     MeteringPoint,
+    MeteringPointType,
 )
 
 
@@ -32,8 +36,20 @@ MAX_RETRIES = (24 * 60 * 60) / RETRY_DELAY
 datahub_service = DataHubService()
 
 
-def start_import_meteringpoints(subject):
+def start_import_meteringpoints(session):
     """
+    Imports (or updates) MeteringPoints for all users.
+
+    :param sqlalchemy.orm.Session session:
+    """
+    for user in UserQuery(session).all():
+        start_import_meteringpoints_for(user.sub)
+
+
+def start_import_meteringpoints_for(subject):
+    """
+    Imports (or updates) MeteringPoints for a single user.
+
     :param str subject:
     """
     import_meteringpoints_and_insert_to_db \
@@ -189,6 +205,9 @@ def send_key_to_datahub_service(task, subject, gsrn, session):
 @atomic
 def save_imported_meteringpoints(user, response, session):
     """
+    Creates MeteringPoints imported from DataHubService in the database.
+    If they already exists, updates their type (consumption or production).
+
     :param origin.auth.User user:
     :param origin.services.datahub.GetMeteringPointsResponse response:
     :param sqlalchemy.orm.Session session:
@@ -197,25 +216,34 @@ def save_imported_meteringpoints(user, response, session):
     imported_meteringpoints = []
 
     for meteringpoint in response.meteringpoints:
-        count = MeteringPointQuery(session) \
+        existing_meteringpoint = MeteringPointQuery(session) \
             .has_gsrn(meteringpoint.gsrn) \
-            .count()
+            .one_or_none()
 
-        if count > 0:
-            logger.info(f'Skipping meteringpoint with GSRN: {meteringpoint.gsrn} (already exists in DB)', extra={
+        if meteringpoint.type is DataHubMeteringPointType.PRODUCTION:
+            typ = MeteringPointType.PRODUCTION
+        elif meteringpoint.type is DataHubMeteringPointType.CONSUMPTION:
+            typ = MeteringPointType.CONSUMPTION
+        else:
+            raise RuntimeError('Should NOT have happened!')
+
+        if existing_meteringpoint:
+            logger.info(f'MeteringPoint {meteringpoint.gsrn} already exists in DB (updating type)', extra={
                 'subject': user.sub,
                 'gsrn': meteringpoint.gsrn,
+                'type': meteringpoint.type.value,
                 'pipeline': 'import_meteringpoints',
                 'task': 'import_meteringpoints_and_insert_to_db',
             })
-            continue
-
-        imported_meteringpoints.append(MeteringPoint.create(
-            user=user,
-            gsrn=meteringpoint.gsrn,
-            sector=meteringpoint.sector,
-            session=session,
-        ))
+            existing_meteringpoint.type = typ
+        else:
+            imported_meteringpoints.append(MeteringPoint.create(
+                user=user,
+                gsrn=meteringpoint.gsrn,
+                sector=meteringpoint.sector,
+                type=typ,
+                session=session,
+            ))
 
     session.add_all(imported_meteringpoints)
     session.flush()

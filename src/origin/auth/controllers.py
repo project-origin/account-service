@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from origin import logger
 from origin.db import atomic, inject_session
 from origin.http import Controller, redirect, BadRequest
-from origin.pipelines import start_import_meteringpoints
+from origin.pipelines import start_import_meteringpoints_for
 from origin.cache import redis
 from origin.services.datahub import DataHubService
 from origin.webhooks import validate_hmac
@@ -209,7 +209,7 @@ class OnMeteringPointsAvailableWebhook(Controller):
             .one_or_none()
 
         if user:
-            start_import_meteringpoints(user.sub)
+            start_import_meteringpoints_for(user.sub)
             return True
         else:
             return False
