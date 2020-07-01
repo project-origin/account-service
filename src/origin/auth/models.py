@@ -1,5 +1,6 @@
 import sqlalchemy as sa
 from sqlalchemy.orm import relationship
+from enum import Enum
 from bip32utils import BIP32Key
 from typing import List
 from dataclasses import dataclass, field
@@ -63,6 +64,11 @@ class User(ModelBase):
         self.last_login = sa.func.now()
 
 
+class MeteringPointType(Enum):
+    PRODUCTION = 'production'
+    CONSUMPTION = 'consumption'
+
+
 class MeteringPoint(ModelBase):
     """
     Implementation of a single MeteringPoint, which belongs to a user.
@@ -87,6 +93,7 @@ class MeteringPoint(ModelBase):
     user = relationship('User', foreign_keys=[user_id])
     gsrn = sa.Column(sa.String(), unique=True, index=True, nullable=False)
     sector = sa.Column(sa.String(), nullable=False)
+    type: MeteringPointType = sa.Column(sa.Enum(MeteringPointType), nullable=True)
 
     # Ledger key
     key_index = sa.Column(sa.Integer(), nullable=False)

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from origin.settings import TOKEN_REFRESH_AT
 
-from .models import User, MeteringPoint
+from .models import User, MeteringPoint, MeteringPointType
 
 
 class UserQuery(object):
@@ -156,3 +156,24 @@ class MeteringPointQuery(object):
         return MeteringPointQuery(self.session, self.q.filter(
             MeteringPoint.gsrn == gsrn,
         ))
+
+    def is_type(self, type):
+        """
+        :param MeteringPointType type:
+        :rtype: MeteringPointQuery
+        """
+        return MeteringPointQuery(self.session, self.q.filter(
+            MeteringPoint.type == type,
+        ))
+
+    def is_production(self):
+        """
+        :rtype: MeteringPointQuery
+        """
+        return self.is_type(MeteringPointType.PRODUCTION)
+
+    def is_consumption(self):
+        """
+        :rtype: MeteringPointQuery
+        """
+        return self.is_type(MeteringPointType.CONSUMPTION)

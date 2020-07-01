@@ -5,7 +5,7 @@ from origin.http import Controller, BadRequest
 from origin.webhooks import validate_hmac
 from origin.pipelines import (
     start_handle_composed_ggo_pipeline,
-    start_import_issued_ggos,
+    start_invoke_on_ggo_received_tasks,
 )
 from origin.auth import (
     User,
@@ -330,8 +330,7 @@ class ComposeGgo(Controller):
         :param RetireRequest request:
         :param sqlalchemy.orm.Session session:
         """
-        meteringpoint = self.get_metering_point(
-            user, request.gsrn, session)
+        meteringpoint = self.get_metering_point(user, request.gsrn, session)
 
         if meteringpoint is None:
             raise BadRequest(f'MeteringPoint unavailable (GSRN: {request.gsrn})')
@@ -389,6 +388,7 @@ class ComposeGgo(Controller):
         return MeteringPointQuery(session) \
             .belongs_to(user) \
             .has_gsrn(gsrn) \
+            .is_consumption() \
             .one_or_none()
 
     def get_composer(self, *args, **kwargs):
@@ -398,7 +398,7 @@ class ComposeGgo(Controller):
         return GgoComposer(*args, **kwargs)
 
 
-class OnGgosIssuedWebhook(Controller):
+class OnGgoIssuedWebhook(Controller):
     """
     Invoked by DataHubService when new GGO(s) have been issued
     to a specific meteringpoint.
@@ -406,15 +406,82 @@ class OnGgosIssuedWebhook(Controller):
     Request = md.class_schema(OnGgosIssuedWebhookRequest)
 
     @validate_hmac
-    def handle_request(self, request):
+    @inject_session
+    def handle_request(self, request, session):
         """
         :param OnGgosIssuedWebhookRequest request:
+        :param sqlalchemy.orm.Session session:
         :rtype: bool
         """
-        start_import_issued_ggos(
-            subject=request.sub,
-            gsrn=request.gsrn,
-            begin=request.begin,
+        user = self.get_user(request.sub, session)
+
+        if user and not self.ggo_exists(request.ggo.address, session):
+            ggo = self.create_ggo(user, request.ggo)
+
+            start_invoke_on_ggo_received_tasks(
+                subject=request.sub,
+                ggo_id=ggo.id,
+                session=session,
+            )
+
+            return True
+
+        return False
+
+    @atomic
+    def create_ggo(self, user, imported_ggo, session):
+        """
+        :param User user:
+        :param origin.services.datahub.Ggo imported_ggo:
+        :param sqlalchemy.orm.Session session:
+        :rtype: Ggo
+        """
+        ggo = self.map_imported_ggo(user, imported_ggo)
+        session.add(ggo)
+        session.flush()
+        return ggo
+
+    def map_imported_ggo(self, user, imported_ggo):
+        """
+        :param User user:
+        :param origin.services.datahub.Ggo imported_ggo:
+        :rtype: Ggo
+        """
+        return Ggo(
+            user_id=user.id,
+            address=imported_ggo.address,
+            issue_time=imported_ggo.issue_time,
+            expire_time=imported_ggo.expire_time,
+            begin=imported_ggo.begin,
+            end=imported_ggo.end,
+            amount=imported_ggo.amount,
+            sector=imported_ggo.sector,
+            technology_code=imported_ggo.technology_code,
+            fuel_code=imported_ggo.fuel_code,
+            synchronized=True,
+            issued=True,
+            stored=True,
+            locked=False,
+            issue_gsrn=imported_ggo.gsrn,
         )
 
-        return True
+    def get_user(self, sub, session):
+        """
+        :param str sub:
+        :param sqlalchemy.orm.Session session:
+        :rtype: User
+        """
+        return UserQuery(session) \
+            .has_sub(sub) \
+            .one_or_none()
+
+    def ggo_exists(self, address, session):
+        """
+        :param str address:
+        :param sqlalchemy.orm.Session session:
+        """
+        count = GgoQuery(session) \
+            .has_address(address) \
+            .count()
+
+        return count > 0

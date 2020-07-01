@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from origin.auth import User, MeteringPointQuery
-from origin.pipelines import start_import_meteringpoints
+from origin.pipelines import start_import_meteringpoints_for
 from origin.services.datahub import (
     DataHubServiceError,
     DataHubServiceConnectionError,
@@ -87,8 +87,8 @@ def test__import_meteringpoints__happy_path__should_send_MeteringPoint_key_to_Da
 
     # -- Act -----------------------------------------------------------------
 
-    start_import_meteringpoints(user1.sub)
-    start_import_meteringpoints(user1.sub)
+    start_import_meteringpoints_for(user1.sub)
+    start_import_meteringpoints_for(user1.sub)
 
     # -- Assert --------------------------------------------------------------
 
