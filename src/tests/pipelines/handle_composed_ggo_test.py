@@ -159,12 +159,12 @@ def seeded_session(session):
 @patch('origin.pipelines.submit_batch_to_ledger.batch_on_rollback.default_retry_delay', 0)
 @pytest.mark.usefixtures('celery_worker')
 def test__handle_composed_ggo__happy_path__Batch_should_be_COMPLETED(
-        on_ggo_received_mock, ledger_mock, build_ledger_batch, make_session_mock, seeded_session):
+        on_ggo_received_mock, ledger_mock, build_ledger_batch_mock, make_session_mock, seeded_session):
 
     # -- Arrange -------------------------------------------------------------
 
     make_session_mock.return_value = seeded_session
-    build_ledger_batch.return_value = 'LEDGER BATCH'
+    build_ledger_batch_mock.return_value = 'LEDGER BATCH'
 
     # Executing batch: Raises Ledger exceptions a few times, then returns Handle
     ledger_mock.execute_batch.side_effect = (
