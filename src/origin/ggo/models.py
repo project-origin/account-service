@@ -1,6 +1,7 @@
 import marshmallow
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
+from datetime import timezone, timedelta
 from marshmallow_dataclass import NewType
 
 from sqlalchemy.orm import relationship
@@ -9,7 +10,7 @@ from typing import List
 from bip32utils import BIP32Key
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from marshmallow import validate
+from marshmallow import validate, post_load
 
 from origin.db import ModelBase, Session
 from origin.auth import User, sub_exists
@@ -256,6 +257,12 @@ class GgoFilters:
     retire_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='retireGsrn'))
     retire_address: List[str] = field(default_factory=list, metadata=dict(data_key='retireAddress'))
 
+    @post_load
+    def apply_time_offset(self, data, **kwargs):
+        if data.get('begin') and data['begin'].utcoffset() is None:
+            data['begin'] = data['begin'].replace(tzinfo=timezone.utc)
+        return data
+
 
 @dataclass
 class TransferFilters(GgoFilters):
@@ -319,6 +326,7 @@ class GetGgoListResponse:
 
 @dataclass
 class GetGgoSummaryRequest:
+    time_offset: int = field(metadata=dict(default=0, data_key='timeOffset'))
     resolution: SummaryResolution = field(metadata=dict(by_value=True))
     filters: GgoFilters
     fill: bool
@@ -326,6 +334,19 @@ class GetGgoSummaryRequest:
     grouping: List[str] = field(metadata=dict(validate=(
         validate.ContainsOnly(('begin', 'sector', 'technology', 'technologyCode', 'fuelCode')),
     )))
+
+    # @post_load
+    # def apply_time_offset(self, data, **kwargs):
+    #     from datetime import timezone, timedelta
+    #
+    #     if (data['filters'].begin and
+    #             data['filters'].begin.utcoffset() is None):
+    #
+    #         data['filters'].begin = data['filters'].begin \
+    #             .astimezone(timezone(timedelta(data['time_offset'])))
+    #
+    #     return data
+    #     # return self.__model__(**data)
 
 
 @dataclass

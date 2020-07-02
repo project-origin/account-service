@@ -1,3 +1,5 @@
+from datetime import timezone
+
 import marshmallow_dataclass as md
 
 from origin.db import inject_session, atomic
@@ -103,6 +105,12 @@ class GetGgoSummary(Controller):
             .belongs_to(user) \
             .apply_filters(request.filters) \
             .get_summary(request.resolution, request.grouping)
+
+        # client_date = self.get_client_date()
+        # a = request.filters.begin_range.begin
+        # b = request.filters.begin_range.begin.astimezone(timezone.utc)
+
+        # raise Exception(str(query.q))
 
         if request.fill and request.filters.begin_range:
             summary.fill(request.filters.begin_range)

@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from sqlalchemy import func, bindparam
 from sqlalchemy.orm import aliased
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import groupby
 from functools import lru_cache
 from dateutil.relativedelta import relativedelta
@@ -71,10 +71,10 @@ class GgoQuery(object):
         q = self.q
 
         if filters.begin:
-            q = q.filter(Ggo.begin == filters.begin)
+            q = q.filter(Ggo.begin == filters.begin.astimezone(timezone.utc))
         elif filters.begin_range:
-            q = q.filter(Ggo.begin >= filters.begin_range.begin)
-            q = q.filter(Ggo.begin <= filters.begin_range.end)
+            q = q.filter(Ggo.begin >= filters.begin_range.begin.astimezone(timezone.utc))
+            q = q.filter(Ggo.begin <= filters.begin_range.end.astimezone(timezone.utc))
         if filters.address:
             q = q.filter(Ggo.address.in_(filters.address))
         if filters.sector:
@@ -144,7 +144,7 @@ class GgoQuery(object):
         :rtype: GgoQuery
         """
         return self.__class__(self.session, self.q.filter(
-            Ggo.begin == begin,
+            Ggo.begin == begin.astimezone(timezone.utc),
         ))
 
     def is_issued(self, value=True):
