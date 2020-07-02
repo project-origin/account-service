@@ -24,7 +24,7 @@ urls = (
 
     # Webhooks
     ('/webhook/on-ggo-issued', ggo.OnGgoIssuedWebhook()),
-    ('/webhook/on-meteringpoints-available', auth.OnMeteringPointsAvailableWebhook()),
+    ('/webhook/on-meteringpoint-available', auth.OnMeteringPointAvailableWebhook()),
     ('/webhook/on-ggo-received/subscribe', webhooks.Subscribe(WebhookEvent.ON_GGO_RECEIVED)),
     ('/webhook/on-ggo-received/unsubscribe', webhooks.Unsubscribe(WebhookEvent.ON_GGO_RECEIVED)),
 
@@ -35,7 +35,8 @@ urls = (
     ('/transfer/get-transferred-amount', ggo.GetTransferredAmount()),
 
     # TODO
-    # Remove once AccountService doesn't use this anymore
+    # Remove once AccountService doesn't use these anymore
     ('/webhook/on-ggos-issued', ggo.OnGgoIssuedWebhook()),
+    ('/webhook/on-meteringpoints-available', auth.OnMeteringPointsAvailableWebhook()),
 
 )

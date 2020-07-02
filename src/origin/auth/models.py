@@ -9,6 +9,7 @@ from marshmallow_dataclass import NewType
 
 from origin.db import ModelBase
 from origin.ledger import KeyGenerator
+from origin.services.datahub import MeteringPoint as DataHubMeteringPoint
 
 
 class User(ModelBase):
@@ -177,7 +178,14 @@ class MeteringPointIndexSequence(ModelBase):
 
 
 @dataclass
+class OnMeteringPointAvailableWebhookRequest:
+    sub: str
+    meteringpoint: DataHubMeteringPoint
+
+
+@dataclass
 class OnMeteringPointsAvailableWebhookRequest:
+    # TODO remove
     sub: str
 
 
