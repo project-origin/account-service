@@ -162,11 +162,11 @@ class DataHubService(object):
         :param str token:
         :rtype: WebhookSubscribeResponse
         """
-        callback_url = f'{PROJECT_URL}/webhook/on-meteringpoints-available'
+        callback_url = f'{PROJECT_URL}/webhook/on-meteringpoint-available'
 
         return self.invoke(
             token=token,
-            path='/webhook/on-meteringpoints-available/subscribe',
+            path='/webhook/on-meteringpoint-available/subscribe',
             request=WebhookSubscribeRequest(url=callback_url, secret=WEBHOOK_SECRET),
             request_schema=md.class_schema(WebhookSubscribeRequest),
             response_schema=md.class_schema(WebhookSubscribeResponse),
