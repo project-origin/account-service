@@ -57,6 +57,18 @@ def start_import_meteringpoints_for(subject):
         .apply_async()
 
 
+def start_send_key_to_datahub_service(subject, gsrn):
+    """
+    Sends a MeteringPoint's key to DataHubService
+
+    :param str subject:
+    :param str gsrn:
+    """
+    send_key_to_datahub_service \
+        .s(subject=subject, gsrn=gsrn) \
+        .apply_async()
+
+
 @shared_task(
     bind=True,
     name='import_meteringpoints.import_meteringpoints_and_insert_to_db',

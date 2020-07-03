@@ -5,22 +5,31 @@ from datetime import datetime, timezone
 from origin import logger
 from origin.db import atomic, inject_session
 from origin.http import Controller, redirect, BadRequest
-from origin.pipelines import start_import_meteringpoints_for
 from origin.cache import redis
-from origin.services.datahub import DataHubService
 from origin.webhooks import validate_hmac
+from origin.services.datahub import (
+    DataHubService,
+    MeteringPointType as DataHubMeteringPointType,
+)
+from origin.pipelines import (
+    start_import_meteringpoints_for,
+    start_send_key_to_datahub_service,
+)
 
 from .token import Token
 from .decorators import require_oauth, inject_token
-from .queries import UserQuery
+from .queries import UserQuery, MeteringPointQuery
 from .backend import AuthBackend
 from .models import (
     User,
     Account,
+    MeteringPoint,
+    MeteringPointType,
     LoginRequest,
     VerifyLoginCallbackRequest,
-    OnMeteringPointsAvailableWebhookRequest,
     GetAccountsResponse,
+    OnMeteringPointsAvailableWebhookRequest,
+    OnMeteringPointAvailableWebhookRequest,
 )
 
 
@@ -116,8 +125,8 @@ class LoginCallback(Controller):
                 'subject': id_token['sub'],
             })
             self.create_new_user(token, id_token, expires, session)
-            self.datahub.webhook_on_meteringpoints_available_subscribe(token['access_token'])
-            self.datahub.webhook_on_ggos_issued_subscribe(token['access_token'])
+            self.datahub.webhook_on_meteringpoint_available_subscribe(token['access_token'])
+            self.datahub.webhook_on_ggo_issued_subscribe(token['access_token'])
         else:
             logger.error(f'User login: Updating tokens for existing user', extra={
                 'subject': id_token['sub'],
@@ -188,11 +197,110 @@ class GetAccounts(Controller):
         )
 
 
+class OnMeteringPointAvailableWebhook(Controller):
+    """
+    Webhook invoked by DataHubService once new MeteringPoints are available.
+
+    Starts an asynchronous pipeline to import them.
+    """
+    Request = md.class_schema(OnMeteringPointAvailableWebhookRequest)
+
+    @validate_hmac
+    @inject_session
+    def handle_request(self, request, session):
+        """
+        :param OnMeteringPointAvailableWebhookRequest request:
+        :param sqlalchemy.orm.Session session:
+        :rtype: bool
+        """
+        user = UserQuery(session) \
+            .has_sub(request.sub) \
+            .one_or_none()
+
+        # User exists?
+        if user is None:
+            logger.error(f'Can not import MeteringPoint (user not found in DB)', extra={
+                'subject': request.sub,
+                'gsrn': request.meteringpoint.gsrn,
+            })
+            return False
+
+        # MeteringPoint already present in database?
+        if self.meteringpoint_exists(request.meteringpoint.gsrn, session):
+            logger.info(f'MeteringPoint {request.meteringpoint.gsrn} already exists in DB, skipping...', extra={
+                'subject': user.sub,
+                'gsrn': request.meteringpoint.gsrn,
+            })
+            return True
+
+        # Insert new MeteringPoint in to DB
+        meteringpoint = self.create_meteringpoint(user, request.meteringpoint)
+
+        logger.info(f'Imported MeteringPoint with GSRN: {meteringpoint.gsrn}', extra={
+            'subject': user.sub,
+            'gsrn': meteringpoint.gsrn,
+            'type': meteringpoint.type.value,
+            'meteringpoint_id': meteringpoint.id,
+        })
+
+        # Send ledger key to DataHubService
+        start_send_key_to_datahub_service(user.sub, meteringpoint.gsrn)
+
+        return True
+
+    def meteringpoint_exists(self, gsrn, session):
+        """
+        :param str gsrn:
+        :param sqlalchemy.orm.Session session:
+        :rtype: bool
+        """
+        count = MeteringPointQuery(session) \
+            .has_gsrn(gsrn) \
+            .count()
+
+        return count > 0
+
+    @atomic
+    def create_meteringpoint(self, user, imported_meteringpoint, session):
+        """
+        :param origin.auth.User user:
+        :param origin.services.datahub.MeteringPoint imported_meteringpoint:
+        :param sqlalchemy.orm.Session session:
+        :rtype: MeteringPoint
+        """
+        meteringpoint = MeteringPoint.create(
+            user=user,
+            gsrn=imported_meteringpoint.gsrn,
+            sector=imported_meteringpoint.sector,
+            type=self.get_type(imported_meteringpoint),
+            session=session,
+        )
+
+        session.add(meteringpoint)
+        session.flush()
+
+        return meteringpoint
+
+    def get_type(self, imported_meteringpoint):
+        """
+        :param origin.services.datahub.MeteringPoint imported_meteringpoint:
+        :rtype: MeteringPointType
+        """
+        if imported_meteringpoint.type is DataHubMeteringPointType.PRODUCTION:
+            return MeteringPointType.PRODUCTION
+        elif imported_meteringpoint.type is DataHubMeteringPointType.CONSUMPTION:
+            return MeteringPointType.CONSUMPTION
+        else:
+            raise RuntimeError('Should NOT have happened!')
+
+
 class OnMeteringPointsAvailableWebhook(Controller):
     """
     Webhook invoked by DataHubService once new MeteringPoints are available.
 
     Starts an asynchronous pipeline to import them.
+
+    TODO REMOVE THIS OLD ENDPOINT
     """
     Request = md.class_schema(OnMeteringPointsAvailableWebhookRequest)
 
