@@ -101,16 +101,12 @@ class GetGgoSummary(Controller):
         :param sqlalchemy.orm.Session session:
         :rtype: GetGgoSummaryResponse
         """
-        summary = GgoQuery(session) \
+        query = GgoQuery(session) \
             .belongs_to(user) \
-            .apply_filters(request.filters) \
-            .get_summary(request.resolution, request.grouping)
+            .apply_filters(request.filters)
 
-        # client_date = self.get_client_date()
-        # a = request.filters.begin_range.begin
-        # b = request.filters.begin_range.begin.astimezone(timezone.utc)
-
-        # raise Exception(str(query.q))
+        summary = query.get_summary(
+            request.resolution, request.grouping, request.utc_offset)
 
         if request.fill and request.filters.begin_range:
             summary.fill(request.filters.begin_range)
@@ -178,7 +174,8 @@ class GetTransferSummary(Controller):
         else:
             query = query.sent_or_received_by_user(user)
 
-        summary = query.get_summary(request.resolution, request.grouping)
+        summary = query.get_summary(
+            request.resolution, request.grouping, request.utc_offset)
 
         if request.fill and request.filters.begin_range:
             summary.fill(request.filters.begin_range)

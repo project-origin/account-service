@@ -10,11 +10,6 @@ class DateTimeRange:
 
     @validates_schema
     def validate_input(self, data, **kwargs):
-        if data['begin'].utcoffset() is None:
-            data['begin'] = data['begin'].replace(tzinfo=timezone.utc)
-        if data['end'].utcoffset() is None:
-            data['end'] = data['end'].replace(tzinfo=timezone.utc)
-
         if data['begin'].utcoffset() != data['end'].utcoffset():
             raise ValidationError({
                 'begin': ['Must have same time offset as end'],
