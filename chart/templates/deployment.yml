@@ -13,6 +13,7 @@ spec:
       labels:
         app: account-deployment
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
@@ -55,6 +56,7 @@ spec:
       labels:
         app: account-beat-deployment
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
@@ -91,6 +93,7 @@ spec:
       labels:
         app: account-worker-deployment
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
