@@ -1,6 +1,7 @@
 import marshmallow
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
+from datetime import timezone, timedelta
 from marshmallow_dataclass import NewType
 
 from sqlalchemy.orm import relationship
@@ -9,7 +10,7 @@ from typing import List
 from bip32utils import BIP32Key
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from marshmallow import validate
+from marshmallow import validate, post_load, validates_schema, ValidationError
 
 from origin.db import ModelBase, Session
 from origin.auth import User, sub_exists
@@ -256,6 +257,14 @@ class GgoFilters:
     retire_gsrn: List[str] = field(default_factory=list, metadata=dict(data_key='retireGsrn'))
     retire_address: List[str] = field(default_factory=list, metadata=dict(data_key='retireAddress'))
 
+    @validates_schema
+    def validate_begin_and_begin_range_mutually_exclusive(self, data, **kwargs):
+        if data.get('begin') and data.get('begin_range'):
+            raise ValidationError({
+                'begin': ['Field is mutually exclusive with beginRange'],
+                'beginRange': ['Field is mutually exclusive with begin'],
+            })
+
 
 @dataclass
 class TransferFilters(GgoFilters):
@@ -327,6 +336,32 @@ class GetGgoSummaryRequest:
         validate.ContainsOnly(('begin', 'sector', 'technology', 'technologyCode', 'fuelCode')),
     )))
 
+    # Offset from UTC in hours
+    utc_offset: int = field(metadata=dict(required=False, missing=0, data_key='utcOffset'))
+
+    @post_load
+    def apply_time_offset(self, data, **kwargs):
+        """
+        Applies the request utcOffset to filters.begin and filters.begin_range
+        if they don't already have a UTC offset applied to them by the client.
+        """
+        tzinfo = timezone(timedelta(hours=data['utc_offset']))
+
+        if data['filters'].begin and data['filters'].begin.utcoffset() is None:
+            data['filters'].begin = \
+                data['filters'].begin.replace(tzinfo=tzinfo)
+
+        if data['filters'].begin_range:
+            if data['filters'].begin_range.begin.utcoffset() is None:
+                data['filters'].begin_range.begin = \
+                    data['filters'].begin_range.begin.replace(tzinfo=tzinfo)
+
+            if data['filters'].begin_range.end.utcoffset() is None:
+                data['filters'].begin_range.end = \
+                    data['filters'].begin_range.end.replace(tzinfo=tzinfo)
+
+        return data
+
 
 @dataclass
 class GetGgoSummaryResponse:
@@ -362,7 +397,33 @@ class GetTransferSummaryRequest:
         validate.ContainsOnly(('begin', 'sector', 'technology', 'technologyCode', 'fuelCode')),
     )))
 
+    # Offset from UTC in hours
+    utc_offset: int = field(metadata=dict(required=False, missing=0, data_key='utcOffset'))
+
     direction: TransferDirection = field(default=None, metadata=dict(by_value=True))
+
+    @post_load
+    def apply_time_offset(self, data, **kwargs):
+        """
+        Applies the request utcOffset to filters.begin and filters.begin_range
+        if they don't already have a UTC offset applied to them by the client.
+        """
+        tzinfo = timezone(timedelta(hours=data['utc_offset']))
+
+        if data['filters'].begin and data['filters'].begin.utcoffset() is None:
+            data['filters'].begin = \
+                data['filters'].begin.replace(tzinfo=tzinfo)
+
+        if data['filters'].begin_range:
+            if data['filters'].begin_range.begin.utcoffset() is None:
+                data['filters'].begin_range.begin = \
+                    data['filters'].begin_range.begin.replace(tzinfo=tzinfo)
+
+            if data['filters'].begin_range.end.utcoffset() is None:
+                data['filters'].begin_range.end = \
+                    data['filters'].begin_range.end.replace(tzinfo=tzinfo)
+
+        return data
 
 
 @dataclass
