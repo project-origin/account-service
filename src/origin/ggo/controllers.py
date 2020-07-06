@@ -1,3 +1,5 @@
+from datetime import timezone
+
 import marshmallow_dataclass as md
 
 from origin.db import inject_session, atomic
@@ -99,10 +101,12 @@ class GetGgoSummary(Controller):
         :param sqlalchemy.orm.Session session:
         :rtype: GetGgoSummaryResponse
         """
-        summary = GgoQuery(session) \
+        query = GgoQuery(session) \
             .belongs_to(user) \
-            .apply_filters(request.filters) \
-            .get_summary(request.resolution, request.grouping)
+            .apply_filters(request.filters)
+
+        summary = query.get_summary(
+            request.resolution, request.grouping, request.utc_offset)
 
         if request.fill and request.filters.begin_range:
             summary.fill(request.filters.begin_range)
@@ -170,7 +174,8 @@ class GetTransferSummary(Controller):
         else:
             query = query.sent_or_received_by_user(user)
 
-        summary = query.get_summary(request.resolution, request.grouping)
+        summary = query.get_summary(
+            request.resolution, request.grouping, request.utc_offset)
 
         if request.fill and request.filters.begin_range:
             summary.fill(request.filters.begin_range)

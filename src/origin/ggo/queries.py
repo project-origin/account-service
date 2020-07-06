@@ -1,7 +1,7 @@
 import sqlalchemy as sa
-from sqlalchemy import func, bindparam
+from sqlalchemy import func, bindparam, text
 from sqlalchemy.orm import aliased
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import groupby
 from functools import lru_cache
 from dateutil.relativedelta import relativedelta
@@ -71,10 +71,10 @@ class GgoQuery(object):
         q = self.q
 
         if filters.begin:
-            q = q.filter(Ggo.begin == filters.begin)
+            q = q.filter(Ggo.begin == filters.begin.astimezone(timezone.utc))
         elif filters.begin_range:
-            q = q.filter(Ggo.begin >= filters.begin_range.begin)
-            q = q.filter(Ggo.begin <= filters.begin_range.end)
+            q = q.filter(Ggo.begin >= filters.begin_range.begin.astimezone(timezone.utc))
+            q = q.filter(Ggo.begin <= filters.begin_range.end.astimezone(timezone.utc))
         if filters.address:
             q = q.filter(Ggo.address.in_(filters.address))
         if filters.sector:
@@ -144,7 +144,7 @@ class GgoQuery(object):
         :rtype: GgoQuery
         """
         return self.__class__(self.session, self.q.filter(
-            Ggo.begin == begin,
+            Ggo.begin == begin.astimezone(timezone.utc),
         ))
 
     def is_issued(self, value=True):
@@ -293,15 +293,17 @@ class GgoQuery(object):
         return [row[0] for row in self.session.query(
             self.q.subquery().c.begin.distinct())]
 
-    def get_summary(self, resolution, grouping):
+    def get_summary(self, resolution, grouping, utc_offset=0):
         """
         Returns a summary of the result set.
 
         :param SummaryResolution resolution:
         :param list[str] grouping:
+        :param int utc_offset:
         :rtype: GgoSummary
         """
-        return GgoSummary(self.session, self, resolution, grouping)
+        return GgoSummary(
+            self.session, self, resolution, grouping, utc_offset)
 
 
 class TransactionQuery(GgoQuery):
@@ -436,17 +438,19 @@ class GgoSummary(object):
 
     ALL_TIME_LABEL = 'All-time'
 
-    def __init__(self, session, query, resolution, grouping):
+    def __init__(self, session, query, resolution, grouping, utc_offset=0):
         """
         :param sa.orm.Session session:
         :param GgoQuery query:
         :param SummaryResolution resolution:
         :param list[str] grouping:
+        :param int utc_offset:
         """
         self.session = session
         self.query = query
         self.resolution = resolution
         self.grouping = grouping
+        self.utc_offset = utc_offset
         self.fill_range = None
 
     def fill(self, fill_range):
@@ -513,21 +517,27 @@ class GgoSummary(object):
                 Technology.fuel_code == s.c.fuel_code,
             )).subquery()
 
+        if self.utc_offset is not None:
+            begin = q.c.begin + text("INTERVAL '%d HOURS'" % self.utc_offset)
+        else:
+            begin = q.c.begin
+
         # -- Resolution ------------------------------------------------------
 
         if self.resolution == SummaryResolution.ALL:
             select.append(bindparam('label', self.ALL_TIME_LABEL))
         else:
-            select.append(func.to_char(q.c.begin, self.RESOLUTIONS_POSTGRES[self.resolution]).label('resolution'))
+
+            select.append(func.to_char(begin, self.RESOLUTIONS_POSTGRES[self.resolution]).label('resolution'))
             groups.append('resolution')
 
         # -- Grouping ------------------------------------------------------------
 
         for group in self.grouping:
             if group == 'begin':
-                groups.append(q.c.begin)
-                select.append(q.c.begin)
-                orders.append(q.c.begin)
+                groups.append(begin)
+                select.append(begin)
+                orders.append(begin)
             elif group == 'sector':
                 groups.append(q.c.sector)
                 select.append(q.c.sector)
