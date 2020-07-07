@@ -3,6 +3,7 @@ import sqlalchemy as sa
 import origin_ledger_sdk as ols
 from datetime import timezone, timedelta
 from marshmallow_dataclass import NewType
+from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy.orm import relationship
 from enum import Enum
@@ -56,6 +57,7 @@ class Ggo(ModelBase):
     technology_code = sa.Column(sa.String(), nullable=False, index=True)
     fuel_code = sa.Column(sa.String(), nullable=False, index=True)
     technology = relationship('Technology', primaryjoin='and_(foreign(Ggo.technology_code) == Technology.technology_code, foreign(Ggo.fuel_code) == Technology.fuel_code)', lazy='joined')
+    emissions = sa.Column(JSONB())
 
     # Whether or not this GGO was originally issued (False means its
     # product of a trade/split)
@@ -110,6 +112,7 @@ class Ggo(ModelBase):
             end=self.end,
             technology_code=self.technology_code,
             fuel_code=self.fuel_code,
+            emissions=self.emissions,
             amount=amount,
             issued=False,
             stored=False,
