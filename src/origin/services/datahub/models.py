@@ -130,7 +130,7 @@ class Ggo:
     expire_time: datetime = field(metadata=dict(data_key='expireTime'))
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
-    emissions: Dict[str, Dict[str, Any]] = field(default=None)
+    emissions: Dict[str, float] = field(default=None, metadata=dict(required=False, missing=None))
 
 
 # -- GetMeasurement request and response -------------------------------------
