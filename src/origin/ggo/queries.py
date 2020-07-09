@@ -215,6 +215,18 @@ class GgoQuery(object):
             Ggo.retire_gsrn == gsrn,
         ))
 
+    def is_retired_to_any_gsrn(self, gsrn):
+        """
+        Only include GGOs which have been retired to any of the
+        provided GSRN numbers.
+
+        :param list[str] gsrn:
+        :rtype: GgoQuery
+        """
+        return self.__class__(self.session, self.q.filter(
+            Ggo.retire_gsrn.in_(gsrn),
+        ))
+
     def is_expired(self, value=True):
         """
         Include or exclude GGOs which are expired.
