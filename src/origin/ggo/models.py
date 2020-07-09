@@ -1,13 +1,13 @@
 import marshmallow
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
-from datetime import timezone, timedelta
+from datetime import timedelta
 from marshmallow_dataclass import NewType
 from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy.orm import relationship
 from enum import Enum
-from typing import List
+from typing import List, Dict
 from bip32utils import BIP32Key
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
@@ -236,6 +236,7 @@ class MappedGgo:
     technology: GgoTechnology
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
+    emissions: Dict[str, float] = field(default=None)
 
 
 class GgoCategory(Enum):
