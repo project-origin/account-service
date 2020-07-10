@@ -1,4 +1,5 @@
 from .ggo import controllers as ggo
+from .eco import controllers as eco
 from .auth import controllers as auth
 from .webhooks import controllers as webhooks
 from .webhooks import WebhookEvent
@@ -13,6 +14,7 @@ urls = (
     # Accounts
     ('/accounts', auth.GetAccounts()),
 
+    # GGOs
     ('/ggo', ggo.GetGgoList()),
     ('/ggo/compose', ggo.ComposeGgo()),
     ('/ggo/summary', ggo.GetGgoSummary()),
@@ -21,6 +23,9 @@ urls = (
     # Transfers
     ('/transfer/summary', ggo.GetTransferSummary()),
     ('/transfer/get-total-amount', ggo.GetTransferredAmount()),
+
+    # Eco declaration
+    ('/eco-declaration', eco.GetEcoDeclaration()),
 
     # Webhooks
     ('/webhook/on-ggo-issued', ggo.OnGgoIssuedWebhook()),

@@ -1,78 +1,60 @@
-from datetime import timezone
-
 import marshmallow_dataclass as md
 
-from origin.db import inject_session, atomic
+from origin.db import inject_session
 from origin.http import Controller, BadRequest
-from origin.webhooks import validate_hmac
-from origin.pipelines import (
-    start_handle_composed_ggo_pipeline,
-    start_invoke_on_ggo_received_tasks,
-)
 from origin.auth import (
     User,
-    UserQuery,
     MeteringPointQuery,
-    MeteringPoint,
     inject_user,
     require_oauth,
 )
 
-from .composer import GgoComposer
-from .queries import GgoQuery, TransactionQuery
-from .models import (
-    Ggo,
-    TransferDirection,
-    TransferRequest,
-    RetireRequest,
-    GetGgoListRequest,
-    GetGgoListResponse,
-    GetGgoSummaryRequest,
-    GetGgoSummaryResponse,
-    GetTotalAmountRequest,
-    GetTotalAmountResponse,
-    GetTransferSummaryRequest,
-    GetTransferSummaryResponse,
-    GetTransferredAmountRequest,
-    GetTransferredAmountResponse,
-    ComposeGgoRequest,
-    ComposeGgoResponse,
-    OnGgosIssuedWebhookRequest,
-)
+from .builder import EcoDeclarationBuilder
+from .models import GetEcoDeclarationRequest, GetEcoDeclarationResponse
+
+
+builder = EcoDeclarationBuilder()
 
 
 class GetEcoDeclaration(Controller):
     """
     TODO
     """
-    Request = md.class_schema(GetGgoListRequest)
-    Response = md.class_schema(GetGgoListResponse)
+    Request = md.class_schema(GetEcoDeclarationRequest)
+    Response = md.class_schema(GetEcoDeclarationResponse)
 
     @require_oauth('ggo.read')
     @inject_user
     @inject_session
     def handle_request(self, request, user, session):
         """
-        :param GetGgoListRequest request:
+        :param GetEcoDeclarationRequest request:
         :param User user:
         :param sqlalchemy.orm.Session session:
         :rtype: GetGgoListResponse
         """
-        query = GgoQuery(session) \
+        meteringpoints = MeteringPointQuery(session) \
             .belongs_to(user) \
-            .is_synchronized(True) \
-            .is_locked(False) \
-            .apply_filters(request.filters)
+            .has_any_gsrn(request.gsrn) \
+            .all()
 
-        results = query \
-            .order_by(Ggo.begin) \
-            .offset(request.offset)
+        gsrn = [m.gsrn for m in meteringpoints]
 
-        if request.limit:
-            results = results.limit(request.limit)
+        if len(gsrn) < len(request.gsrn):
+            raise BadRequest((
+                'Could not load the following MeteringPoints: %s'
+            ) % ', '.join([g for g in request.gsrn if g not in gsrn]))
 
-        return GetGgoListResponse(
+        individual, general = builder.build_eco_declaration(
+            user=user,
+            meteringpoints=meteringpoints,
+            begin_from=request.begin_range.begin,
+            begin_to=request.begin_range.end,
+            session=session,
+        )
+
+        return GetEcoDeclarationResponse(
             success=True,
-            total=query.count(),
-            results=results.all(),
+            individual=individual.as_resolution(request.resolution),
+            general=general.as_resolution(request.resolution),
         )

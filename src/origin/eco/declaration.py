@@ -1,7 +1,10 @@
 import operator
+from itertools import groupby
 from typing import Dict
 from datetime import datetime
 from dataclasses import dataclass
+
+from .models import EcoDeclarationResolution
 
 
 class EmissionValues(dict):
@@ -84,6 +87,9 @@ class EcoDeclaration:
     # Energy consumption in Wh (mapped by begin)
     consumed_amount: Dict[datetime, int]
 
+    # Current resolution
+    resolution: EcoDeclarationResolution
+
     @property
     def total_consumed_amount(self):
         """
@@ -132,3 +138,58 @@ class EcoDeclaration:
             return sum(self.emissions.values()) / consumed_amount
         else:
             return EmissionValues()
+
+    def as_resolution(self, resolution):
+        """
+        :param EcoDeclarationResolution resolution:
+        :rtype: EcoDeclaration
+        """
+        if resolution == self.resolution:
+            return self
+        if resolution > self.resolution:
+            raise ValueError((
+                'Can not get declaration in higher resolution than the '
+                'source data is represented in'
+            ))
+
+        mappers = {
+            EcoDeclarationResolution.day: lambda d: d.replace(
+                hour=0, minute=0, second=0, microsecond=0),
+
+            EcoDeclarationResolution.month: lambda d: d.replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0),
+
+            EcoDeclarationResolution.year: lambda d: d.replace(
+                month=1, day=1, hour=0, minute=0, second=0, microsecond=0),
+        }
+
+        begins_sorted_and_grouped = groupby(
+            iterable=sorted(self.emissions.keys()),
+            key=mappers[resolution],
+        )
+
+        new_emissions = {}
+        new_consumed_amount = {}
+
+        for new_begin, old_begins in begins_sorted_and_grouped:
+            old_begins = list(old_begins)
+            new_emissions[new_begin] = sum(self.emissions[b] for b in old_begins)
+            new_consumed_amount[new_begin] = sum(self.consumed_amount[b] for b in old_begins)
+
+            c=2
+
+            # e = 0
+            # c = 0
+            #
+            # for begin in old_begins:
+            #     e += self.emissions[begin]
+            #     c += self.consumed_amount[begin]
+            #
+            # new_emissions[new_begin] = e
+            # new_consumed_amount[new_begin] = c
+
+        return EcoDeclaration(
+            emissions=new_emissions,
+            consumed_amount=new_consumed_amount,
+            resolution=resolution,
+        )

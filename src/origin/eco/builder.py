@@ -13,6 +13,7 @@ from origin.services.datahub import (
     MeasurementFilters,
 )
 
+from .models import EcoDeclarationResolution
 from .declaration import EcoDeclaration, EmissionValues
 
 
@@ -101,6 +102,7 @@ class EcoDeclarationBuilder(object):
         return EcoDeclaration(
             emissions=emissions,
             consumed_amount=consumed_amount,
+            resolution=EcoDeclarationResolution.hour,
         )
 
     def build_general_declaration(self, measurements, general_mix_emissions):
@@ -138,6 +140,7 @@ class EcoDeclarationBuilder(object):
         return EcoDeclaration(
             emissions=emissions,
             consumed_amount=consumed_amount,
+            resolution=EcoDeclarationResolution.hour,
         )
 
     def get_general_mix(self, meteringpoints, begin_from, begin_to):
