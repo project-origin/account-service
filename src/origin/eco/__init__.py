@@ -1,2 +1,2 @@
-from .declaration import EcoDeclarationBuilder
-from .models import *
+from .builder import EcoDeclarationBuilder
+from .declaration import EcoDeclaration, EmissionValues

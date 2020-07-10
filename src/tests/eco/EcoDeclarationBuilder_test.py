@@ -194,8 +194,8 @@ def test__EcoDeclarationBuilder__build_general_declaration():
     }
 
 
-@patch('origin.eco.declaration.datahub_service')
-@patch('origin.eco.declaration.energytype_service')
+@patch('origin.eco.builder.datahub_service')
+@patch('origin.eco.builder.energytype_service')
 def test__EcoDeclarationBuilder__build_eco_declaration(energytype_service_mock, datahub_service_mock):
 
     # -- Arrange -------------------------------------------------------------

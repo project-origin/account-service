@@ -1,216 +1,134 @@
+import operator
+from typing import Dict
 from datetime import datetime
-from itertools import groupby
-
-from origin.ggo import GgoQuery, Ggo
-from origin.common import DateTimeRange
-from origin.auth import MeteringPoint, User
-from origin.services.energytypes import EnergyTypeService, EmissionData
-from origin.services.datahub import (
-    DataHubService,
-    GetMeasurementListRequest,
-    Measurement,
-    MeasurementType,
-    MeasurementFilters,
-)
-
-from .models import EcoDeclaration, EmissionValues
+from dataclasses import dataclass
 
 
-datahub_service = DataHubService()
-energytype_service = EnergyTypeService()
-
-
-class EcoDeclarationBuilder(object):
+class EmissionValues(dict):
     """
     TODO
     """
 
-    def build_eco_declaration(self, user, meteringpoints, begin_from, begin_to, session):
+    def __repr__(self):
+        return 'EmissionValues<%s>' % super(EmissionValues, self).__repr__()
+
+    def add(self, key, value):
+        self.setdefault(key, 0)
+        self[key] += value
+
+    def __add__(self, other):
         """
-        :param User user:
-        :param list[MeteringPoint] meteringpoints:
-        :param datetime begin_from:
-        :param datetime begin_to:
-        :param sqlalchemy.orm.Session session:
-        :rtype: (EcoDeclaration, EcoDeclaration)
-        :returns: A tuple of (individual declaration, general declaration)
+        :param EmissionValues|int|float other:
+        :rtype: EmissionValues
         """
-        assert len(meteringpoints) > 0
+        return self.__do_arithmetic(other, operator.__add__)
 
-        # -- Dependencies ----------------------------------------------------
-
-        measurements = self.get_measurements(
-            user, meteringpoints, begin_from, begin_to)
-
-        retired_ggos = self.get_retired_ggos(
-            meteringpoints, session)
-
-        general_mix_emissions = self.get_general_mix(
-            meteringpoints, begin_from, begin_to)
-
-        # -- Declarations ----------------------------------------------------
-
-        general = self.build_general_declaration(
-            measurements, general_mix_emissions)
-
-        individual = self.build_individual_declaration(
-            measurements, retired_ggos, general_mix_emissions)
-
-        return individual, general
-
-    def build_individual_declaration(self, measurements, retired_ggos, general_mix_emissions):
+    def __radd__(self, other):
         """
-        :param list[Measurement] measurements:
-        :param dict[str, dict[datetime, list[Ggo]]] retired_ggos:
-        :param dict[str, dict[datetime, EmissionData]] general_mix_emissions:
-        :rtype: EcoDeclaration
+        :param EmissionValues|int|float other:
+        :rtype: EmissionValues
         """
+        return self + other
 
-        # Emission in gram (mapped by begin)
-        emissions = {}
-
-        # Consumption in Wh (mapped by begin)
-        consumed_amount = {}
-
-        for m in measurements:
-            ggos = retired_ggos[m.gsrn].get(m.begin, [])
-            retired_amount = sum(ggo.amount for ggo in ggos)
-            remaining_amount = m.amount - retired_amount
-
-            assert 0 <= retired_amount <= m.amount
-            assert 0 <= remaining_amount <= m.amount
-            assert retired_amount + remaining_amount == m.amount
-
-            # Consumed amount
-            consumed_amount.setdefault(m.begin, 0)
-            consumed_amount[m.begin] += m.amount
-
-            # Emission from retired GGOs
-            for ggo in ggos:
-                emissions.setdefault(m.begin, 0)
-                emissions[m.begin] += \
-                    EmissionValues(**ggo.emissions) * ggo.amount
-
-            # Remaining emission from General mix
-            if remaining_amount:
-                general_mix = general_mix_emissions[m.sector][m.begin]
-                emissions.setdefault(m.begin, 0)
-                emissions[m.begin] += \
-                    EmissionValues(**general_mix.mix_emissions) * remaining_amount
-
-        return EcoDeclaration(
-            emissions=emissions,
-            consumed_amount=consumed_amount,
-        )
-
-    def build_general_declaration(self, measurements, general_mix_emissions):
+    def __mul__(self, other):
         """
-        :param list[Measurement] measurements:
-        :param dict[str, dict[datetime, EmissionData]] general_mix_emissions:
-        :rtype: EcoDeclaration
+        :param EmissionValues|int|float other:
+        :rtype: EmissionValues
         """
+        return self.__do_arithmetic(other, operator.__mul__)
 
-        # Emission in gram (mapped by begin)
-        emissions = {}
-
-        # Consumption in Wh (mapped by begin)
-        consumed_amount = {}
-
-        # Group measurements by their begin
-        measurements_sorted_and_grouped = groupby(
-            iterable=sorted(measurements, key=lambda m: m.begin),
-            key=lambda m: m.begin,
-        )
-
-        for begin, measurements in measurements_sorted_and_grouped:
-            begin_emissions = EmissionValues()
-            begin_consumption = 0
-
-            for sector in set(m.sector for m in measurements):
-                general_mix = general_mix_emissions[sector][begin]
-                begin_consumption += general_mix.amount
-                begin_emissions += \
-                    EmissionValues(**general_mix.mix_emissions) * general_mix.amount
-
-            emissions[begin] = begin_emissions
-            consumed_amount[begin] = begin_consumption
-
-        return EcoDeclaration(
-            emissions=emissions,
-            consumed_amount=consumed_amount,
-        )
-
-    def get_general_mix(self, meteringpoints, begin_from, begin_to):
+    def __rmul__(self, other):
         """
-        :param list[MeteringPoint] meteringpoints:
-        :param datetime begin_from:
-        :param datetime begin_to:
-        :rtype: dict[str, dict[datetime, EmissionData]]
+        :param EmissionValues|int|float other:
+        :rtype: EmissionValues
         """
-        general_mix = {}
+        return self * other
 
-        response = energytype_service.get_residual_mix(
-            sector=list(set(m.sector for m in meteringpoints)),
-            begin_from=begin_from,
-            begin_to=begin_to,
-        )
-
-        for d in response.mix_emissions:
-            general_mix.setdefault(d.sector, {})
-            general_mix[d.sector][d.timestamp_utc] = d
-
-        return general_mix
-
-    def get_measurements(self, user, meteringpoints, begin_from, begin_to):
+    def __truediv__(self, other):
         """
-        :param User user:
-        :param list[MeteringPoint] meteringpoints:
-        :param datetime begin_from:
-        :param datetime begin_to:
-        :rtype: list[Measurement]
+        :param EmissionValues|int|float other:
+        :rtype: EmissionValues
         """
-        request = GetMeasurementListRequest(
-            offset=0,
-            limit=99999,
-            filters=MeasurementFilters(
-                type=MeasurementType.CONSUMPTION,
-                gsrn=[m.gsrn for m in meteringpoints],
-                begin_range=DateTimeRange(
-                    begin=begin_from,
-                    end=begin_to,
-                ),
-            ),
-        )
+        return self.__do_arithmetic(other, operator.__truediv__)
 
-        response = datahub_service.get_measurements(
-            token=user.access_token,
-            request=request,
-        )
-
-        return response.measurements
-
-    def get_retired_ggos(self, meteringpoints, session):
+    def __do_arithmetic(self, other, calc):
         """
-        :param list[MeteringPoint] meteringpoints:
-        :param sqlalchemy.orm.Session session:
-        :rtype: dict[str, dict[datetime, list[Ggo]]]
+        :param EmissionValues|int|float other:
+        :param function calc:
+        :rtype: EmissionValues
         """
-        retired_ggos = {}
+        if isinstance(other, dict):
+            keys = set(list(self.keys()) + list(other.keys()))
+            return EmissionValues(
+                **{key: calc(self.get(key, 0), other.get(key, 0))
+                   for key in keys}
+            )
+        elif isinstance(other, (int, float)):
+            return EmissionValues(
+                **{key: calc(self.get(key, 0), other)
+                   for key in self.keys()}
+            )
 
-        for ggo in self.fetch_retired_ggos_from_db(meteringpoints, session):
-            retired_ggos \
-                .setdefault(ggo.retire_gsrn, {}) \
-                .setdefault(ggo.begin, []) \
-                .append(ggo)
+        return NotImplemented
 
-        return retired_ggos
 
-    def fetch_retired_ggos_from_db(self, meteringpoints, session):
+@dataclass
+class EcoDeclaration:
+    """
+    TODO
+    """
+
+    # Emission in gram (mapped by begin)
+    emissions: Dict[datetime, EmissionValues]
+
+    # Energy consumption in Wh (mapped by begin)
+    consumed_amount: Dict[datetime, int]
+
+    @property
+    def total_consumed_amount(self):
         """
-        :param list[MeteringPoint] meteringpoints:
-        :param sqlalchemy.orm.Session session:
-        :rtype: list[Ggo]
+        TODO
+
+        :rtype: int
         """
-        return GgoQuery(session) \
-            .is_retired_to_any_gsrn([m.gsrn for m in meteringpoints]) \
-            .all()
+        return sum(self.consumed_amount.values())
+
+    @property
+    def total_emissions(self):
+        """
+        Returns the total emissions in gram/Wh (aggregated for all begins).
+
+        :rtype: EmissionValues
+        """
+        return sum(self.emissions.values())
+
+    @property
+    def emissions_per_wh(self):
+        """
+        Returns the emissions in gram/Wh.
+
+        :rtype: dict[datetime, EmissionValues]
+        """
+        result = {}
+
+        for begin in self.emissions:
+            if self.consumed_amount[begin] > 0:
+                result[begin] = self.emissions[begin] / self.consumed_amount[begin]
+            else:
+                result[begin] = 0
+
+        return result
+
+    @property
+    def total_emissions_per_wh(self):
+        """
+        Returns the total emissions in gram/Wh (aggregated for all begins).
+
+        :rtype: EmissionValues
+        """
+        consumed_amount = self.total_consumed_amount
+
+        if consumed_amount > 0:
+            return sum(self.emissions.values()) / consumed_amount
+        else:
+            return EmissionValues()
