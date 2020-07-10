@@ -26,7 +26,7 @@ consumed_amount = {
 }
 
 
-def test__EcoDeclaration__total_consumed_amount():
+def test__EcoDeclaration__total_consumed_amount__consumed_amount_exists__should_return_correct_number():
 
     # Arrange
     uut = EcoDeclaration(
@@ -39,7 +39,20 @@ def test__EcoDeclaration__total_consumed_amount():
     assert uut.total_consumed_amount == 10 + 20 + 30
 
 
-def test__EcoDeclaration__total_emissions():
+def test__EcoDeclaration__total_consumed_amount__NO_consumed_amount_exists__should_return_zero():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount={},
+        resolution=EcoDeclarationResolution.hour,
+    )
+
+    # Assert
+    assert uut.total_consumed_amount == 0
+
+
+def test__EcoDeclaration__total_emissions__emissions_exists__should_return_EmissionValues_with_correct_values():
 
     # Arrange
     uut = EcoDeclaration(
@@ -49,6 +62,7 @@ def test__EcoDeclaration__total_emissions():
     )
 
     # Assert
+    assert isinstance(uut.total_emissions, EmissionValues)
     assert uut.total_emissions == {
         'CO2': 100 + 300 + 500,
         'CH4': 200 + 400 + 600,
@@ -56,7 +70,21 @@ def test__EcoDeclaration__total_emissions():
     }
 
 
-def test__EcoDeclaration__emissions_per_wh():
+def test__EcoDeclaration__total_emissions__NO_emissions_exists__should_return_empty_EmissionValues():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount=consumed_amount,
+        resolution=EcoDeclarationResolution.hour,
+    )
+
+    # Assert
+    assert isinstance(uut.total_emissions, EmissionValues)
+    assert uut.total_emissions == {}
+
+
+def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_return_EmissionValues_with_correct_values():
 
     # Arrange
     uut = EcoDeclaration(
@@ -66,6 +94,8 @@ def test__EcoDeclaration__emissions_per_wh():
     )
 
     # Assert
+    assert isinstance(uut.emissions_per_wh, dict)
+    assert all(isinstance(v, EmissionValues) for v in uut.emissions_per_wh.values())
     assert uut.emissions_per_wh == {
         begin1: {'CO2': 100/10, 'CH4': 200/10},
         begin2: {'CO2': 300/20, 'CH4': 400/20},
@@ -73,7 +103,26 @@ def test__EcoDeclaration__emissions_per_wh():
     }
 
 
-def test__EcoDeclaration__total_emissions_per_wh():
+def test__EcoDeclaration__emissions_per_wh__NO_consumed_amount_exists__should_return_empty_EmissionValues():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions=emissions,
+        consumed_amount={},
+        resolution=EcoDeclarationResolution.hour,
+    )
+
+    # Assert
+    assert isinstance(uut.emissions_per_wh, dict)
+    assert all(isinstance(v, EmissionValues) for v in uut.emissions_per_wh.values())
+    assert uut.emissions_per_wh == {
+        begin1: {},
+        begin2: {},
+        begin3: {},
+    }
+
+
+def test__EcoDeclaration__total_emissions_per_wh__emissions_exists__should_return_EmissionValues_with_correct_values():
 
     # Arrange
     uut = EcoDeclaration(
@@ -83,11 +132,26 @@ def test__EcoDeclaration__total_emissions_per_wh():
     )
 
     # Assert
+    assert isinstance(uut.total_emissions_per_wh, EmissionValues)
     assert uut.total_emissions_per_wh == {
         'CO2': (100 + 300 + 500) / (10 + 20 + 30),
         'CH4': (200 + 400 + 600) / (10 + 20 + 30),
         'NOx': 700 / (10 + 20 + 30),
     }
+
+
+def test__EcoDeclaration__total_emissions_per_wh__NO_emissions_exists__should_return_empty_EmissionValues():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount=consumed_amount,
+        resolution=EcoDeclarationResolution.hour,
+    )
+
+    # Assert
+    assert isinstance(uut.total_emissions_per_wh, EmissionValues)
+    assert uut.total_emissions_per_wh == {}
 
 # -- as_resolution() ---------------------------------------------------------
 

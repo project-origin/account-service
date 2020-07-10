@@ -97,7 +97,7 @@ class EcoDeclarationBuilder(object):
             if remaining_amount:
                 mix = general_mix_emissions \
                     .get(m.sector, {}) \
-                    .get(m.begin, None)
+                    .get(m.begin)
 
                 if mix is not None:
                     emissions.setdefault(m.begin, 0)
@@ -136,7 +136,7 @@ class EcoDeclarationBuilder(object):
             for sector in set(m.sector for m in measurements):
                 mix = general_mix_emissions \
                     .get(sector, {}) \
-                    .get(begin, None)
+                    .get(begin)
 
                 if mix is not None:
                     begin_consumption += mix.amount

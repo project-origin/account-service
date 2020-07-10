@@ -106,7 +106,7 @@ class EcoDeclaration:
 
         :rtype: EmissionValues
         """
-        return sum(self.emissions.values())
+        return sum(self.emissions.values(), EmissionValues())
 
     @property
     def emissions_per_wh(self):
@@ -115,15 +115,15 @@ class EcoDeclaration:
 
         :rtype: dict[datetime, EmissionValues]
         """
-        result = {}
+        emissions = {}
 
         for begin in self.emissions:
-            if self.consumed_amount[begin] > 0:
-                result[begin] = self.emissions[begin] / self.consumed_amount[begin]
+            if self.consumed_amount.get(begin, 0) > 0:
+                emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
             else:
-                result[begin] = 0
+                emissions[begin] = EmissionValues()
 
-        return result
+        return emissions
 
     @property
     def total_emissions_per_wh(self):
@@ -135,7 +135,7 @@ class EcoDeclaration:
         consumed_amount = self.total_consumed_amount
 
         if consumed_amount > 0:
-            return sum(self.emissions.values()) / consumed_amount
+            return self.total_emissions / consumed_amount
         else:
             return EmissionValues()
 
