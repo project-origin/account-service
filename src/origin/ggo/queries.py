@@ -286,6 +286,16 @@ class GgoQuery(object):
         """
         return self.is_tradable()
 
+    def has_emissions(self):
+        """
+        Only include GGOs which have emission data.
+
+        :rtype: GgoQuery
+        """
+        return self.__class__(self.session, self.q.filter(
+            Ggo.emissions.isnot(None),
+        ))
+
     def get_total_amount(self):
         """
         Returns the total amount of the result set.

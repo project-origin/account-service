@@ -74,8 +74,9 @@ class EcoDeclarationBuilder(object):
         consumed_amount = {}
 
         for m in measurements:
-            ggos = retired_ggos[m.gsrn].get(m.begin, [])
-            retired_amount = sum(ggo.amount for ggo in ggos)
+            ggos = retired_ggos.get(m.gsrn, {}).get(m.begin, [])
+            ggos_with_emissions = [ggo for ggo in ggos if ggo.emissions]
+            retired_amount = sum(ggo.amount for ggo in ggos_with_emissions)
             remaining_amount = m.amount - retired_amount
 
             assert 0 <= retired_amount <= m.amount
@@ -87,17 +88,21 @@ class EcoDeclarationBuilder(object):
             consumed_amount[m.begin] += m.amount
 
             # Emission from retired GGOs
-            for ggo in ggos:
+            for ggo in ggos_with_emissions:
                 emissions.setdefault(m.begin, 0)
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
             # Remaining emission from General mix
             if remaining_amount:
-                general_mix = general_mix_emissions[m.sector][m.begin]
-                emissions.setdefault(m.begin, 0)
-                emissions[m.begin] += \
-                    EmissionValues(**general_mix.mix_emissions) * remaining_amount
+                mix = general_mix_emissions \
+                    .get(m.sector, {}) \
+                    .get(m.begin, None)
+
+                if mix is not None:
+                    emissions.setdefault(m.begin, 0)
+                    emissions[m.begin] += \
+                        EmissionValues(**mix.emissions) * remaining_amount
 
         return EcoDeclaration(
             emissions=emissions,
@@ -129,10 +134,14 @@ class EcoDeclarationBuilder(object):
             begin_consumption = 0
 
             for sector in set(m.sector for m in measurements):
-                general_mix = general_mix_emissions[sector][begin]
-                begin_consumption += general_mix.amount
-                begin_emissions += \
-                    EmissionValues(**general_mix.mix_emissions) * general_mix.amount
+                mix = general_mix_emissions \
+                    .get(sector, {}) \
+                    .get(begin, None)
+
+                if mix is not None:
+                    begin_consumption += mix.amount
+                    begin_emissions += \
+                        EmissionValues(**mix.emissions) * mix.amount
 
             emissions[begin] = begin_emissions
             consumed_amount[begin] = begin_consumption
@@ -216,4 +225,5 @@ class EcoDeclarationBuilder(object):
         """
         return GgoQuery(session) \
             .is_retired_to_any_gsrn([m.gsrn for m in meteringpoints]) \
+            .has_emissions() \
             .all()
