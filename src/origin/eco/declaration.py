@@ -176,18 +176,6 @@ class EcoDeclaration:
             new_emissions[new_begin] = sum(self.emissions[b] for b in old_begins)
             new_consumed_amount[new_begin] = sum(self.consumed_amount[b] for b in old_begins)
 
-            c=2
-
-            # e = 0
-            # c = 0
-            #
-            # for begin in old_begins:
-            #     e += self.emissions[begin]
-            #     c += self.consumed_amount[begin]
-            #
-            # new_emissions[new_begin] = e
-            # new_consumed_amount[new_begin] = c
-
         return EcoDeclaration(
             emissions=new_emissions,
             consumed_amount=new_consumed_amount,

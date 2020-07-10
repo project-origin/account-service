@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pytest
+
 from origin.eco import (
     EcoDeclaration,
     EmissionValues,
@@ -86,3 +88,32 @@ def test__EcoDeclaration__total_emissions_per_wh():
         'CH4': (200 + 400 + 600) / (10 + 20 + 30),
         'NOx': 700 / (10 + 20 + 30),
     }
+
+# -- as_resolution() ---------------------------------------------------------
+
+
+@pytest.mark.parametrize('current_resolution, new_resolution', (
+        (EcoDeclarationResolution.all, EcoDeclarationResolution.year),
+        (EcoDeclarationResolution.all, EcoDeclarationResolution.month),
+        (EcoDeclarationResolution.all, EcoDeclarationResolution.day),
+        (EcoDeclarationResolution.all, EcoDeclarationResolution.hour),
+        (EcoDeclarationResolution.year, EcoDeclarationResolution.month),
+        (EcoDeclarationResolution.year, EcoDeclarationResolution.day),
+        (EcoDeclarationResolution.year, EcoDeclarationResolution.hour),
+        (EcoDeclarationResolution.month, EcoDeclarationResolution.day),
+        (EcoDeclarationResolution.month, EcoDeclarationResolution.hour),
+        (EcoDeclarationResolution.day, EcoDeclarationResolution.hour),
+))
+def test__EcoDeclaration__as_resolution__resolution_is_higher_than_current__should_raise_ValueError(
+        current_resolution, new_resolution):
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount={},
+        resolution=current_resolution,
+    )
+
+    # Assert
+    with pytest.raises(ValueError):
+        uut.as_resolution(new_resolution)
