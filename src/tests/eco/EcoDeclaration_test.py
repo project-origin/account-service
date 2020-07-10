@@ -1,6 +1,10 @@
 from datetime import datetime
 
-from origin.eco import EcoDeclaration, EmissionValues
+from origin.eco import (
+    EcoDeclaration,
+    EmissionValues,
+    EcoDeclarationResolution,
+)
 
 
 begin1 = datetime(2020, 1, 1, 1, 0)
@@ -26,6 +30,7 @@ def test__EcoDeclaration__total_consumed_amount():
     uut = EcoDeclaration(
         emissions=emissions,
         consumed_amount=consumed_amount,
+        resolution=EcoDeclarationResolution.hour,
     )
 
     # Assert
@@ -38,6 +43,7 @@ def test__EcoDeclaration__total_emissions():
     uut = EcoDeclaration(
         emissions=emissions,
         consumed_amount=consumed_amount,
+        resolution=EcoDeclarationResolution.hour,
     )
 
     # Assert
@@ -54,6 +60,7 @@ def test__EcoDeclaration__emissions_per_wh():
     uut = EcoDeclaration(
         emissions=emissions,
         consumed_amount=consumed_amount,
+        resolution=EcoDeclarationResolution.hour,
     )
 
     # Assert
@@ -70,6 +77,7 @@ def test__EcoDeclaration__total_emissions_per_wh():
     uut = EcoDeclaration(
         emissions=emissions,
         consumed_amount=consumed_amount,
+        resolution=EcoDeclarationResolution.hour,
     )
 
     # Assert
