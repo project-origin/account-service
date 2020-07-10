@@ -87,9 +87,11 @@ class EcoDeclarationBuilder(object):
             consumed_amount.setdefault(m.begin, 0)
             consumed_amount[m.begin] += m.amount
 
+            # Set default (empty) emission values for this begin
+            emissions.setdefault(m.begin, EmissionValues())
+
             # Emission from retired GGOs
             for ggo in ggos_with_emissions:
-                emissions.setdefault(m.begin, 0)
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
@@ -100,7 +102,6 @@ class EcoDeclarationBuilder(object):
                     .get(m.begin)
 
                 if mix is not None:
-                    emissions.setdefault(m.begin, 0)
                     emissions[m.begin] += \
                         EmissionValues(**mix.emissions) * remaining_amount
 

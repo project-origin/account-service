@@ -71,24 +71,30 @@ class EmissionValues(dict):
                 **{key: calc(self.get(key, 0), other)
                    for key in self.keys()}
             )
-
+        #
         return NotImplemented
 
 
-@dataclass
-class EcoDeclaration:
+class EcoDeclaration(object):
     """
     TODO
     """
 
-    # Emission in gram (mapped by begin)
-    emissions: Dict[datetime, EmissionValues]
+    def __init__(self, emissions, consumed_amount, resolution):
+        """
+        :param dict[datetime, EmissionValues] emissions:
+        :param dict[datetime, int] consumed_amount:
+        :param EcoDeclarationResolution resolution:
+        """
+        if sorted(emissions.keys()) != sorted(consumed_amount.keys()):
+            raise ValueError((
+                'Arguments "emissions" and "consumed_amount" must have '
+                'exactly the same keys (begins)'
+            ))
 
-    # Energy consumption in Wh (mapped by begin)
-    consumed_amount: Dict[datetime, int]
-
-    # Current resolution
-    resolution: EcoDeclarationResolution
+        self.emissions = emissions
+        self.consumed_amount = consumed_amount
+        self.resolution = resolution
 
     @property
     def total_consumed_amount(self):
@@ -118,7 +124,7 @@ class EcoDeclaration:
         emissions = {}
 
         for begin in self.emissions:
-            if self.consumed_amount.get(begin, 0) > 0:
+            if self.consumed_amount[begin] > 0:
                 emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
             else:
                 emissions[begin] = EmissionValues()
@@ -173,8 +179,12 @@ class EcoDeclaration:
 
         for new_begin, old_begins in begins_sorted_and_grouped:
             old_begins = list(old_begins)
-            new_emissions[new_begin] = sum(self.emissions[b] for b in old_begins)
-            new_consumed_amount[new_begin] = sum(self.consumed_amount[b] for b in old_begins)
+            # TODO start=EmissionValues()
+            new_emissions[new_begin] = \
+                sum(self.emissions[b] for b in old_begins)
+
+            new_consumed_amount[new_begin] = \
+                sum(self.consumed_amount[b] for b in old_begins)
 
         return EcoDeclaration(
             emissions=new_emissions,

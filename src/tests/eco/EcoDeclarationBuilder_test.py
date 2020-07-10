@@ -140,7 +140,7 @@ def test__EcoDeclarationBuilder__build_individual_declaration():
         'CH4': 100*24 + 100*36,
     }
 
-    assert begin7 not in declaration.emissions
+    assert declaration.emissions[begin7] == {}
 
 
 def test__EcoDeclarationBuilder__build_general_declaration():
@@ -337,7 +337,7 @@ def test__EcoDeclarationBuilder__build_eco_declaration(energytype_service_mock, 
         'CH4': 100*24 + 100*36,
     }
 
-    assert begin7 not in individual.emissions
+    assert individual.emissions[begin7] == {}
 
     # General declaration
 
