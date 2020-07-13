@@ -63,15 +63,15 @@ class EmissionValues(dict):
         if isinstance(other, dict):
             keys = set(list(self.keys()) + list(other.keys()))
             return EmissionValues(
-                **{key: calc(self.get(key, 0), other.get(key, 0))
+                **{key: calc(self.get(key) or 0, other.get(key) or 0)
                    for key in keys}
             )
         elif isinstance(other, (int, float)):
             return EmissionValues(
-                **{key: calc(self.get(key, 0), other)
+                **{key: calc(self.get(key) or 0, other)
                    for key in self.keys()}
             )
-        #
+
         return NotImplemented
 
 
@@ -80,10 +80,11 @@ class EcoDeclaration(object):
     TODO
     """
 
-    def __init__(self, emissions, consumed_amount, resolution):
+    def __init__(self, emissions, consumed_amount, technologies, resolution):
         """
         :param dict[datetime, EmissionValues] emissions:
         :param dict[datetime, int] consumed_amount:
+        :param dict[str, int] technologies:
         :param EcoDeclarationResolution resolution:
         """
         if sorted(emissions.keys()) != sorted(consumed_amount.keys()):
@@ -92,8 +93,15 @@ class EcoDeclaration(object):
                 'exactly the same keys (begins)'
             ))
 
+        unique_keys = set(k for d in emissions.values() for k in d.keys())
+
+        for k, v in emissions.items():
+            for u in unique_keys:
+                v.setdefault(u, None)
+
         self.emissions = emissions
         self.consumed_amount = consumed_amount
+        self.technologies = technologies
         self.resolution = resolution
 
     @property
@@ -190,4 +198,5 @@ class EcoDeclaration(object):
             emissions=new_emissions,
             consumed_amount=new_consumed_amount,
             resolution=resolution,
+            technologies=self.technologies,
         )

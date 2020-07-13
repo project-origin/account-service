@@ -73,9 +73,13 @@ class EcoDeclarationBuilder(object):
         # Consumption in Wh (mapped by begin)
         consumed_amount = {}
 
+        # Consumption in Wh (mapped by technology)
+        technologies = {}
+
         for m in measurements:
             ggos = retired_ggos.get(m.gsrn, {}).get(m.begin, [])
             ggos_with_emissions = [ggo for ggo in ggos if ggo.emissions]
+            # ggos_with_emissions = []
             retired_amount = sum(ggo.amount for ggo in ggos_with_emissions)
             remaining_amount = m.amount - retired_amount
 
@@ -95,6 +99,11 @@ class EcoDeclarationBuilder(object):
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
+                # TODO What if technology is None? (= UNKNOWN_TECHNOLOGY_LABEL ?)
+                technology = ggo.technology.technology
+                technologies.setdefault(technology, 0)
+                technologies[technology] += ggo.amount
+
             # Remaining emission from General mix
             if remaining_amount:
                 mix = general_mix_emissions \
@@ -105,9 +114,15 @@ class EcoDeclarationBuilder(object):
                     emissions[m.begin] += \
                         EmissionValues(**mix.emissions) * remaining_amount
 
+                    # TODO test only parts with share > 0 are included
+                    for part in (p for p in mix.parts if p.share > 0):
+                        technologies.setdefault(part.technology, 0)
+                        technologies[part.technology] += remaining_amount * part.share
+
         return EcoDeclaration(
             emissions=emissions,
             consumed_amount=consumed_amount,
+            technologies=technologies,
             resolution=EcoDeclarationResolution.hour,
         )
 
@@ -124,6 +139,9 @@ class EcoDeclarationBuilder(object):
         # Consumption in Wh (mapped by begin)
         consumed_amount = {}
 
+        # Consumption in Wh (mapped by technology)
+        technologies = {}
+
         # Group measurements by their begin
         measurements_sorted_and_grouped = groupby(
             iterable=sorted(measurements, key=lambda m: m.begin),
@@ -133,6 +151,8 @@ class EcoDeclarationBuilder(object):
         for begin, measurements in measurements_sorted_and_grouped:
             begin_emissions = EmissionValues()
             begin_consumption = 0
+
+            # TODO only include each sector ONCE
 
             for sector in set(m.sector for m in measurements):
                 mix = general_mix_emissions \
@@ -144,12 +164,18 @@ class EcoDeclarationBuilder(object):
                     begin_emissions += \
                         EmissionValues(**mix.emissions) * mix.amount
 
+                    # TODO test only parts with share > 0 are included
+                    for part in (p for p in mix.parts if p.share > 0):
+                        technologies.setdefault(part.technology, 0)
+                        technologies[part.technology] += mix.amount * part.share
+
             emissions[begin] = begin_emissions
             consumed_amount[begin] = begin_consumption
 
         return EcoDeclaration(
             emissions=emissions,
             consumed_amount=consumed_amount,
+            technologies=technologies,
             resolution=EcoDeclarationResolution.hour,
         )
 

@@ -16,7 +16,7 @@ class EmissionData:
     timestamp_utc: datetime
     emissions: Dict[str, float] = field(metadata=dict(data_key='mix_emissions'))
     parts: List[EmissionPart]
-    amount: int = field(default=1, metadata=dict(required=False, missing=1))
+    amount: int
 
 
 @dataclass
