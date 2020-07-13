@@ -1,9 +1,10 @@
-from datetime import datetime
 from itertools import groupby
+from datetime import datetime, timezone
 
 from origin.ggo import GgoQuery, Ggo
 from origin.common import DateTimeRange
 from origin.auth import MeteringPoint, User
+from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 from origin.services.energytypes import EnergyTypeService, EmissionData
 from origin.services.datahub import (
     DataHubService,
@@ -26,12 +27,12 @@ class EcoDeclarationBuilder(object):
     TODO
     """
 
-    def build_eco_declaration(self, user, meteringpoints, begin_from, begin_to, session):
+    def build_eco_declaration(self, user, meteringpoints, begin_range, utc_offset, session):
         """
         :param User user:
         :param list[MeteringPoint] meteringpoints:
-        :param datetime begin_from:
-        :param datetime begin_to:
+        :param DateTimeRange begin_range:
+        :param int utc_offset:
         :param sqlalchemy.orm.Session session:
         :rtype: (EcoDeclaration, EcoDeclaration)
         :returns: A tuple of (individual declaration, general declaration)
@@ -41,13 +42,13 @@ class EcoDeclarationBuilder(object):
         # -- Dependencies ----------------------------------------------------
 
         measurements = self.get_measurements(
-            user, meteringpoints, begin_from, begin_to)
+            user, meteringpoints, begin_range)
 
         retired_ggos = self.get_retired_ggos(
-            meteringpoints, session)
+            meteringpoints, begin_range, session)
 
         general_mix_emissions = self.get_general_mix(
-            meteringpoints, begin_from, begin_to)
+            meteringpoints, begin_range)
 
         # -- Declarations ----------------------------------------------------
 
@@ -99,8 +100,12 @@ class EcoDeclarationBuilder(object):
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
-                # TODO What if technology is None? (= UNKNOWN_TECHNOLOGY_LABEL ?)
-                technology = ggo.technology.technology
+                # TODO test this
+                if ggo.technology is None:
+                    technology = ggo.technology.technology
+                else:
+                    technology = UNKNOWN_TECHNOLOGY_LABEL
+
                 technologies.setdefault(technology, 0)
                 technologies[technology] += ggo.amount
 
@@ -124,6 +129,7 @@ class EcoDeclarationBuilder(object):
             consumed_amount=consumed_amount,
             technologies=technologies,
             resolution=EcoDeclarationResolution.hour,
+            utc_offset=0,
         )
 
     def build_general_declaration(self, measurements, general_mix_emissions):
@@ -177,21 +183,21 @@ class EcoDeclarationBuilder(object):
             consumed_amount=consumed_amount,
             technologies=technologies,
             resolution=EcoDeclarationResolution.hour,
+            utc_offset=0,
         )
 
-    def get_general_mix(self, meteringpoints, begin_from, begin_to):
+    def get_general_mix(self, meteringpoints, begin_range):
         """
         :param list[MeteringPoint] meteringpoints:
-        :param datetime begin_from:
-        :param datetime begin_to:
+        :param DateTimeRange begin_range:
         :rtype: dict[str, dict[datetime, EmissionData]]
         """
         general_mix = {}
 
         response = energytype_service.get_residual_mix(
             sector=list(set(m.sector for m in meteringpoints)),
-            begin_from=begin_from,
-            begin_to=begin_to,
+            begin_from=begin_range.begin.astimezone(timezone.utc),
+            begin_to=begin_range.end.astimezone(timezone.utc),
         )
 
         for d in response.mix_emissions:
@@ -200,12 +206,11 @@ class EcoDeclarationBuilder(object):
 
         return general_mix
 
-    def get_measurements(self, user, meteringpoints, begin_from, begin_to):
+    def get_measurements(self, user, meteringpoints, begin_range):
         """
         :param User user:
         :param list[MeteringPoint] meteringpoints:
-        :param datetime begin_from:
-        :param datetime begin_to:
+        :param DateTimeRange begin_range:
         :rtype: list[Measurement]
         """
         request = GetMeasurementListRequest(
@@ -215,8 +220,8 @@ class EcoDeclarationBuilder(object):
                 type=MeasurementType.CONSUMPTION,
                 gsrn=[m.gsrn for m in meteringpoints],
                 begin_range=DateTimeRange(
-                    begin=begin_from,
-                    end=begin_to,
+                    begin=begin_range.begin.astimezone(timezone.utc),
+                    end=begin_range.end.astimezone(timezone.utc),
                 ),
             ),
         )
@@ -228,29 +233,35 @@ class EcoDeclarationBuilder(object):
 
         return response.measurements
 
-    def get_retired_ggos(self, meteringpoints, session):
+    def get_retired_ggos(self, meteringpoints, begin_range, session):
         """
         :param list[MeteringPoint] meteringpoints:
+        :param DateTimeRange begin_range:
         :param sqlalchemy.orm.Session session:
         :rtype: dict[str, dict[datetime, list[Ggo]]]
         """
-        retired_ggos = {}
+        retired_ggos = self.fetch_retired_ggos_from_db(
+            meteringpoints, begin_range, session)
 
-        for ggo in self.fetch_retired_ggos_from_db(meteringpoints, session):
-            retired_ggos \
+        retired_ggos_mapped = {}
+
+        for ggo in retired_ggos:
+            retired_ggos_mapped \
                 .setdefault(ggo.retire_gsrn, {}) \
                 .setdefault(ggo.begin, []) \
                 .append(ggo)
 
-        return retired_ggos
+        return retired_ggos_mapped
 
-    def fetch_retired_ggos_from_db(self, meteringpoints, session):
+    def fetch_retired_ggos_from_db(self, meteringpoints, begin_range, session):
         """
         :param list[MeteringPoint] meteringpoints:
+        :param DateTimeRange begin_range:
         :param sqlalchemy.orm.Session session:
         :rtype: list[Ggo]
         """
         return GgoQuery(session) \
             .is_retired_to_any_gsrn([m.gsrn for m in meteringpoints]) \
+            .begins_within(begin_range) \
             .has_emissions() \
             .all()

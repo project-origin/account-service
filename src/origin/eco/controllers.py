@@ -48,13 +48,15 @@ class GetEcoDeclaration(Controller):
         individual, general = builder.build_eco_declaration(
             user=user,
             meteringpoints=meteringpoints,
-            begin_from=request.begin_range.begin,
-            begin_to=request.begin_range.end,
+            begin_range=request.begin_range,
+            utc_offset=request.utc_offset,
             session=session,
         )
 
         return GetEcoDeclarationResponse(
             success=True,
-            individual=individual.as_resolution(request.resolution),
-            general=general.as_resolution(request.resolution),
+            individual=individual.as_resolution(
+                request.resolution, request.utc_offset),
+            general=general.as_resolution(
+                request.resolution, request.utc_offset),
         )

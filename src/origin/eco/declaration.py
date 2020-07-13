@@ -1,7 +1,7 @@
 import operator
 from itertools import groupby
 from typing import Dict
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass
 
 from .models import EcoDeclarationResolution
@@ -80,12 +80,14 @@ class EcoDeclaration(object):
     TODO
     """
 
-    def __init__(self, emissions, consumed_amount, technologies, resolution):
+    def __init__(self, emissions, consumed_amount,
+                 technologies, resolution, utc_offset):
         """
         :param dict[datetime, EmissionValues] emissions:
         :param dict[datetime, int] consumed_amount:
         :param dict[str, int] technologies:
         :param EcoDeclarationResolution resolution:
+        :param int utc_offset:
         """
         if sorted(emissions.keys()) != sorted(consumed_amount.keys()):
             raise ValueError((
@@ -103,6 +105,7 @@ class EcoDeclaration(object):
         self.consumed_amount = consumed_amount
         self.technologies = technologies
         self.resolution = resolution
+        self.utc_offset = utc_offset
 
     @property
     def total_consumed_amount(self):
@@ -153,12 +156,13 @@ class EcoDeclaration(object):
         else:
             return EmissionValues()
 
-    def as_resolution(self, resolution):
+    def as_resolution(self, resolution, utc_offset):
         """
         :param EcoDeclarationResolution resolution:
+        :param int utc_offset:
         :rtype: EcoDeclaration
         """
-        if resolution == self.resolution:
+        if (resolution, utc_offset) == (self.resolution, self.utc_offset):
             return self
         if resolution > self.resolution:
             raise ValueError((
@@ -167,18 +171,30 @@ class EcoDeclaration(object):
             ))
 
         mappers = {
-            EcoDeclarationResolution.day: lambda d: d.replace(
-                hour=0, minute=0, second=0, microsecond=0),
-
-            EcoDeclarationResolution.month: lambda d: d.replace(
-                day=1, hour=0, minute=0, second=0, microsecond=0),
-
             EcoDeclarationResolution.year: lambda d: d.replace(
                 month=1, day=1, hour=0, minute=0, second=0, microsecond=0),
+            EcoDeclarationResolution.month: lambda d: d.replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0),
+            EcoDeclarationResolution.day: lambda d: d.replace(
+                hour=0, minute=0, second=0, microsecond=0),
+            EcoDeclarationResolution.hour: lambda d: d.replace(
+                minute=0, second=0, microsecond=0),
         }
 
+        def __map_utc_offset(begin):
+            """
+            :param datetime begin:
+            :rtype: datetime
+            """
+            return begin.astimezone(timezone(timedelta(hours=utc_offset)))
+
+        begins = self.emissions.keys()
+
+        if utc_offset != self.utc_offset:
+            begins = map(__map_utc_offset, begins)
+
         begins_sorted_and_grouped = groupby(
-            iterable=sorted(self.emissions.keys()),
+            iterable=sorted(begins),
             key=mappers[resolution],
         )
 
@@ -199,4 +215,5 @@ class EcoDeclaration(object):
             consumed_amount=new_consumed_amount,
             resolution=resolution,
             technologies=self.technologies,
+            utc_offset=utc_offset,
         )

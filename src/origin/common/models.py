@@ -1,5 +1,5 @@
+from datetime import datetime
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from marshmallow import validates_schema, ValidationError
 
 

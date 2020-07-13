@@ -147,6 +147,21 @@ class GgoQuery(object):
             Ggo.begin == begin.astimezone(timezone.utc),
         ))
 
+    def begins_within(self, begin_range):
+        """
+        Only include GGOs which begins within the provided datetime
+        range (both begin and end are included).
+
+        TODO test this
+
+        :param DateTimeRange begin_range:
+        :rtype: GgoQuery
+        """
+        return self.__class__(self.session, self.q.filter(sa.and_(
+            Ggo.begin >= begin_range.begin.astimezone(timezone.utc),
+            Ggo.begin <= begin_range.end.astimezone(timezone.utc),
+        )))
+
     def is_issued(self, value=True):
         """
         Include or exclude GGOs which were issued from producing energy,

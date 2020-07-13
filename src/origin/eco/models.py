@@ -1,7 +1,8 @@
 from enum import IntEnum
 from typing import List, Dict
-from datetime import datetime
+from marshmallow import post_load
 from dataclasses import dataclass, field
+from datetime import datetime, timezone, timedelta
 
 from origin.common import DateTimeRange
 
@@ -32,6 +33,23 @@ class GetEcoDeclarationRequest:
     gsrn: List[str]
     resolution: EcoDeclarationResolution
     begin_range: DateTimeRange = field(metadata=dict(data_key='beginRange'))
+
+    # Offset from UTC in hours
+    utc_offset: int = field(metadata=dict(data_key='utcOffset'))
+
+    @post_load
+    def apply_time_offset(self, data, **kwargs):
+        tzinfo = timezone(timedelta(hours=data['utc_offset']))
+
+        if data['begin_range'].begin.utcoffset() is None:
+            data['begin_range'].begin = \
+                data['begin_range'].begin.replace(tzinfo=tzinfo)
+
+        if data['begin_range'].end.utcoffset() is None:
+            data['begin_range'].end = \
+                data['begin_range'].end.replace(tzinfo=tzinfo)
+
+        return data
 
 
 @dataclass
