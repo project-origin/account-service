@@ -27,12 +27,11 @@ class EcoDeclarationBuilder(object):
     TODO
     """
 
-    def build_eco_declaration(self, user, meteringpoints, begin_range, utc_offset, session):
+    def build_eco_declaration(self, user, meteringpoints, begin_range, session):
         """
         :param User user:
         :param list[MeteringPoint] meteringpoints:
         :param DateTimeRange begin_range:
-        :param int utc_offset:
         :param sqlalchemy.orm.Session session:
         :rtype: (EcoDeclaration, EcoDeclaration)
         :returns: A tuple of (individual declaration, general declaration)
@@ -72,15 +71,14 @@ class EcoDeclarationBuilder(object):
         emissions = {}
 
         # Consumption in Wh (mapped by begin)
-        consumed_amount = {}
+        consumed_amount = EmissionValues()
 
         # Consumption in Wh (mapped by technology)
-        technologies = {}
+        technologies = EmissionValues()
 
         for m in measurements:
             ggos = retired_ggos.get(m.gsrn, {}).get(m.begin, [])
             ggos_with_emissions = [ggo for ggo in ggos if ggo.emissions]
-            # ggos_with_emissions = []
             retired_amount = sum(ggo.amount for ggo in ggos_with_emissions)
             remaining_amount = m.amount - retired_amount
 
@@ -116,6 +114,10 @@ class EcoDeclarationBuilder(object):
                     .get(m.begin)
 
                 if mix is not None:
+                    # sum_of_parts = sum(p.share for p in mix.parts)
+                    # assert sum_of_parts == 1, \
+                    #     "Expected sum of parts to be 1, bus was %s" % sum_of_parts
+
                     emissions[m.begin] += \
                         EmissionValues(**mix.emissions) * remaining_amount
 
@@ -143,10 +145,10 @@ class EcoDeclarationBuilder(object):
         emissions = {}
 
         # Consumption in Wh (mapped by begin)
-        consumed_amount = {}
+        consumed_amount = EmissionValues()
 
         # Consumption in Wh (mapped by technology)
-        technologies = {}
+        technologies = EmissionValues()
 
         # Group measurements by their begin
         measurements_sorted_and_grouped = groupby(

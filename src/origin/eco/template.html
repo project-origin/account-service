@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <base href="/">
+    <title>Project Origin - Energinet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="assets/env.js"></script>
+    <style type="text/css">
+
+    @page {
+        size: A4;
+        margin: 0mm;
+    }
+
+    body {
+        margin: 0;
+        font-family: Roboto, "Helvetica Neue", sans-serif;
+        font-size: 14px;
+        background-color: #fff;
+    }
+
+    .draft {
+        top: 150px;
+        left: 150px;
+        position: absolute;
+        transform: rotate(35deg);
+        font-size: 150px;
+        opacity: 0.5;
+        z-index: 99;
+    }
+
+    .content {
+        width: calc(100% - 0.25cm);
+        padding: 0.25cm 0.75cm;
+    }
+
+    .with-background {
+        background-color: #deedd6;
+    }
+
+    .with-dark-background {
+        background-color: #c8d9bf;
+   }
+
+    .row { display: flex; flex-direction: row; }
+    .column { width: 50%; }
+    .column-space { width: 40px; }
+    .column-space-small { width: 20px; }
+
+    h1, h2, h3 { text-align: center; }
+    h2 { margin: 0; }
+    h3 { font-weight: normal; }
+    .text-center { text-align: center; }
+
+    .technology-list {
+        display: flex;
+        flex-direction: column;
+    }
+    .technology .color {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+    }
+    .technology .text {
+        padding-left: 2px;
+        font-size: 10px;
+    }
+    .emissions td {
+        padding: 3px 6px;
+        font-size: 12px;
+    }
+
+    </style>
+</head>
+<body>
+
+    <div class="draft">
+        DRAFT
+    </div>
+
+
+    <div class="content">
+        <p id="asd">
+            Elleverandør: <br>
+            Adresse: <br>
+            Telefon: <br>
+            Hjemmeside: <br>
+        </p>
+    </div>
+
+
+    <div class="content with-background">
+        <h1>Individuel deklaration</h1>
+        <p>
+            Deklarationen viser hvilke energikilder, der er medregnet til dit elkøb
+            samt de tilknyttede miljøpåvirkninger. Til sammenligning er angivet den
+            generelle deklaration, der viser den beregnede gennemsnitlige brændselsfordeling
+            og miljøpåvirkning ved elforbrug for de danske elforbrugere, der
+            ikke har købt individuelt deklareret elektricitet.
+        </p>
+        <p>
+            Deklarationen er dokumenteret med oprindelsesgarantier, der viser
+            produktionen af den angivne mængde el svarende til dit elforbrug.
+            Der er hermed sikkerhed for, at oprindelsesgarantierne ikke også
+            bliver anvendt til at dokumentere el-salg til andre kunder.
+            Eventuelle spørgsmål om deklarationen kan rettes til Energinet.dk.
+        </p>
+    </div>
+
+
+    <div class="content">
+        <h2>Energikilder anvendt til elfremstilling</h2>
+
+        <div class="row">
+            <div class="column">
+                <h3>Individual deklaration</h3>
+                <div class="row">
+                    <div style="width: 40%">
+                        <table>
+                            {% for t in individual_technologies %}
+                                <tr class="technology">
+                                    <td class="color" style="background-color: {{ t.color }}"></td>
+                                    <td class="text">{{ t.technology }} ({{ "{:,.2f}".format(t.percent).replace(',','_').replace('.',',').replace('_','.') }}%)</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <div style="width: 60%">
+                        <img src="individual-declaration.svg" style="width: 100%">
+                    </div>
+                </div>
+            </div>
+
+            <div class="column-space"></div>
+
+            <div class="column">
+                <h3>Generel deklaration</h3>
+                <div class="row">
+                    <div style="width: 60%">
+                        <img src="general-declaration.svg" style="width: 100%">
+                    </div>
+                    <div style="width: 40%">
+                        <table style="width: 100%">
+                            {% for t in general_technologies %}
+                                <tr class="technology">
+                                    <td class="text" style="text-align: right">{{ t.technology }} ({{ "{:,.2f}".format(t.percent).replace(',','_').replace('.',',').replace('_','.') }}%)</td>
+                                    <td class="color" style="background-color: {{ t.color }}"></td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="content with-background row">
+        <div class="column">
+            <h4>Miljøforhold ved forbrug af 1 kWh</h4>
+            <p>
+                Elproduktion fra vedvarende energikilder, der omfatter el
+                produceret fra vind, vand, sol, biogas, biomasse og den
+                bionedbrydelige andel af affald, er kendetegnet ved ikke at
+                medføre CO2-emission.
+            </p>
+            <p>
+                Elproduktion fra vind, vand og sol er helt emissionsfri, mens
+                der ved brug af biogas, biomasse, affald og fossile brændsler
+                (kul, olie og naturgas) dannes en række emissioner til luften
+                og restprodukter.
+            </p>
+            <p>
+                Emissioner til luften sker bl.a. som drivhusgasser (kuldioxid,
+                metan og lattergas) og som forsurende gasser (svovldioxid og
+                kvælstofilter).
+            </p>
+            <p>
+                Restprodukter kan ofte anvendes, fx afsvovlingsproduktet
+                gips til byggematerialer og kulasker til cementindustrien.
+                Bioasker bruges ofte til gødskning.
+            </p>
+        </div>
+
+        <div class="column-space"></div>
+
+        <div class="column emissions">
+            <table width="100%" style="width:100%" colspan="2" cellpadding="10">
+                <tr>
+                    <td></td>
+                    <td class="text-center">Individuel</td>
+                    <td class="text-center">Gennemsnit</td>
+                </tr>
+                <tr class="with-dark-background">
+                    <td><b>Emissioner til luften</b></td>
+                    <td class="text-center" colspan="2"><b>g/kWh</b></td>
+                </tr>
+                <tr>
+                    <td>CO<sub>2</sub> (Kuldioxid - drivhusgas)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('CO2', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('CO2', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>CH<sub>4</sub> (Metan - drivhusgas)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('CH4', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('CH4', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>N<sub>2</sub>O (Lattergas - drivhusgas)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('N2O', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('N2O', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>SO<sub>2</sub> (Svovldioxid)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('SO2', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('SO2', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>NO<sub>x</sub> (Kvælstofilte)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('NOx', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('NOx', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>CO (Kulilte)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('CO', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('CO', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>NMVOC (Uforbrændt kulbrinter)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('NMVOC', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('NMVOC', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>Partikler</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('particles', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('particles', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr class="with-dark-background">
+                    <td><b>Restprodukter</b></td>
+                    <td class="text-center" colspan="2"><b>g/kWh</b></td>
+                </tr>
+                <tr>
+                    <td>Kulflyveaske</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('flyash', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('flyash', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>Slagge</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('slag', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('slag', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>Afsvovlningsprodukter (Gips)</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('desulphurisation', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('desulphurisation', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+                <tr>
+                    <td>Røggasaffald</td>
+                    <td class="text-center">{{ "{:,.3f}".format(individual_emissions.get('waste', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                    <td class="text-center">{{ "{:,.3f}".format(general_emissions.get('waste', 0)).replace(',','_').replace('.',',').replace('_','.') }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById['asd'].innerHtml = 'JOHN;
+    </script>
+
+</body>
+</html>

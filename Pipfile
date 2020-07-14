@@ -32,6 +32,9 @@ opencensus-ext-azure = "*"
 opencensus-ext-requests = "*"
 opencensus-ext-sqlalchemy = "*"
 fire = "*"
+WeasyPrint = "*"
+plotly = "==4.8.2"
+jinja2 = "*"
 
 [requires]
 python_version = "3.7"

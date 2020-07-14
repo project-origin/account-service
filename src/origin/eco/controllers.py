@@ -49,7 +49,6 @@ class GetEcoDeclaration(Controller):
             user=user,
             meteringpoints=meteringpoints,
             begin_range=request.begin_range,
-            utc_offset=request.utc_offset,
             session=session,
         )
 

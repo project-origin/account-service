@@ -11,6 +11,10 @@ SOURCE_DIR = os.path.join(PROJECT_DIR, 'src')
 MIGRATIONS_DIR = os.path.join(SOURCE_DIR, 'migrations')
 ALEMBIC_CONFIG_PATH = os.path.join(MIGRATIONS_DIR, 'alembic.ini')
 
+# Eco declaration
+ECO_DECLARATION_PDF_TEMPLATE_PATH = os.path.join(
+    SOURCE_DIR, 'origin', 'eco', 'template.html')
+
 
 if os.environ.get('TEST') in ('1', 't', 'true', 'yes'):
     from .settings_test import *
