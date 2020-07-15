@@ -89,14 +89,10 @@ class EcoDeclaration(object):
         emissions = {}
 
         for begin in self.emissions:
-            try:
-                if self.consumed_amount[begin] > 0:
-                    emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
-                else:
-                    emissions[begin] = EmissionValues()
-            except Exception as e:
-                x = 2
-                raise
+            if self.consumed_amount[begin] > 0:
+                emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
+            else:
+                emissions[begin] = EmissionValues()
 
         return emissions
 
@@ -109,15 +105,10 @@ class EcoDeclaration(object):
         """
         consumed_amount = self.total_consumed_amount
 
-        try:
-            if consumed_amount > 0:
-                return self.total_emissions / consumed_amount
-            else:
-                return EmissionValues()
-
-        except Exception as e:
-            x = 2
-            raise
+        if consumed_amount > 0:
+            return self.total_emissions / consumed_amount
+        else:
+            return EmissionValues()
 
     def as_resolution(self, resolution, utc_offset):
         """
