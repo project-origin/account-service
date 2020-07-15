@@ -1,78 +1,77 @@
-import operator
 from itertools import groupby
-from typing import Dict
 from datetime import datetime, timezone, timedelta
-from dataclasses import dataclass
+
+from origin.common import EmissionValues
 
 from .models import EcoDeclarationResolution
 
 
-class EmissionValues(dict):
-    """
-    TODO
-    """
-
-    def __repr__(self):
-        return 'EmissionValues<%s>' % super(EmissionValues, self).__repr__()
-
-    def add(self, key, value):
-        self.setdefault(key, 0)
-        self[key] += value
-
-    def __add__(self, other):
-        """
-        :param EmissionValues|int|float other:
-        :rtype: EmissionValues
-        """
-        return self.__do_arithmetic(other, operator.__add__)
-
-    def __radd__(self, other):
-        """
-        :param EmissionValues|int|float other:
-        :rtype: EmissionValues
-        """
-        return self + other
-
-    def __mul__(self, other):
-        """
-        :param EmissionValues|int|float other:
-        :rtype: EmissionValues
-        """
-        return self.__do_arithmetic(other, operator.__mul__)
-
-    def __rmul__(self, other):
-        """
-        :param EmissionValues|int|float other:
-        :rtype: EmissionValues
-        """
-        return self * other
-
-    def __truediv__(self, other):
-        """
-        :param EmissionValues|int|float other:
-        :rtype: EmissionValues
-        """
-        return self.__do_arithmetic(other, operator.__truediv__)
-
-    def __do_arithmetic(self, other, calc):
-        """
-        :param EmissionValues|int|float other:
-        :param function calc:
-        :rtype: EmissionValues
-        """
-        if isinstance(other, dict):
-            keys = set(list(self.keys()) + list(other.keys()))
-            return EmissionValues(
-                **{key: calc(self.get(key) or 0, other.get(key) or 0)
-                   for key in keys}
-            )
-        elif isinstance(other, (int, float)):
-            return EmissionValues(
-                **{key: calc(self.get(key) or 0, other)
-                   for key in self.keys()}
-            )
-
-        return NotImplemented
+# class EmissionValues(dict):
+#     """
+#     TODO
+#     """
+#
+#     def __repr__(self):
+#         return 'EmissionValues<%s>' % super(EmissionValues, self).__repr__()
+#
+#     def add(self, key, value):
+#         self.setdefault(key, 0)
+#         self[key] += value
+#
+#     def __add__(self, other):
+#         """
+#         :param EmissionValues|int|float other:
+#         :rtype: EmissionValues
+#         """
+#         return self.__do_arithmetic(other, operator.__add__)
+#
+#     def __radd__(self, other):
+#         """
+#         :param EmissionValues|int|float other:
+#         :rtype: EmissionValues
+#         """
+#         return self + other
+#
+#     def __mul__(self, other):
+#         """
+#         :param EmissionValues|int|float other:
+#         :rtype: EmissionValues
+#         """
+#         return self.__do_arithmetic(other, operator.__mul__)
+#
+#     def __rmul__(self, other):
+#         """
+#         :param EmissionValues|int|float other:
+#         :rtype: EmissionValues
+#         """
+#         return self * other
+#
+#     def __truediv__(self, other):
+#         """
+#         :param EmissionValues|int|float other:
+#         :rtype: EmissionValues
+#         """
+#         return self.__do_arithmetic(other, operator.__truediv__)
+#
+#     def __do_arithmetic(self, other, calc):
+#         """
+#         :param EmissionValues|int|float other:
+#         :param function calc:
+#         :rtype: EmissionValues
+#         """
+#         if isinstance(other, dict):
+#             keys = set(list(self.keys()) + list(other.keys()))
+#             return EmissionValues(
+#                 **{key: calc(self.get(key) or 0, other.get(key) or 0)
+#                    for key in keys}
+#             )
+#         elif isinstance(other, (int, float)):
+#             return EmissionValues(
+#                 **{key: calc(self.get(key) or 0, other)
+#                    for key in self.keys()}
+#             )
+#
+#         return NotImplemented
 
 
 class EcoDeclaration(object):
@@ -83,20 +82,33 @@ class EcoDeclaration(object):
     def __init__(self, emissions, consumed_amount,
                  technologies, resolution, utc_offset):
         """
-        :param dict[datetime, EmissionValues] emissions:
+        :param dict[datetime, EmissionValues[datetime, float]] emissions:
+            Emissions in gram
         :param dict[datetime, int] consumed_amount:
-        :param dict[str, int] technologies:
+            Dict of {begin: amount}
+        :param EmissionValues[str, int] technologies:
+            Dict of {technology: amount}
         :param EcoDeclarationResolution resolution:
         :param int utc_offset:
         """
+        if not all(isinstance(v, EmissionValues) for v in emissions.values()):
+            raise ValueError('All values of emissions must be of type EmissionValues')
+        if not isinstance(consumed_amount, dict):
+            raise ValueError('consumed_amount must be of type dict')
+        if not isinstance(technologies, EmissionValues):
+            raise ValueError('technologies must be of type EmissionValues')
+        # if sum(technologies.values()) != sum(consumed_amount.values()):
+        #     raise ValueError(
+        #         'Sum of technologies must be equal to sum of consumed amount')
         if sorted(emissions.keys()) != sorted(consumed_amount.keys()):
             raise ValueError((
                 'Arguments "emissions" and "consumed_amount" must have '
                 'exactly the same keys (begins)'
             ))
 
+        # Make sure all EmissionValues dicts has all of the same keys
+        # with None as default
         unique_keys = set(k for d in emissions.values() for k in d.keys())
-
         for k, v in emissions.items():
             for u in unique_keys:
                 v.setdefault(u, None)
@@ -126,6 +138,15 @@ class EcoDeclaration(object):
         return sum(self.emissions.values(), EmissionValues())
 
     @property
+    def technologies_percentage(self):
+        """
+        Returns technologies as percent of total consumption.
+
+        :rtype: EmissionValues
+        """
+        return self.technologies / self.total_consumed_amount * 100
+
+    @property
     def emissions_per_wh(self):
         """
         Returns the emissions in gram/Wh.
@@ -135,10 +156,14 @@ class EcoDeclaration(object):
         emissions = {}
 
         for begin in self.emissions:
-            if self.consumed_amount[begin] > 0:
-                emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
-            else:
-                emissions[begin] = EmissionValues()
+            try:
+                if self.consumed_amount[begin] > 0:
+                    emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
+                else:
+                    emissions[begin] = EmissionValues()
+            except Exception as e:
+                x = 2
+                raise
 
         return emissions
 
@@ -151,10 +176,15 @@ class EcoDeclaration(object):
         """
         consumed_amount = self.total_consumed_amount
 
-        if consumed_amount > 0:
-            return self.total_emissions / consumed_amount
-        else:
-            return EmissionValues()
+        try:
+            if consumed_amount > 0:
+                return self.total_emissions / consumed_amount
+            else:
+                return EmissionValues()
+
+        except Exception as e:
+            x = 2
+            raise
 
     def as_resolution(self, resolution, utc_offset):
         """

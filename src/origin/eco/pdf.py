@@ -1,5 +1,4 @@
 import plotly.graph_objects as go
-
 from io import BytesIO
 from jinja2 import Template
 from functools import partial
@@ -88,18 +87,11 @@ def url_fetcher(individual, general, url, *args, **kwargs):
 class EcoDeclarationPdf(object):
     def technologies_to_env(self, declaration):
         """
-
         :param EcoDeclaration declaration:
         :rtype: list[dict[str, str]]
         """
-
-        technologies = sorted(declaration.technologies.keys())
-        try:
-            technologies_percentage = declaration.technologies / declaration.total_consumed_amount * 100
-        except Exception as e:
-            x = 2
-            raise
-        # total_consumed_amount = declaration.total_consumed_amount
+        technologies_sorted = sorted(declaration.technologies.keys())
+        technologies_percentage = declaration.technologies_percentage
 
         return [
             {
@@ -109,7 +101,7 @@ class EcoDeclarationPdf(object):
                 'color': TECHNOLOGY_COLORS.get(
                     technology, TECHNOLOGY_COLORS_DEFAULT),
             }
-            for technology in technologies
+            for technology in technologies_sorted
         ]
 
     def get_html_template(self):

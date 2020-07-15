@@ -2,7 +2,7 @@ from itertools import groupby
 from datetime import datetime, timezone
 
 from origin.ggo import GgoQuery, Ggo
-from origin.common import DateTimeRange
+from origin.common import EmissionValues, DateTimeRange
 from origin.auth import MeteringPoint, User
 from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 from origin.services.energytypes import EnergyTypeService, EmissionData
@@ -15,7 +15,7 @@ from origin.services.datahub import (
 )
 
 from .models import EcoDeclarationResolution
-from .declaration import EcoDeclaration, EmissionValues
+from .declaration import EcoDeclaration
 
 
 datahub_service = DataHubService()
@@ -71,7 +71,7 @@ class EcoDeclarationBuilder(object):
         emissions = {}
 
         # Consumption in Wh (mapped by begin)
-        consumed_amount = EmissionValues()
+        consumed_amount = {}
 
         # Consumption in Wh (mapped by technology)
         technologies = EmissionValues()
@@ -114,17 +114,10 @@ class EcoDeclarationBuilder(object):
                     .get(m.begin)
 
                 if mix is not None:
-                    # sum_of_parts = sum(p.share for p in mix.parts)
-                    # assert sum_of_parts == 1, \
-                    #     "Expected sum of parts to be 1, bus was %s" % sum_of_parts
-
                     emissions[m.begin] += \
-                        EmissionValues(**mix.emissions) * remaining_amount
-
-                    # TODO test only parts with share > 0 are included
-                    for part in (p for p in mix.parts if p.share > 0):
-                        technologies.setdefault(part.technology, 0)
-                        technologies[part.technology] += remaining_amount * part.share
+                        mix.emissions_per_wh * remaining_amount
+                    technologies += \
+                        mix.emissions_per_wh_per_technology * remaining_amount
 
         return EcoDeclaration(
             emissions=emissions,
@@ -145,7 +138,7 @@ class EcoDeclarationBuilder(object):
         emissions = {}
 
         # Consumption in Wh (mapped by begin)
-        consumed_amount = EmissionValues()
+        consumed_amount = {}
 
         # Consumption in Wh (mapped by technology)
         technologies = EmissionValues()
@@ -157,28 +150,21 @@ class EcoDeclarationBuilder(object):
         )
 
         for begin, measurements in measurements_sorted_and_grouped:
-            begin_emissions = EmissionValues()
-            begin_consumption = 0
+            unique_sectors_this_begin = set(m.sector for m in measurements)
 
-            # TODO only include each sector ONCE
-
-            for sector in set(m.sector for m in measurements):
+            for sector in unique_sectors_this_begin:
                 mix = general_mix_emissions \
                     .get(sector, {}) \
                     .get(begin)
 
                 if mix is not None:
-                    begin_consumption += mix.amount
-                    begin_emissions += \
-                        EmissionValues(**mix.emissions) * mix.amount
+                    emissions.setdefault(begin, EmissionValues())
+                    emissions[begin] += mix.emissions
 
-                    # TODO test only parts with share > 0 are included
-                    for part in (p for p in mix.parts if p.share > 0):
-                        technologies.setdefault(part.technology, 0)
-                        technologies[part.technology] += mix.amount * part.share
+                    consumed_amount.setdefault(begin, 0)
+                    consumed_amount[begin] += mix.amount
 
-            emissions[begin] = begin_emissions
-            consumed_amount[begin] = begin_consumption
+                    technologies += mix.technologies
 
         return EcoDeclaration(
             emissions=emissions,

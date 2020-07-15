@@ -1,6 +1,6 @@
 import pytest
 
-from origin.eco import EmissionValues
+from origin.common import EmissionValues
 
 
 ev1 = EmissionValues(
