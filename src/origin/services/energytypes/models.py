@@ -68,20 +68,6 @@ class EmissionData:
             return EmissionValues()
 
     @property
-    def emissions_per_wh_per_technology(self):
-        """
-        Returns Emissions per Wh per technology (gram/Wh)
-
-        :rtype: EmissionValues[str, float]
-        """
-        amount = self.amount
-
-        if amount > 0:
-            return self.technologies / amount
-        else:
-            return EmissionValues()
-
-    @property
     def technologies(self):
         """
         Returns consumed amount per technology
