@@ -92,6 +92,20 @@ class EmissionData:
             part.technology: part.amount for part in self.parts
         })
 
+    @property
+    def technologies_share(self):
+        """
+        Returns consumed amount per technology
+
+        :rtype: EmissionValues[str, int]
+        """
+        amount = self.amount
+
+        if amount > 0:
+            return self.technologies / amount
+        else:
+            return EmissionValues()
+
 
 @dataclass
 class GetMixEmissionsResponse:

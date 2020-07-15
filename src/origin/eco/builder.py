@@ -40,14 +40,22 @@ class EcoDeclarationBuilder(object):
 
         # -- Dependencies ----------------------------------------------------
 
-        measurements = self.get_measurements(
-            user, meteringpoints, begin_range)
-
-        retired_ggos = self.get_retired_ggos(
-            meteringpoints, begin_range, session)
-
         general_mix_emissions = self.get_general_mix(
             meteringpoints, begin_range)
+
+        # Limit begin_range to where there is data in the general max,
+        # so that no emission is calculated without general mix
+        # ALSO ASSUME THERE ARE NO GAPS IN BEGINS!
+        actual_begin_range = DateTimeRange(
+            begin=min(general_mix_emissions.keys()),
+            end=max(general_mix_emissions.keys()),
+        )
+
+        measurements = self.get_measurements(
+            user, meteringpoints, actual_begin_range)
+
+        retired_ggos = self.get_retired_ggos(
+            meteringpoints, actual_begin_range, session)
 
         # -- Declarations ----------------------------------------------------
 
@@ -63,7 +71,7 @@ class EcoDeclarationBuilder(object):
         """
         :param list[Measurement] measurements:
         :param dict[str, dict[datetime, list[Ggo]]] retired_ggos:
-        :param dict[str, dict[datetime, EmissionData]] general_mix_emissions:
+        :param dict[datetime, dict[str, EmissionData]] general_mix_emissions:
         :rtype: EcoDeclaration
         """
 
@@ -108,16 +116,16 @@ class EcoDeclarationBuilder(object):
                 technologies[technology] += ggo.amount
 
             # Remaining emission from General mix
+            # Assume there exists mix emissions for each
+            # begin in the period, otherwise fail hard
             if remaining_amount:
-                mix = general_mix_emissions \
-                    .get(m.sector, {}) \
-                    .get(m.begin)
+                mix = general_mix_emissions[m.begin][m.sector]
 
-                if mix is not None:
-                    emissions[m.begin] += \
-                        mix.emissions_per_wh * remaining_amount
-                    technologies += \
-                        mix.emissions_per_wh_per_technology * remaining_amount
+                emissions[m.begin] += \
+                    mix.emissions_per_wh * remaining_amount
+
+                technologies += \
+                    mix.technologies_share * remaining_amount
 
         return EcoDeclaration(
             emissions=emissions,
@@ -130,7 +138,7 @@ class EcoDeclarationBuilder(object):
     def build_general_declaration(self, measurements, general_mix_emissions):
         """
         :param list[Measurement] measurements:
-        :param dict[str, dict[datetime, EmissionData]] general_mix_emissions:
+        :param dict[datetime, dict[str, EmissionData]] general_mix_emissions:
         :rtype: EcoDeclaration
         """
 
@@ -153,18 +161,15 @@ class EcoDeclarationBuilder(object):
             unique_sectors_this_begin = set(m.sector for m in measurements)
 
             for sector in unique_sectors_this_begin:
-                mix = general_mix_emissions \
-                    .get(sector, {}) \
-                    .get(begin)
+                mix = general_mix_emissions[begin][sector]
 
-                if mix is not None:
-                    emissions.setdefault(begin, EmissionValues())
-                    emissions[begin] += mix.emissions
+                emissions.setdefault(begin, EmissionValues())
+                emissions[begin] += mix.emissions
 
-                    consumed_amount.setdefault(begin, 0)
-                    consumed_amount[begin] += mix.amount
+                consumed_amount.setdefault(begin, 0)
+                consumed_amount[begin] += mix.amount
 
-                    technologies += mix.technologies
+                technologies += mix.technologies
 
         return EcoDeclaration(
             emissions=emissions,
@@ -178,7 +183,7 @@ class EcoDeclarationBuilder(object):
         """
         :param list[MeteringPoint] meteringpoints:
         :param DateTimeRange begin_range:
-        :rtype: dict[str, dict[datetime, EmissionData]]
+        :rtype: dict[datetime, dict[str, EmissionData]]
         """
         general_mix = {}
 
@@ -189,8 +194,8 @@ class EcoDeclarationBuilder(object):
         )
 
         for d in response.mix_emissions:
-            general_mix.setdefault(d.sector, {})
-            general_mix[d.sector][d.timestamp_utc] = d
+            general_mix.setdefault(d.timestamp_utc, {})
+            general_mix[d.timestamp_utc][d.sector] = d
 
         return general_mix
 
