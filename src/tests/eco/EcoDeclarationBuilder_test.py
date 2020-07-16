@@ -1,9 +1,10 @@
+import pytest
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from origin.common import EmissionValues, DateTimeRange
 from origin.ggo import Ggo
-from origin.eco import EcoDeclarationBuilder
+from origin.eco import EcoDeclarationBuilder, EcoDeclaration
 from origin.services.datahub import (
     GetMeasurementListResponse,
     Measurement,
@@ -12,7 +13,95 @@ from origin.services.datahub import (
 from origin.services.energytypes import (
     GetMixEmissionsResponse,
     EmissionData,
-    EmissionPart)
+    EmissionPart,
+)
+
+
+# -- build_eco_declaration() -------------------------------------------------
+
+
+def test__EcoDeclarationBuilder__build_eco_declaration__no_meteringpoints_provided__should_raise_ValueError():
+
+    # Arrange
+    uut = EcoDeclarationBuilder()
+
+    # Act + Assert
+    with pytest.raises(ValueError):
+        uut.build_eco_declaration(
+            user=Mock(),
+            meteringpoints=[],
+            begin_range=Mock(),
+            session=Mock(),
+        )
+
+
+def test__EcoDeclarationBuilder__build_eco_declaration__no_general_mix_exists__should_return_two_empty_declarations():
+
+    # Arrange
+    uut = EcoDeclarationBuilder()
+    uut.get_general_mix = Mock(return_value={})
+
+    # Act
+    individual, general = uut.build_eco_declaration(
+        user=Mock(),
+        meteringpoints=[Mock(), Mock()],
+        begin_range=Mock(),
+        session=Mock(),
+    )
+
+    # Assert
+    assert isinstance(individual, EcoDeclaration)
+    assert individual.emissions == {}
+    assert individual.consumed_amount == {}
+    assert individual.technologies == {}
+
+    assert isinstance(general, EcoDeclaration)
+    assert general.emissions == {}
+    assert general.consumed_amount == {}
+    assert general.technologies == {}
+
+
+def test__EcoDeclarationBuilder__build_eco_declaration__general_mix_only_exists_for_part_of_the_period__should_limit_declaration_to_period_with_general_mix():
+
+    # Arrange
+    begin1 = datetime(2020, 1, 1, 0, 0)
+    begin2 = datetime(2020, 1, 2, 0, 0)
+    begin3 = datetime(2020, 1, 3, 0, 0)
+    begin4 = datetime(2020, 1, 4, 0, 0)
+
+    uut = EcoDeclarationBuilder()
+    uut.get_measurements = Mock()
+    uut.get_retired_ggos = Mock()
+    uut.build_general_declaration = Mock()
+    uut.build_individual_declaration = Mock()
+    uut.get_general_mix = Mock(return_value={
+        begin2: None,
+        begin3: None,
+    })
+
+    # Act
+    uut.build_eco_declaration(
+        user=Mock(),
+        meteringpoints=[Mock(), Mock()],
+        begin_range=DateTimeRange(begin=begin1, end=begin4),
+        session=Mock(),
+    )
+
+    # Assert
+    uut.get_measurements.assert_called_once()
+    uut.get_retired_ggos.assert_called_once()
+
+    get_measurements_call_kwargs = uut.get_measurements.call_args[1]
+    get_retired_ggos_call_kwargs = uut.get_retired_ggos.call_args[1]
+
+    assert get_measurements_call_kwargs['begin_range'].begin == begin2
+    assert get_measurements_call_kwargs['begin_range'].end == begin3
+
+    assert get_retired_ggos_call_kwargs['begin_range'].begin == begin2
+    assert get_retired_ggos_call_kwargs['begin_range'].end == begin3
+
+
+# -- Other -------------------------------------------------------------------
 
 
 def test__EcoDeclarationBuilder__build_individual_declaration():
@@ -65,14 +154,14 @@ def test__EcoDeclarationBuilder__build_individual_declaration():
 
     retired_ggos = {
         gsrn1: {
-            begin1: [Mock(amount=100, emissions={'CO2': 1, 'CH4': 2})],
-            begin2: [Mock(amount=25, emissions={'CO2': 3, 'CH4': 4}), Mock(amount=50, emissions=None)],
-            begin3: [Mock(amount=300, emissions={'CO2': 5, 'CH4': 6})],
-            begin4: [Mock(amount=60, emissions={'CO2': 7, 'CH4': 8})],
+            begin1: [Mock(amount=100, technology_label='Coal', emissions={'CO2': 1, 'CH4': 2})],
+            begin2: [Mock(amount=25, technology_label='Coal', emissions={'CO2': 3, 'CH4': 4}), Mock(amount=50, emissions=None)],
+            begin3: [Mock(amount=300, technology_label='Coal', emissions={'CO2': 5, 'CH4': 6})],
+            begin4: [Mock(amount=60, technology_label='Coal', emissions={'CO2': 7, 'CH4': 8})],
         },
         gsrn2: {
-            begin3: [Mock(amount=700, emissions={'CO2': 9, 'CH4': 10})],
-            begin4: [Mock(amount=50, emissions={'CO2': 11, 'CH4': 12}), Mock(amount=50, emissions=None)],
+            begin3: [Mock(amount=700, technology_label='Coal', emissions={'CO2': 9, 'CH4': 10})],
+            begin4: [Mock(amount=50, technology_label='Coal', emissions={'CO2': 11, 'CH4': 12}), Mock(amount=50, emissions=None)],
         },
     }
 

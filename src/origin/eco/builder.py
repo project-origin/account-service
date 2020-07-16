@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from origin.ggo import GgoQuery, Ggo
 from origin.common import EmissionValues, DateTimeRange
 from origin.auth import MeteringPoint, User
-from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 from origin.services.energytypes import EnergyTypeService, EmissionData
 from origin.services.datahub import (
     DataHubService,
@@ -36,12 +35,18 @@ class EcoDeclarationBuilder(object):
         :rtype: (EcoDeclaration, EcoDeclaration)
         :returns: A tuple of (individual declaration, general declaration)
         """
-        assert len(meteringpoints) > 0
+        if len(meteringpoints) == 0:
+            raise ValueError('No meteringpoints provided')
 
         # -- Dependencies ----------------------------------------------------
 
         general_mix_emissions = self.get_general_mix(
-            meteringpoints, begin_range)
+            meteringpoints=meteringpoints,
+            begin_range=begin_range,
+        )
+
+        if not general_mix_emissions:
+            return EcoDeclaration.empty(), EcoDeclaration.empty()
 
         # Limit begin_range to where there is data in the general max,
         # so that no emission is calculated without general mix
@@ -52,18 +57,29 @@ class EcoDeclarationBuilder(object):
         )
 
         measurements = self.get_measurements(
-            user, meteringpoints, actual_begin_range)
+            user=user,
+            meteringpoints=meteringpoints,
+            begin_range=actual_begin_range,
+        )
 
         retired_ggos = self.get_retired_ggos(
-            meteringpoints, actual_begin_range, session)
+            meteringpoints=meteringpoints,
+            begin_range=actual_begin_range,
+            session=session,
+        )
 
         # -- Declarations ----------------------------------------------------
 
         general = self.build_general_declaration(
-            measurements, general_mix_emissions)
+            measurements=measurements,
+            general_mix_emissions=general_mix_emissions,
+        )
 
         individual = self.build_individual_declaration(
-            measurements, retired_ggos, general_mix_emissions)
+            measurements=measurements,
+            retired_ggos=retired_ggos,
+            general_mix_emissions=general_mix_emissions,
+        )
 
         return individual, general
 

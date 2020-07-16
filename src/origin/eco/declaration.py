@@ -11,6 +11,19 @@ class EcoDeclaration(object):
     TODO
     """
 
+    @classmethod
+    def empty(cls):
+        """
+        :rtype: EcoDeclaration
+        """
+        return cls(
+            emissions={},
+            consumed_amount={},
+            technologies=EmissionValues(),
+            resolution=EcoDeclarationResolution.hour,
+            utc_offset=0,
+        )
+
     def __init__(self, emissions, consumed_amount,
                  technologies, resolution, utc_offset):
         """
