@@ -225,7 +225,7 @@ def test__EcoDeclaration__total_emissions__NO_emissions_exists__should_return_em
     assert uut.total_emissions == {}
 
 
-def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_return_EmissionValues_with_correct_values():
+def test__EcoDeclaration__technologies_percentage__technologies_exists__should_return_EmissionValues_with_correct_values():
 
     # Arrange
     uut = EcoDeclaration(
@@ -238,6 +238,52 @@ def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_retur
             begin1: 10,
             begin2: 20,
             begin3: 30,
+        },
+        technologies=EmissionValues(
+            Wind=40,
+            Solar=20,
+        ),
+        resolution=EcoDeclarationResolution.hour,
+        utc_offset=0,
+    )
+
+    # Assert
+    assert isinstance(uut.technologies_percentage, EmissionValues)
+    assert uut.technologies_percentage == {
+        'Wind': 40 / (10 + 20 + 30) * 100,
+        'Solar': 20 / (10 + 20 + 30) * 100,
+    }
+
+
+def test__EcoDeclaration__technologies_percentage__NO_technologies_exists__should_return_empty_EmissionValues():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount={},
+        technologies=EmissionValues(),
+        resolution=EcoDeclarationResolution.hour,
+        utc_offset=0,
+    )
+
+    # Assert
+    assert isinstance(uut.technologies_percentage, EmissionValues)
+    assert uut.technologies_percentage == {}
+
+
+def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_return_EmissionValues_with_correct_values():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={
+            begin1: EmissionValues(CO2=100, CH4=200),
+            begin2: EmissionValues(CO2=300, CH4=400),
+            begin3: EmissionValues(CO2=500, CH4=600, NOx=700),
+        },
+        consumed_amount={
+            begin1: 0,
+            begin2: 20,
+            begin3: 40,
         },
         technologies=EmissionValues(
             Wind=30,
@@ -251,10 +297,26 @@ def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_retur
     assert isinstance(uut.emissions_per_wh, dict)
     assert all(isinstance(v, EmissionValues) for v in uut.emissions_per_wh.values())
     assert uut.emissions_per_wh == {
-        begin1: {'CO2': 100/10, 'CH4': 200/10, 'NOx': 0},
+        begin1: {'CO2': 0, 'CH4': 0, 'NOx': 0},
         begin2: {'CO2': 300/20, 'CH4': 400/20, 'NOx': 0},
-        begin3: {'CO2': 500/30, 'CH4': 600/30, 'NOx': 700/30},
+        begin3: {'CO2': 500/40, 'CH4': 600/40, 'NOx': 700/40},
     }
+
+
+def test__EcoDeclaration__emissions_per_wh__NO_consumed_amount_exists__should_return_empty_dict():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount={},
+        technologies=EmissionValues(),
+        resolution=EcoDeclarationResolution.hour,
+        utc_offset=0,
+    )
+
+    # Assert
+    assert isinstance(uut.emissions_per_wh, dict)
+    assert uut.emissions_per_wh == {}
 
 
 def test__EcoDeclaration__total_emissions_per_wh__emissions_exists__should_return_EmissionValues_with_correct_values():
@@ -267,13 +329,13 @@ def test__EcoDeclaration__total_emissions_per_wh__emissions_exists__should_retur
             begin3: EmissionValues(CO2=500, CH4=600, NOx=700),
         },
         consumed_amount={
-            begin1: 10,
+            begin1: 0,
             begin2: 20,
             begin3: 30,
         },
         technologies=EmissionValues(
-            Wind=30,
-            Solar=30,
+            Wind=15,
+            Solar=35,
         ),
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -282,9 +344,9 @@ def test__EcoDeclaration__total_emissions_per_wh__emissions_exists__should_retur
     # Assert
     assert isinstance(uut.total_emissions_per_wh, EmissionValues)
     assert uut.total_emissions_per_wh == {
-        'CO2': (100 + 300 + 500) / (10 + 20 + 30),
-        'CH4': (200 + 400 + 600) / (10 + 20 + 30),
-        'NOx': 700 / (10 + 20 + 30),
+        'CO2': (100 + 300 + 500) / (20 + 30),
+        'CH4': (200 + 400 + 600) / (20 + 30),
+        'NOx': 700 / (20 + 30),
     }
 
 

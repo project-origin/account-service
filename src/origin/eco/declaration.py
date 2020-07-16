@@ -25,14 +25,18 @@ class EcoDeclaration(object):
         """
         if not all(isinstance(v, EmissionValues) for v in emissions.values()):
             raise ValueError('All values of emissions must be of type EmissionValues')
+
         if not isinstance(consumed_amount, dict):
             raise ValueError('consumed_amount must be of type dict')
+
         if not isinstance(technologies, EmissionValues):
             raise ValueError('technologies must be of type EmissionValues')
+
         if sum(technologies.values()) != sum(consumed_amount.values()):
             raise ValueError((
                 'Sum of technologies (%s) must be equal to sum of consumed amount (%s)'
             ) % (sum(technologies.values()), sum(consumed_amount.values())))
+
         if sorted(emissions.keys()) != sorted(consumed_amount.keys()):
             raise ValueError((
                 'Arguments "emissions" and "consumed_amount" must have '
@@ -92,7 +96,7 @@ class EcoDeclaration(object):
             if self.consumed_amount[begin] > 0:
                 emissions[begin] = self.emissions[begin] / self.consumed_amount[begin]
             else:
-                emissions[begin] = EmissionValues()
+                emissions[begin] = self.emissions[begin] * 0
 
         return emissions
 
