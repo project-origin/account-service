@@ -32,7 +32,7 @@ class EcoDeclaration(object):
         if not isinstance(technologies, EmissionValues):
             raise ValueError('technologies must be of type EmissionValues')
 
-        if sum(technologies.values()) != sum(consumed_amount.values()):
+        if round(sum(technologies.values())) != round(sum(consumed_amount.values())):
             raise ValueError((
                 'Sum of technologies (%s) must be equal to sum of consumed amount (%s)'
             ) % (sum(technologies.values()), sum(consumed_amount.values())))
