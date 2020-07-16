@@ -26,6 +26,7 @@ urls = (
 
     # Eco declaration
     ('/eco-declaration', eco.GetEcoDeclaration()),
+    ('/eco-declaration/export-pdf', eco.ExportEcoDeclarationPDF()),
 
     # Webhooks
     ('/webhook/on-ggo-issued', ggo.OnGgoIssuedWebhook()),

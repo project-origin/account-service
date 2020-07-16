@@ -1,3 +1,5 @@
+from io import BytesIO
+from flask import make_response, send_file
 import marshmallow_dataclass as md
 
 from origin.db import inject_session
@@ -9,11 +11,13 @@ from origin.auth import (
     require_oauth,
 )
 
+from .pdf import EcoDeclarationPdf
 from .builder import EcoDeclarationBuilder
 from .models import GetEcoDeclarationRequest, GetEcoDeclarationResponse
 
 
 builder = EcoDeclarationBuilder()
+pdf_builder = EcoDeclarationPdf()
 
 
 class GetEcoDeclaration(Controller):
@@ -31,7 +35,7 @@ class GetEcoDeclaration(Controller):
         :param GetEcoDeclarationRequest request:
         :param User user:
         :param sqlalchemy.orm.Session session:
-        :rtype: GetGgoListResponse
+        :rtype: GetEcoDeclarationResponse
         """
         meteringpoints = MeteringPointQuery(session) \
             .belongs_to(user) \
@@ -59,3 +63,33 @@ class GetEcoDeclaration(Controller):
             general=general.as_resolution(
                 request.resolution, request.utc_offset),
         )
+
+
+class ExportEcoDeclarationPDF(GetEcoDeclaration):
+    """
+    TODO
+    """
+    Response = None
+
+    def handle_request(self, *args, **kwargs):
+        response_model = super(ExportEcoDeclarationPDF, self) \
+            .handle_request(*args, **kwargs)
+
+        f = BytesIO()
+
+        pdf_builder.render(
+            individual=response_model.individual,
+            general=response_model.general,
+            target=f,
+        )
+
+        f.seek(0)
+
+        return send_file(f, attachment_filename='EnvironmentDeclaration.pdf')
+
+        # response = make_response(f.read())
+        # response.headers['Content-Type'] = 'application/pdf'
+        # response.headers['Content-Disposition'] = \
+        #     'inline; filename=EnvironmentDeclaration.pdf'
+        #
+        # return response
