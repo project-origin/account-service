@@ -34,43 +34,36 @@ def build_pie_chart(declaration):
     """
     :param EcoDeclaration declaration:
     """
-    try:
-        f = BytesIO()
+    f = BytesIO()
 
-        labels = []
-        values = []
-        colors = []
+    labels = []
+    values = []
+    colors = []
 
-        for technology, amount in declaration.technologies.items():
-            labels.append(technology)
-            values.append(amount)
-            colors.append(TECHNOLOGY_COLORS.get(
-                technology, TECHNOLOGY_COLORS_DEFAULT))
+    for technology, amount in declaration.technologies.items():
+        labels.append(technology)
+        values.append(amount)
+        colors.append(TECHNOLOGY_COLORS.get(
+            technology, TECHNOLOGY_COLORS_DEFAULT))
 
-        x = 2
-        y = 3
+    pie = go.Pie(
+        labels=labels,
+        values=values,
+        marker=dict(colors=colors),
+    )
 
-        pie = go.Pie(
-            labels=labels,
-            values=values,
-            marker=dict(colors=colors),
-        )
+    fig = go.Figure(data=[pie])
+    fig.update_traces(textinfo='none')
+    fig.update_layout(
+        showlegend=False,
+        autosize=False,
+        width=500,
+        height=500,
+        margin=dict(l=0, r=0, b=0, t=0, pad=0),
+    )
+    fig.write_image(f, format='svg')
 
-        fig = go.Figure(data=[pie])
-        fig.update_traces(textinfo='none')
-        fig.update_layout(
-            showlegend=False,
-            autosize=False,
-            width=500,
-            height=500,
-            margin=dict(l=0, r=0, b=0, t=0, pad=0),
-        )
-        fig.write_image(f, format='svg')
-
-        f.seek(0)
-    except Exception as e:
-        x = 2
-        raise
+    f.seek(0)
 
     return f
 
@@ -117,12 +110,6 @@ class EcoDeclarationPdf(object):
         :param EcoDeclaration general:
         :rtype: str
         """
-        env = dict(
-            individual_emissions=individual.total_emissions_per_wh * 1000,
-            individual_technologies=self.technologies_to_env(individual),
-            general_emissions=general.total_emissions_per_wh * 1000,
-            general_technologies=self.technologies_to_env(general),
-        )
         return self.get_html_template().render(
             individual_emissions=individual.total_emissions_per_wh * 1000,
             individual_technologies=self.technologies_to_env(individual),
