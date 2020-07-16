@@ -106,14 +106,8 @@ class EcoDeclarationBuilder(object):
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
-                # TODO test this
-                if ggo.technology is None:
-                    technology = ggo.technology.technology
-                else:
-                    technology = UNKNOWN_TECHNOLOGY_LABEL
-
-                technologies.setdefault(technology, 0)
-                technologies[technology] += ggo.amount
+                technologies.setdefault(ggo.technology_label, 0)
+                technologies[ggo.technology_label] += ggo.amount
 
             # Remaining emission from General mix
             # Assume there exists mix emissions for each

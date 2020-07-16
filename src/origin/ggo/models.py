@@ -17,6 +17,7 @@ from origin.db import ModelBase, Session
 from origin.auth import User, sub_exists
 from origin.common import DateTimeRange
 from origin.ledger import KeyGenerator
+from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 from origin.services.datahub import Ggo as DataHubGgo
 
 
@@ -120,6 +121,16 @@ class Ggo(ModelBase):
             synchronized=False,
             locked=False,
         )
+
+    @property
+    def technology_label(self):
+        """
+        :rtype: str
+        """
+        if self.technology is not None:
+            return self.technology.technology
+        else:
+            return UNKNOWN_TECHNOLOGY_LABEL
 
     @property
     def key(self):
