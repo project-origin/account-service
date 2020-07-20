@@ -19,7 +19,7 @@ class EcoDeclaration(object):
         return cls(
             emissions={},
             consumed_amount={},
-            technologies=EmissionValues(),
+            technologies={},
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
@@ -27,28 +27,32 @@ class EcoDeclaration(object):
     def __init__(self, emissions, consumed_amount,
                  technologies, resolution, utc_offset):
         """
-        :param dict[datetime, EmissionValues[datetime, float]] emissions:
+        :param dict[datetime, EmissionValues[str, float]] emissions:
             Emissions in gram
-        :param dict[datetime, int] consumed_amount:
+        :param dict[datetime, float] consumed_amount:
             Dict of {begin: amount}
-        :param EmissionValues[str, float] technologies:
+        :param dict[datetime, EmissionValues[str, float]] technologies:
             Dict of {technology: amount}
         :param EcoDeclarationResolution resolution:
         :param int utc_offset:
         """
+        if not isinstance(emissions, dict):  # TODO test this
+            raise ValueError('emissions must be of type dict')
         if not all(isinstance(v, EmissionValues) for v in emissions.values()):
             raise ValueError('All values of emissions must be of type EmissionValues')
 
         if not isinstance(consumed_amount, dict):
             raise ValueError('consumed_amount must be of type dict')
 
-        if not isinstance(technologies, EmissionValues):
-            raise ValueError('technologies must be of type EmissionValues')
+        if not isinstance(technologies, dict):  # TODO test this
+            raise ValueError('technologies must be of type dict')
+        if not all(isinstance(v, EmissionValues) for v in technologies.values()):
+            raise ValueError('All values of technologies must be of type EmissionValues')
 
-        if round(sum(technologies.values())) != round(sum(consumed_amount.values())):
-            raise ValueError((
-                'Sum of technologies (%s) must be equal to sum of consumed amount (%s)'
-            ) % (sum(technologies.values()), sum(consumed_amount.values())))
+        if sorted(technologies.keys()) != sorted(consumed_amount.keys()):
+            raise ValueError('technologies and consumed_amount should have the same keys')
+        if not all(round(sum(technologies[k].values())) == round(consumed_amount[k]) for k in consumed_amount):
+            raise ValueError('Sum of technologies must be equal to sum of consumed amount')
 
         if sorted(emissions.keys()) != sorted(consumed_amount.keys()):
             raise ValueError((
@@ -88,13 +92,23 @@ class EcoDeclaration(object):
         return sum(self.emissions.values(), EmissionValues())
 
     @property
+    def total_technologies(self):
+        """
+        TODO
+        TODO test this
+
+        :rtype: EmissionValues
+        """
+        return sum(self.technologies.values(), EmissionValues())
+
+    @property
     def technologies_percentage(self):
         """
         Returns technologies as percent of total consumption.
 
         :rtype: EmissionValues
         """
-        return self.technologies / self.total_consumed_amount * 100
+        return self.total_technologies / self.total_consumed_amount * 100
 
     @property
     def emissions_per_wh(self):
@@ -171,6 +185,7 @@ class EcoDeclaration(object):
 
         new_emissions = {}
         new_consumed_amount = {}
+        new_technologies = {}
 
         for new_begin, old_begins in begins_sorted_and_grouped:
             old_begins = list(old_begins)
@@ -181,10 +196,13 @@ class EcoDeclaration(object):
             new_consumed_amount[new_begin] = \
                 sum(self.consumed_amount[b] for b in old_begins)
 
+            new_technologies[new_begin] = \
+                sum(self.technologies[b] for b in old_begins)
+
         return EcoDeclaration(
             emissions=new_emissions,
             consumed_amount=new_consumed_amount,
             resolution=resolution,
-            technologies=self.technologies,
+            technologies=new_technologies,
             utc_offset=utc_offset,
         )

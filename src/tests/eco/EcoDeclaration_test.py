@@ -24,10 +24,10 @@ def test__EcoDeclaration__constructor__emissions_values_are_not_all_of_type_Emis
                 begin1: 100,
                 begin2: 100,
             },
-            technologies=EmissionValues(
-                CO2=100,
-                NOx=100,
-            ),
+            technologies={
+                begin1: EmissionValues(Solar=110, Wind=90),
+                begin2: EmissionValues(Solar=120, Wind=80),
+            },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
@@ -44,10 +44,10 @@ def test__EcoDeclaration__constructor__technologies_values_are_not_all_of_type_E
                 begin1: 100,
                 begin2: 100,
             },
-            technologies=dict(  # Should be EmissionValues instance
-                CO2=100,
-                NOx=100,
-            ),
+            technologies={
+                begin1: EmissionValues(Solar=110, Wind=90),
+                begin2: EmissionValues(Solar=120, Wind=80),
+            },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
@@ -61,10 +61,10 @@ def test__EcoDeclaration__constructor__consumed_amount_is_not_of_type_dict__shou
                 begin2: EmissionValues(),
             },
             consumed_amount=123,  # Should be dict
-            technologies=EmissionValues(
-                CO2=100,
-                NOx=100,
-            ),
+            technologies={
+                begin1: EmissionValues(Solar=110, Wind=90),
+                begin2: EmissionValues(Solar=120, Wind=80),
+            },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
@@ -81,10 +81,10 @@ def test__EcoDeclaration__constructor__sum_of_consumed_amount_is_not_equal_to_su
                 begin1: 100,
                 begin2: 100,
             },
-            technologies=EmissionValues(  # Sum of values should be 200, like consumed_amount
-                CO2=200,
-                NOx=100,
-            ),
+            technologies={
+                begin1: EmissionValues(Solar=110, Wind=90),
+                begin2: EmissionValues(Solar=120, Wind=80),
+            },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
@@ -101,10 +101,10 @@ def test__EcoDeclaration__constructor__emissions_and_consumed_amount_does_not_ha
                 begin2: 100,  # Should have begin1 and begin2 as keys, like emissions
                 begin3: 100,
             },
-            technologies=EmissionValues(
-                CO2=100,
-                NOx=100,
-            ),
+            technologies={
+                begin1: EmissionValues(Solar=110, Wind=90),
+                begin2: EmissionValues(Solar=120, Wind=80),
+            },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
@@ -120,10 +120,10 @@ def test__EcoDeclaration__constructor__not_all_emissions_have_same_keys__should_
             begin1: 100,
             begin2: 100,
         },
-        technologies=EmissionValues(
-            CO2=100,
-            NOx=100,
-        ),
+        technologies={
+            begin1: EmissionValues(Solar=10, Wind=90),
+            begin2: EmissionValues(Solar=20, Wind=80),
+        },
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
     )
@@ -151,10 +151,11 @@ def test__EcoDeclaration__total_consumed_amount__consumed_amount_exists__should_
             begin2: 20,
             begin3: 30,
         },
-        technologies=EmissionValues(
-            Wind=30,
-            Solar=30,
-        ),
+        technologies={
+            begin1: EmissionValues(Solar=5, Wind=5),
+            begin2: EmissionValues(Solar=15, Wind=5),
+            begin3: EmissionValues(Solar=20, Wind=10),
+        },
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
     )
@@ -192,10 +193,11 @@ def test__EcoDeclaration__total_emissions__emissions_exists__should_return_Emiss
             begin2: 20,
             begin3: 30,
         },
-        technologies=EmissionValues(
-            Wind=30,
-            Solar=30,
-        ),
+        technologies={
+            begin1: EmissionValues(Solar=5, Wind=5),
+            begin2: EmissionValues(Solar=15, Wind=5),
+            begin3: EmissionValues(Solar=20, Wind=10),
+        },
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
     )
@@ -239,10 +241,11 @@ def test__EcoDeclaration__technologies_percentage__technologies_exists__should_r
             begin2: 20,
             begin3: 30,
         },
-        technologies=EmissionValues(
-            Wind=40,
-            Solar=20,
-        ),
+        technologies={
+            begin1: EmissionValues(Solar=5, Wind=5),
+            begin2: EmissionValues(Solar=15, Wind=5),
+            begin3: EmissionValues(Solar=20, Wind=10),
+        },
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
     )
@@ -250,8 +253,8 @@ def test__EcoDeclaration__technologies_percentage__technologies_exists__should_r
     # Assert
     assert isinstance(uut.technologies_percentage, EmissionValues)
     assert uut.technologies_percentage == {
-        'Wind': 40 / (10 + 20 + 30) * 100,
-        'Solar': 20 / (10 + 20 + 30) * 100,
+        'Wind': 20 / (10 + 20 + 30) * 100,
+        'Solar': 40 / (10 + 20 + 30) * 100,
     }
 
 
@@ -285,10 +288,11 @@ def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_retur
             begin2: 20,
             begin3: 40,
         },
-        technologies=EmissionValues(
-            Wind=30,
-            Solar=30,
-        ),
+        technologies={
+            begin1: EmissionValues(),
+            begin2: EmissionValues(Solar=15, Wind=5),
+            begin3: EmissionValues(Solar=20, Wind=20),
+        },
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
     )
@@ -333,10 +337,11 @@ def test__EcoDeclaration__total_emissions_per_wh__emissions_exists__should_retur
             begin2: 20,
             begin3: 30,
         },
-        technologies=EmissionValues(
-            Wind=15,
-            Solar=35,
-        ),
+        technologies={
+            begin1: EmissionValues(),
+            begin2: EmissionValues(Solar=15, Wind=5),
+            begin3: EmissionValues(Solar=20, Wind=10),
+        },
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
     )
@@ -433,10 +438,16 @@ def test__EcoDeclaration__as_resolution__group_by_day():
             month2_day2_begin1: 70,
             month2_day2_begin2: 80,
         },
-        technologies=EmissionValues(
-            Wind=180,
-            Solar=180,
-        ),
+        technologies={
+            month1_day1_begin1: EmissionValues(Solar=5, Wind=5),
+            month1_day1_begin2: EmissionValues(Solar=15, Wind=5),
+            month1_day2_begin1: EmissionValues(Solar=15, Wind=15),
+            month1_day2_begin2: EmissionValues(Solar=35, Wind=5),
+            month2_day1_begin1: EmissionValues(Solar=25, Wind=25),
+            month2_day1_begin2: EmissionValues(Solar=55, Wind=5),
+            month2_day2_begin1: EmissionValues(Solar=65, Wind=5),
+            month2_day2_begin2: EmissionValues(Solar=75, Wind=5),
+        },
     )
 
     # Act
@@ -448,6 +459,20 @@ def test__EcoDeclaration__as_resolution__group_by_day():
         datetime(2020, 1, 2, 0, 0): {'CO2': 5+7, 'NO2': 6+8},      # month1_day2_begin1 + month1_day2_begin2
         datetime(2020, 2, 1, 0, 0): {'CO2': 9+11, 'NO2': 10+12},   # month2_day1_begin2
         datetime(2020, 2, 2, 0, 0): {'CO2': 13+15, 'NO2': 14+16},  # month2_day2_begin1
+    }
+
+    assert new_declaration.consumed_amount == {
+        datetime(2020, 1, 1, 0, 0): 10+20,  # month1_day1_begin1 + month1_day1_begin2
+        datetime(2020, 1, 2, 0, 0): 30+40,  # month1_day2_begin1 + month1_day2_begin2
+        datetime(2020, 2, 1, 0, 0): 50+60,  # month2_day1_begin2
+        datetime(2020, 2, 2, 0, 0): 70+80,  # month2_day2_begin1
+    }
+
+    assert new_declaration.technologies == {
+        datetime(2020, 1, 1, 0, 0): {'Solar': 5+15, 'Wind': 5+5},    # month1_day1_begin1 + month1_day1_begin2
+        datetime(2020, 1, 2, 0, 0): {'Solar': 15+35, 'Wind': 15+5},  # month1_day2_begin1 + month1_day2_begin2
+        datetime(2020, 2, 1, 0, 0): {'Solar': 25+55, 'Wind': 25+5},  # month2_day1_begin2
+        datetime(2020, 2, 2, 0, 0): {'Solar': 65+75, 'Wind': 5+5},   # month2_day2_begin1
     }
 
 
@@ -486,10 +511,16 @@ def test__EcoDeclaration__as_resolution__group_by_month():
             month2_day2_begin1: 70,
             month2_day2_begin2: 80,
         },
-        technologies=EmissionValues(
-            Wind=180,
-            Solar=180,
-        ),
+        technologies={
+            month1_day1_begin1: EmissionValues(Solar=5, Wind=5),
+            month1_day1_begin2: EmissionValues(Solar=15, Wind=5),
+            month1_day2_begin1: EmissionValues(Solar=15, Wind=15),
+            month1_day2_begin2: EmissionValues(Solar=35, Wind=5),
+            month2_day1_begin1: EmissionValues(Solar=25, Wind=25),
+            month2_day1_begin2: EmissionValues(Solar=55, Wind=5),
+            month2_day2_begin1: EmissionValues(Solar=65, Wind=5),
+            month2_day2_begin2: EmissionValues(Solar=75, Wind=5),
+        },
     )
 
     # Act
@@ -499,6 +530,16 @@ def test__EcoDeclaration__as_resolution__group_by_month():
     assert new_declaration.emissions == {
         datetime(2020, 1, 1, 0, 0): {'CO2': 1+3+5+7, 'NO2': 2+4+6+8},
         datetime(2020, 2, 1, 0, 0): {'CO2': 9+11+13+15, 'NO2': 10+12+14+16},
+    }
+
+    assert new_declaration.consumed_amount == {
+        datetime(2020, 1, 1, 0, 0): 10+20+30+40,
+        datetime(2020, 2, 1, 0, 0): 50+60+70+80,
+    }
+
+    assert new_declaration.technologies == {
+        datetime(2020, 1, 1, 0, 0): {'Solar': 5+15+15+35, 'Wind': 5+5+15+5},   # month1_day1_begin1 + month1_day1_begin2
+        datetime(2020, 2, 1, 0, 0): {'Solar': 25+55+65+75, 'Wind': 25+5+5+5},  # month2_day1_begin2
     }
 
 
@@ -537,10 +578,16 @@ def test__EcoDeclaration__as_resolution__group_by_year():
             month2_day2_begin1: 70,
             month2_day2_begin2: 80,
         },
-        technologies=EmissionValues(
-            Wind=180,
-            Solar=180,
-        ),
+        technologies={
+            month1_day1_begin1: EmissionValues(Solar=5, Wind=5),
+            month1_day1_begin2: EmissionValues(Solar=15, Wind=5),
+            month1_day2_begin1: EmissionValues(Solar=15, Wind=15),
+            month1_day2_begin2: EmissionValues(Solar=35, Wind=5),
+            month2_day1_begin1: EmissionValues(Solar=25, Wind=25),
+            month2_day1_begin2: EmissionValues(Solar=55, Wind=5),
+            month2_day2_begin1: EmissionValues(Solar=65, Wind=5),
+            month2_day2_begin2: EmissionValues(Solar=75, Wind=5),
+        },
     )
 
     # Act
@@ -551,5 +598,16 @@ def test__EcoDeclaration__as_resolution__group_by_year():
         datetime(2020, 1, 1, 0, 0): {
             'CO2': 1+3+5+7+9+11+13+15,
             'NO2': 2+4+6+8+10+12+14+16,
+        },
+    }
+
+    assert new_declaration.consumed_amount == {
+        datetime(2020, 1, 1, 0, 0): 10+20+30+40+50+60+70+80,
+    }
+
+    assert new_declaration.technologies == {
+        datetime(2020, 1, 1, 0, 0): {
+            'Solar': 5+15+15+35+25+55+65+75,
+            'Wind': 5+5+15+5+25+5+5+5,
         },
     }

@@ -40,7 +40,7 @@ def build_pie_chart(declaration):
     values = []
     colors = []
 
-    for technology, amount in declaration.technologies.items():
+    for technology, amount in declaration.total_technologies.items():
         labels.append(technology)
         values.append(amount)
         colors.append(TECHNOLOGY_COLORS.get(
@@ -83,13 +83,14 @@ class EcoDeclarationPdf(object):
         :param EcoDeclaration declaration:
         :rtype: list[dict[str, str]]
         """
-        technologies_sorted = sorted(declaration.technologies.keys())
+        technologies = declaration.total_technologies
+        technologies_sorted = sorted(technologies.keys())
         technologies_percentage = declaration.technologies_percentage
 
         return [
             {
                 'technology': technology,
-                'amount': declaration.technologies[technology],
+                'amount': technologies[technology],
                 'percent': technologies_percentage[technology],
                 'color': TECHNOLOGY_COLORS.get(
                     technology, TECHNOLOGY_COLORS_DEFAULT),

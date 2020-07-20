@@ -1,5 +1,6 @@
 from itertools import groupby
 from datetime import datetime, timezone
+from typing import Dict
 
 from origin.ggo import GgoQuery, Ggo
 from origin.common import EmissionValues, DateTimeRange
@@ -92,13 +93,16 @@ class EcoDeclarationBuilder(object):
         """
 
         # Emission in gram (mapped by begin)
-        emissions = {}
+        # {begin: {key: value}}
+        emissions: Dict[datetime, EmissionValues[str, float]] = {}
 
         # Consumption in Wh (mapped by begin)
-        consumed_amount = {}
+        # {begin: amount}
+        consumed_amount: Dict[datetime, float] = {}
 
-        # Consumption in Wh (mapped by technology)
-        technologies = EmissionValues()
+        # Consumed amount in Wh per technology (mapped by begin)
+        # {begin: {technology: amount}}
+        technologies: Dict[datetime, EmissionValues[str, float]] = {}
 
         for m in measurements:
             ggos = retired_ggos.get(m.gsrn, {}).get(m.begin, [])
@@ -117,13 +121,16 @@ class EcoDeclarationBuilder(object):
             # Set default (empty) emission values for this begin
             emissions.setdefault(m.begin, EmissionValues())
 
+            # Set default (empty) emission values for this begin
+            technologies.setdefault(m.begin, EmissionValues())
+
             # Emission from retired GGOs
             for ggo in ggos_with_emissions:
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
-                technologies.setdefault(ggo.technology_label, 0)
-                technologies[ggo.technology_label] += ggo.amount
+                technologies[m.begin].setdefault(ggo.technology_label, 0)
+                technologies[m.begin][ggo.technology_label] += ggo.amount
 
             # Remaining emission from General mix
             # Assume there exists mix emissions for each
@@ -134,7 +141,7 @@ class EcoDeclarationBuilder(object):
                 emissions[m.begin] += \
                     mix.emissions_per_wh * remaining_amount
 
-                technologies += \
+                technologies[m.begin] += \
                     mix.technologies_share * remaining_amount
 
         return EcoDeclaration(
@@ -153,13 +160,16 @@ class EcoDeclarationBuilder(object):
         """
 
         # Emission in gram (mapped by begin)
-        emissions = {}
+        # {begin: {key: value}}
+        emissions: Dict[datetime, EmissionValues[str, float]] = {}
 
         # Consumption in Wh (mapped by begin)
-        consumed_amount = {}
+        # {begin: amount}
+        consumed_amount: Dict[datetime, float] = {}
 
-        # Consumption in Wh (mapped by technology)
-        technologies = EmissionValues()
+        # Consumed amount in Wh per technology (mapped by begin)
+        # {begin: {technology: amount}}
+        technologies: Dict[datetime, EmissionValues[str, float]] = {}
 
         # Group measurements by their begin
         measurements_sorted_and_grouped = groupby(
@@ -179,7 +189,8 @@ class EcoDeclarationBuilder(object):
                 consumed_amount.setdefault(begin, 0)
                 consumed_amount[begin] += mix.amount
 
-                technologies += mix.technologies
+                technologies.setdefault(begin, EmissionValues())
+                technologies[begin] += mix.technologies
 
         return EcoDeclaration(
             emissions=emissions,

@@ -339,8 +339,18 @@ def test__EcoDeclarationBuilder__build_general_declaration():
     }
 
     assert declaration.technologies == {
-        'Solar': 35 + 130 + 91 + 250 + 490,
-        'Wind': 75 + 90 + 239 + 190 + 10,
+        begin1: {
+            'Solar': 35 + 130,
+            'Wind': 75 + 90,
+        },
+        begin2: {
+            'Solar': 91 + 250,
+            'Wind': 239 + 190,
+        },
+        begin3: {
+            'Solar': 490,
+            'Wind': 10,
+        },
     }
 
     assert declaration.emissions[begin1] == {
