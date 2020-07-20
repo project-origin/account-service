@@ -1,6 +1,7 @@
 import marshmallow
 from typing import List
-from datetime import datetime
+from itertools import groupby
+from datetime import datetime, timezone
 from dataclasses import dataclass
 from marshmallow_dataclass import NewType
 
@@ -93,7 +94,49 @@ class EmissionData:
             return EmissionValues()
 
 
+def parse_mix_emissions_timestamp(s):
+    return datetime \
+        .fromisoformat(s.replace('Z', '')) \
+        .replace(tzinfo=timezone.utc)
+
+
+def mix_emissions_to_emission_data(mix_emissions):
+    mix_emissions_grouped = groupby(
+        iterable=mix_emissions,
+        key=lambda row: (parse_mix_emissions_timestamp(row['timestamp_utc']), row['sector']),
+    )
+
+    for (timestamp_utc, sector), rows in mix_emissions_grouped:
+        parts = []
+
+        for row in rows:
+            emissions = EmissionValues(**{
+                k: v for k, v in row.items()
+                if k not in ('timestamp_utc', 'sector', 'technology', 'amount')
+            })
+
+            parts.append(EmissionPart(
+                technology=row['technology'],
+                amount=row['amount'],
+                emissions=emissions,
+            ))
+
+        yield EmissionData(
+            timestamp_utc=timestamp_utc,
+            sector=sector,
+            parts=parts,
+        )
+
+
+MixEmissionsData = NewType(
+    name='MixEmissionsData',
+    typ=List[EmissionData],
+    field=marshmallow.fields.Function,
+    deserialize=lambda mix_emissions: list(mix_emissions_to_emission_data(mix_emissions)),
+)
+
+
 @dataclass
 class GetMixEmissionsResponse:
     success: bool
-    mix_emissions: List[EmissionData]
+    mix_emissions: MixEmissionsData
