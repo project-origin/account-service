@@ -45,8 +45,8 @@ def test__EcoDeclaration__constructor__technologies_values_are_not_all_of_type_E
                 begin2: 100,
             },
             technologies={
-                begin1: EmissionValues(Solar=110, Wind=90),
-                begin2: EmissionValues(Solar=120, Wind=80),
+                begin1: 123,  # Should be EmissionValues
+                begin2: EmissionValues(Solar=20, Wind=80),
             },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
@@ -82,8 +82,8 @@ def test__EcoDeclaration__constructor__sum_of_consumed_amount_is_not_equal_to_su
                 begin2: 100,
             },
             technologies={
-                begin1: EmissionValues(Solar=110, Wind=90),
-                begin2: EmissionValues(Solar=120, Wind=80),
+                begin1: EmissionValues(Solar=110, Wind=90),  # Should be 10 + 90 = 100
+                begin2: EmissionValues(Solar=20, Wind=80),
             },
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
@@ -225,6 +225,53 @@ def test__EcoDeclaration__total_emissions__NO_emissions_exists__should_return_em
     # Assert
     assert isinstance(uut.total_emissions, EmissionValues)
     assert uut.total_emissions == {}
+
+
+def test__EcoDeclaration__total_technologies__technologies_exists__should_return_EmissionValues_with_correct_values():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={
+            begin1: EmissionValues(CO2=100, CH4=200),
+            begin2: EmissionValues(CO2=300, CH4=400),
+            begin3: EmissionValues(CO2=500, CH4=600, NOx=700),
+        },
+        consumed_amount={
+            begin1: 10,
+            begin2: 20,
+            begin3: 30,
+        },
+        technologies={
+            begin1: EmissionValues(Solar=5, Wind=5),
+            begin2: EmissionValues(Solar=15, Wind=5),
+            begin3: EmissionValues(Solar=20, Wind=10),
+        },
+        resolution=EcoDeclarationResolution.hour,
+        utc_offset=0,
+    )
+
+    # Assert
+    assert isinstance(uut.total_technologies, EmissionValues)
+    assert uut.total_technologies == {
+        'Wind': 5 + 5 + 10,
+        'Solar': 5 + 15 + 20,
+    }
+
+
+def test__EcoDeclaration__total_technologies__NO_technologies_exists__should_return_empty_EmissionValuess():
+
+    # Arrange
+    uut = EcoDeclaration(
+        emissions={},
+        consumed_amount={},
+        technologies={},
+        resolution=EcoDeclarationResolution.hour,
+        utc_offset=0,
+    )
+
+    # Assert
+    assert isinstance(uut.total_technologies, EmissionValues)
+    assert uut.total_technologies == {}
 
 
 def test__EcoDeclaration__technologies_percentage__technologies_exists__should_return_EmissionValues_with_correct_values():
