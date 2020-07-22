@@ -5,15 +5,14 @@ import marshmallow_dataclass as md
 from hashlib import sha256
 from base64 import b64encode
 
-from origin import logger
 from origin.settings import DEBUG, HMAC_HEADER
 from origin.db import atomic
-from origin.ggo import Ggo
 
 from .models import (
     WebhookEvent,
     WebhookSubscription,
     OnGgoReceivedRequest,
+    OnForecastReceivedRequest,
 )
 
 
@@ -136,7 +135,7 @@ class WebhookService(object):
     def on_ggo_received(self, subscription, ggo):
         """
         :param WebhookSubscription subscription:
-        :param Ggo ggo:
+        :param origin.ggo.Ggo ggo:
         """
         self.publish(
             subscription=subscription,
@@ -144,5 +143,19 @@ class WebhookService(object):
             request=OnGgoReceivedRequest(
                 sub=subscription.subject,
                 ggo=ggo,
+            )
+        )
+
+    def on_forecast_received(self, subscription, forecast):
+        """
+        :param WebhookSubscription subscription:
+        :param origin.forecast.Forecast forecast:
+        """
+        self.publish(
+            subscription=subscription,
+            schema=md.class_schema(OnForecastReceivedRequest)(),
+            request=OnForecastReceivedRequest(
+                sub=subscription.subject,
+                forecast=forecast,
             )
         )
