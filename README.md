@@ -101,21 +101,21 @@ Name | Description | Example
 
 ## Building container image
 
-    docker build -f Dockerfile -t account-service-web:v1 .
+    docker build -f Dockerfile -t account-service:v1 .
 
 ## Running container images
 
 Web API:
 
-    docker run --entrypoint /app/entrypoint.web.sh account-service-web:v1
+    docker run --entrypoint /app/entrypoint.web.sh account-service:v1
 
 Worker:
 
-    docker run --entrypoint /app/entrypoint.worker.sh account-service-web:v1
+    docker run --entrypoint /app/entrypoint.worker.sh account-service:v1
 
 Worker Beat:
 
-    docker run --entrypoint /app/entrypoint.beat.sh account-service-web:v1
+    docker run --entrypoint /app/entrypoint.beat.sh account-service:v1
 
 # System architecture
 
