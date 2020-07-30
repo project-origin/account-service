@@ -117,6 +117,17 @@ Worker Beat:
 
     docker run --entrypoint /app/entrypoint.beat.sh account-service-web:v1
 
+# System architecture
+
+The following diagram depicts the overall architecture of AccountService and its dependencies. A few key points are listed below the diagram.
+
+![alt text](doc/AccountService.png)
+
+- It exposes a web API using OAuth2 authentication.
+- It has one asynchronous worker running its own process (container).
+- The web API process starts asynchronous tasks by submitting them to a distributed queue using Redis.
+- A Beat process kicks off periodic tasks.
+
 
 # 3rd party libraries
 
