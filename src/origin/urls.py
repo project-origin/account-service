@@ -13,6 +13,7 @@ urls = (
 
     # Accounts
     ('/accounts', auth.GetAccounts()),
+    ('/accounts/find-suppliers', auth.FindSuppliers()),
 
     ('/ggo', ggo.GetGgoList()),
     ('/ggo/compose', ggo.ComposeGgo()),
