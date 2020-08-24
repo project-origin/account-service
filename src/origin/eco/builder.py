@@ -288,5 +288,4 @@ class EcoDeclarationBuilder(object):
         return GgoQuery(session) \
             .is_retired_to_any_gsrn([m.gsrn for m in meteringpoints]) \
             .begins_within(begin_range) \
-            .has_emissions() \
             .all()
