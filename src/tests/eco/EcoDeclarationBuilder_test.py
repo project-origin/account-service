@@ -155,13 +155,13 @@ def test__EcoDeclarationBuilder__build_individual_declaration():
     retired_ggos = {
         gsrn1: {
             begin1: [Mock(amount=100, technology_label='Coal', emissions={'CO2': 1, 'CH4': 2})],
-            begin2: [Mock(amount=25, technology_label='Coal', emissions={'CO2': 3, 'CH4': 4}), Mock(amount=50, emissions=None)],
+            begin2: [Mock(amount=25, technology_label='Coal', emissions={'CO2': 3, 'CH4': 4}), Mock(amount=50, technology_label='Wind', emissions=None)],
             begin3: [Mock(amount=300, technology_label='Coal', emissions={'CO2': 5, 'CH4': 6})],
             begin4: [Mock(amount=60, technology_label='Coal', emissions={'CO2': 7, 'CH4': 8})],
         },
         gsrn2: {
             begin3: [Mock(amount=700, technology_label='Coal', emissions={'CO2': 9, 'CH4': 10})],
-            begin4: [Mock(amount=50, technology_label='Coal', emissions={'CO2': 11, 'CH4': 12}), Mock(amount=50, emissions=None)],
+            begin4: [Mock(amount=50, technology_label='Coal', emissions={'CO2': 11, 'CH4': 12}), Mock(amount=50, technology_label='Wind', emissions=None)],
         },
     }
 
@@ -243,8 +243,8 @@ def test__EcoDeclarationBuilder__build_individual_declaration():
     }
 
     assert declaration.emissions[begin2] == {
-        'CO2': 25*3 + (200-25)*15,
-        'CH4': 25*4 + (200-25)*16,
+        'CO2': 25*3 + (200-50-25)*15,
+        'CH4': 25*4 + (200-50-25)*16,
     }
 
     assert declaration.emissions[begin3] == {
@@ -253,8 +253,8 @@ def test__EcoDeclarationBuilder__build_individual_declaration():
     }
 
     assert declaration.emissions[begin4] == {
-        'CO2': 60*7 + (400-60)*19 + 50*11 + (800-50)*27,
-        'CH4': 60*8 + (400-60)*20 + 50*12 + (800-50)*28,
+        'CO2': 60*7 + (400-60)*19 + 50*11 + (800-50-50)*27,
+        'CH4': 60*8 + (400-60)*20 + 50*12 + (800-50-50)*28,
     }
 
     assert declaration.emissions[begin5] == {
@@ -489,8 +489,8 @@ def test__EcoDeclarationBuilder__integration(energytype_service_mock, datahub_se
     }
 
     assert individual.emissions[begin2] == {
-        'CO2': 2222*3 + (200000-2222)*((54+56)/(333+444)),
-        'CH4': 2222*4 + (200000-2222)*((55+57)/(333+444)),
+        'CO2': 2222*3 + (200000-3333-2222)*((54+56)/(333+444)),
+        'CH4': 2222*4 + (200000-3333-2222)*((55+57)/(333+444)),
     }
 
     assert individual.emissions[begin3] == {
@@ -503,11 +503,11 @@ def test__EcoDeclarationBuilder__integration(energytype_service_mock, datahub_se
 
     assert individual.emissions[begin4] == {
         'CO2': 5555*7 + (400000-5555)*((62+64)/(777+888))
-               + 7777*11 + (800000-7777)*((78+80)/(151515+161616))
+               + 7777*11 + (800000-8888-7777)*((78+80)/(151515+161616))
                + 1000000*((78+80)/(151515+161616)),
 
         'CH4': 5555*8 + (400000-5555)*((63+65)/(777+888))
-               + 7777*12 + (800000-7777)*((79+81)/(151515+161616))
+               + 7777*12 + (800000-8888-7777)*((79+81)/(151515+161616))
                + 1000000*((79+81)/(151515+161616)),
     }
 

@@ -24,6 +24,7 @@ def test__EcoDeclaration__constructor__emissions_values_are_not_all_of_type_Emis
                 begin1: 100,
                 begin2: 100,
             },
+            retired_amount={},
             technologies={
                 begin1: EmissionValues(Solar=110, Wind=90),
                 begin2: EmissionValues(Solar=120, Wind=80),
@@ -44,6 +45,7 @@ def test__EcoDeclaration__constructor__technologies_values_are_not_all_of_type_E
                 begin1: 100,
                 begin2: 100,
             },
+            retired_amount={},
             technologies={
                 begin1: 123,  # Should be EmissionValues
                 begin2: EmissionValues(Solar=20, Wind=80),
@@ -61,6 +63,7 @@ def test__EcoDeclaration__constructor__consumed_amount_is_not_of_type_dict__shou
                 begin2: EmissionValues(),
             },
             consumed_amount=123,  # Should be dict
+            retired_amount={},
             technologies={
                 begin1: EmissionValues(Solar=110, Wind=90),
                 begin2: EmissionValues(Solar=120, Wind=80),
@@ -81,6 +84,7 @@ def test__EcoDeclaration__constructor__sum_of_consumed_amount_is_not_equal_to_su
                 begin1: 100,
                 begin2: 100,
             },
+            retired_amount={},
             technologies={
                 begin1: EmissionValues(Solar=110, Wind=90),  # Should be 10 + 90 = 100
                 begin2: EmissionValues(Solar=20, Wind=80),
@@ -101,6 +105,7 @@ def test__EcoDeclaration__constructor__emissions_and_consumed_amount_does_not_ha
                 begin2: 100,  # Should have begin1 and begin2 as keys, like emissions
                 begin3: 100,
             },
+            retired_amount={},
             technologies={
                 begin1: EmissionValues(Solar=110, Wind=90),
                 begin2: EmissionValues(Solar=120, Wind=80),
@@ -120,6 +125,7 @@ def test__EcoDeclaration__constructor__not_all_emissions_have_same_keys__should_
             begin1: 100,
             begin2: 100,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(Solar=10, Wind=90),
             begin2: EmissionValues(Solar=20, Wind=80),
@@ -151,6 +157,7 @@ def test__EcoDeclaration__total_consumed_amount__consumed_amount_exists__should_
             begin2: 20,
             begin3: 30,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(Solar=5, Wind=5),
             begin2: EmissionValues(Solar=15, Wind=5),
@@ -170,6 +177,7 @@ def test__EcoDeclaration__total_consumed_amount__NO_consumed_amount_exists__shou
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies=EmissionValues(),
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -193,6 +201,7 @@ def test__EcoDeclaration__total_emissions__emissions_exists__should_return_Emiss
             begin2: 20,
             begin3: 30,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(Solar=5, Wind=5),
             begin2: EmissionValues(Solar=15, Wind=5),
@@ -217,6 +226,7 @@ def test__EcoDeclaration__total_emissions__NO_emissions_exists__should_return_em
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies=EmissionValues(),
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -241,6 +251,7 @@ def test__EcoDeclaration__total_technologies__technologies_exists__should_return
             begin2: 20,
             begin3: 30,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(Solar=5, Wind=5),
             begin2: EmissionValues(Solar=15, Wind=5),
@@ -264,6 +275,7 @@ def test__EcoDeclaration__total_technologies__NO_technologies_exists__should_ret
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies={},
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -288,6 +300,7 @@ def test__EcoDeclaration__technologies_percentage__technologies_exists__should_r
             begin2: 20,
             begin3: 30,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(Solar=5, Wind=5),
             begin2: EmissionValues(Solar=15, Wind=5),
@@ -311,6 +324,7 @@ def test__EcoDeclaration__technologies_percentage__NO_technologies_exists__shoul
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies=EmissionValues(),
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -335,6 +349,7 @@ def test__EcoDeclaration__emissions_per_wh__consumed_amount_exists__should_retur
             begin2: 20,
             begin3: 40,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(),
             begin2: EmissionValues(Solar=15, Wind=5),
@@ -360,6 +375,7 @@ def test__EcoDeclaration__emissions_per_wh__NO_consumed_amount_exists__should_re
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies=EmissionValues(),
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -384,6 +400,7 @@ def test__EcoDeclaration__total_emissions_per_wh__emissions_exists__should_retur
             begin2: 20,
             begin3: 30,
         },
+        retired_amount={},
         technologies={
             begin1: EmissionValues(),
             begin2: EmissionValues(Solar=15, Wind=5),
@@ -408,6 +425,7 @@ def test__EcoDeclaration__total_emissions_per_wh__NO_emissions_exists__should_re
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies=EmissionValues(),
         resolution=EcoDeclarationResolution.hour,
         utc_offset=0,
@@ -440,6 +458,7 @@ def test__EcoDeclaration__as_resolution__resolution_is_higher_than_current__shou
     uut = EcoDeclaration(
         emissions={},
         consumed_amount={},
+        retired_amount={},
         technologies=EmissionValues(),
         resolution=current_resolution,
         utc_offset=0,
@@ -485,6 +504,7 @@ def test__EcoDeclaration__as_resolution__group_by_day():
             month2_day2_begin1: 70,
             month2_day2_begin2: 80,
         },
+        retired_amount={},
         technologies={
             month1_day1_begin1: EmissionValues(Solar=5, Wind=5),
             month1_day1_begin2: EmissionValues(Solar=15, Wind=5),
@@ -558,6 +578,7 @@ def test__EcoDeclaration__as_resolution__group_by_month():
             month2_day2_begin1: 70,
             month2_day2_begin2: 80,
         },
+        retired_amount={},
         technologies={
             month1_day1_begin1: EmissionValues(Solar=5, Wind=5),
             month1_day1_begin2: EmissionValues(Solar=15, Wind=5),
@@ -625,6 +646,7 @@ def test__EcoDeclaration__as_resolution__group_by_year():
             month2_day2_begin1: 70,
             month2_day2_begin2: 80,
         },
+        retired_amount={},
         technologies={
             month1_day1_begin1: EmissionValues(Solar=5, Wind=5),
             month1_day1_begin2: EmissionValues(Solar=15, Wind=5),

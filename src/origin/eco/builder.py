@@ -132,8 +132,11 @@ class EcoDeclarationBuilder(object):
 
             # Emission from retired GGOs
             for ggo in ggos:
-                emissions[m.begin] += \
-                    EmissionValues(**ggo.emissions) * ggo.amount
+                if ggo.emissions:
+                    emissions[m.begin] += \
+                        EmissionValues(**ggo.emissions) * ggo.amount
+                else:
+                    emissions[m.begin] += EmissionValues()
 
                 technologies[m.begin].setdefault(ggo.technology_label, 0)
                 technologies[m.begin][ggo.technology_label] += ggo.amount
