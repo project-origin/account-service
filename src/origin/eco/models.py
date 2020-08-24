@@ -20,10 +20,12 @@ class MappedEcoDeclaration:
     emissions: Dict[datetime, Dict[str, float]] = field(metadata=dict(data_key='emissions'))
     emissions_per_wh: Dict[datetime, Dict[str, float]] = field(metadata=dict(data_key='emissionsPerWh'))
     consumed_amount: Dict[datetime, float] = field(metadata=dict(data_key='consumedAmount'))
+    retired_amount: Dict[datetime, float] = field(metadata=dict(data_key='retiredAmount'))
     technologies: Dict[datetime, Dict[str, float]]
     total_emissions: Dict[str, float] = field(metadata=dict(data_key='totalEmissions'))
     total_emissions_per_wh: Dict[str, float] = field(metadata=dict(data_key='totalEmissionsPerWh'))
     total_consumed_amount: int = field(metadata=dict(data_key='totalConsumedAmount'))
+    total_retired_amount: int = field(metadata=dict(data_key='totalRetiredAmount'))
     total_technologies: Dict[str, int] = field(metadata=dict(data_key='totalTechnologies'))
 
 

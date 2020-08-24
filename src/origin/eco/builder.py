@@ -100,23 +100,29 @@ class EcoDeclarationBuilder(object):
         # {begin: amount}
         consumed_amount: Dict[datetime, float] = {}
 
+        # TODO
+        retired_amount: Dict[datetime, float] = {}
+
         # Consumed amount in Wh per technology (mapped by begin)
         # {begin: {technology: amount}}
         technologies: Dict[datetime, EmissionValues[str, float]] = {}
 
         for m in measurements:
             ggos = retired_ggos.get(m.gsrn, {}).get(m.begin, [])
-            ggos_with_emissions = [ggo for ggo in ggos if ggo.emissions]
-            retired_amount = sum(ggo.amount for ggo in ggos_with_emissions)
-            remaining_amount = m.amount - retired_amount
+            ggos_total_amount = sum(ggo.amount for ggo in ggos)
+            remaining_amount = m.amount - ggos_total_amount
 
-            assert 0 <= retired_amount <= m.amount
+            assert 0 <= ggos_total_amount <= m.amount
             assert 0 <= remaining_amount <= m.amount
-            assert retired_amount + remaining_amount == m.amount
+            assert ggos_total_amount + remaining_amount == m.amount
 
             # Consumed amount
             consumed_amount.setdefault(m.begin, 0)
             consumed_amount[m.begin] += m.amount
+
+            # Consumed amount
+            retired_amount.setdefault(m.begin, 0)
+            retired_amount[m.begin] += ggos_total_amount
 
             # Set default (empty) emission values for this begin
             emissions.setdefault(m.begin, EmissionValues())
@@ -125,7 +131,7 @@ class EcoDeclarationBuilder(object):
             technologies.setdefault(m.begin, EmissionValues())
 
             # Emission from retired GGOs
-            for ggo in ggos_with_emissions:
+            for ggo in ggos:
                 emissions[m.begin] += \
                     EmissionValues(**ggo.emissions) * ggo.amount
 
@@ -147,6 +153,7 @@ class EcoDeclarationBuilder(object):
         return EcoDeclaration(
             emissions=emissions,
             consumed_amount=consumed_amount,
+            retired_amount=retired_amount,
             technologies=technologies,
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
@@ -195,6 +202,7 @@ class EcoDeclarationBuilder(object):
         return EcoDeclaration(
             emissions=emissions,
             consumed_amount=consumed_amount,
+            retired_amount={},
             technologies=technologies,
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,

@@ -19,17 +19,20 @@ class EcoDeclaration(object):
         return cls(
             emissions={},
             consumed_amount={},
+            retired_amount={},
             technologies={},
             resolution=EcoDeclarationResolution.hour,
             utc_offset=0,
         )
 
-    def __init__(self, emissions, consumed_amount,
+    def __init__(self, emissions, consumed_amount, retired_amount,
                  technologies, resolution, utc_offset):
         """
         :param dict[datetime, EmissionValues[str, float]] emissions:
             Emissions in gram
         :param dict[datetime, float] consumed_amount:
+            Dict of {begin: amount}
+        :param dict[datetime, float] retired_amount:
             Dict of {begin: amount}
         :param dict[datetime, EmissionValues[str, float]] technologies:
             Dict of {technology: amount}
@@ -69,6 +72,7 @@ class EcoDeclaration(object):
 
         self.emissions = emissions
         self.consumed_amount = consumed_amount
+        self.retired_amount = retired_amount
         self.technologies = technologies
         self.resolution = resolution
         self.utc_offset = utc_offset
@@ -81,6 +85,15 @@ class EcoDeclaration(object):
         :rtype: int
         """
         return sum(self.consumed_amount.values())
+
+    @property
+    def total_retired_amount(self):
+        """
+        TODO
+
+        :rtype: int
+        """
+        return sum(self.retired_amount.values())
 
     @property
     def total_emissions(self):
@@ -185,6 +198,7 @@ class EcoDeclaration(object):
 
         new_emissions = {}
         new_consumed_amount = {}
+        new_retired_amount = {}
         new_technologies = {}
 
         for new_begin, old_begins in begins_sorted_and_grouped:
@@ -196,12 +210,16 @@ class EcoDeclaration(object):
             new_consumed_amount[new_begin] = \
                 sum(self.consumed_amount[b] for b in old_begins)
 
+            new_retired_amount[new_begin] = \
+                sum(self.retired_amount.get(b, 0) for b in old_begins)
+
             new_technologies[new_begin] = \
                 sum(self.technologies[b] for b in old_begins)
 
         return EcoDeclaration(
             emissions=new_emissions,
             consumed_amount=new_consumed_amount,
+            retired_amount=new_retired_amount,
             resolution=resolution,
             technologies=new_technologies,
             utc_offset=utc_offset,
