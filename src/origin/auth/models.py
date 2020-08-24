@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from marshmallow import fields
 from marshmallow_dataclass import NewType
 
+from origin.common import DateTimeRange, DateRange
 from origin.db import ModelBase
 from origin.ledger import KeyGenerator
 from origin.services.datahub import MeteringPoint as DataHubMeteringPoint
@@ -227,3 +228,19 @@ class Account:
 class GetAccountsResponse:
     success: bool
     accounts: List[Account]
+
+
+# -- SearchSuppliers request and response ------------------------------------
+
+
+@dataclass
+class FindSuppliersRequest:
+    date_range: DateRange = field(metadata=dict(data_key='dateRange'))
+    min_amount: int = field(metadata=dict(data_key='minAmount'))
+    min_coverage: float = field(metadata=dict(data_key='minCoverage'))
+
+
+@dataclass
+class FindSuppliersResponse:
+    success: bool
+    suppliers: List[str]

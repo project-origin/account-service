@@ -100,19 +100,34 @@ Name | Description | Example
 `CONCURRENCY` | Number of gevent greenthreads to execute asynchronous tasks | `100`
 
 
-## Building container images
+## Building container image
+
+    docker build -f Dockerfile -t account-service:v1 .
+
+## Running container images
 
 Web API:
 
-    sudo docker build -f Dockerfile.web -t account-service-web:v1 .
+    docker run --entrypoint /app/entrypoint.web.sh account-service:v1
 
 Worker:
 
-    sudo docker build -f Dockerfile.worker -t account-service-worker:v1 .
+    docker run --entrypoint /app/entrypoint.worker.sh account-service:v1
 
 Worker Beat:
 
-    sudo docker build -f Dockerfile.beat -t account-service-beat:v1 .
+    docker run --entrypoint /app/entrypoint.beat.sh account-service:v1
+
+# System architecture
+
+The following diagram depicts the overall architecture of AccountService and its dependencies. A few key points are listed below the diagram.
+
+![alt text](doc/AccountService.png)
+
+- It exposes a web API using OAuth2 authentication.
+- It has one asynchronous worker running its own process (container).
+- The web API process starts asynchronous tasks by submitting them to a distributed queue using Redis.
+- A Beat process kicks off periodic tasks.
 
 
 # 3rd party libraries

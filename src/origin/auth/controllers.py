@@ -17,7 +17,7 @@ from origin.pipelines import (
 )
 
 from .token import Token
-from .decorators import require_oauth, inject_token
+from .decorators import require_oauth, inject_token, inject_user
 from .queries import UserQuery, MeteringPointQuery
 from .backend import AuthBackend
 from .models import (
@@ -30,8 +30,10 @@ from .models import (
     GetAccountsResponse,
     OnMeteringPointsAvailableWebhookRequest,
     OnMeteringPointAvailableWebhookRequest,
+    FindSuppliersRequest,
+    FindSuppliersResponse,
 )
-
+from ..common import DateTimeRange
 
 backend = AuthBackend()
 
@@ -195,6 +197,86 @@ class GetAccounts(Controller):
             success=True,
             accounts=[Account(id=token.subject)],
         )
+
+
+class FindSuppliers(Controller):
+    """
+    TODO
+    """
+    Request = md.class_schema(FindSuppliersRequest)
+    Response = md.class_schema(FindSuppliersResponse)
+
+    @require_oauth('profile')
+    @inject_user
+    def handle_request(self, request, user):
+        """
+        :param FindSuppliersRequest request:
+        :param User user:
+        :rtype: GetAccountsResponse
+        """
+        begin_range = DateTimeRange.from_date_range(request.date_range)
+
+        users = list(self.find_suppliers(
+            begin_from=begin_range.begin,
+            begin_to=begin_range.end,
+            min_amount=request.min_amount,
+            min_coverage=request.min_coverage,
+            exclude_user_id=user.id,
+        ))
+
+        return FindSuppliersResponse(
+            success=True,
+            suppliers=[u.sub for u in users],
+        )
+
+    @inject_session
+    def find_suppliers(self, begin_from, begin_to, min_amount,
+                       min_coverage, exclude_user_id, session):
+        """
+        TODO
+
+        :param datetime begin_from:
+        :param datetime begin_to:
+        :param int min_amount:
+        :param float min_coverage:
+        :param int exclude_user_id:
+        :param sqlalchemy.orm.Session session:
+        :rtype: collections.abc.Iterable[User]
+        """
+        sql_params = {
+            'begin_from': begin_from,
+            'begin_to': begin_to,
+            'min_amount': min_amount,
+            'min_coverage': min_coverage,
+            'exclude_user_id': exclude_user_id,
+        }
+
+        sql = """
+            select user_id from (
+                select
+                       x.user_id,
+                       count(x.amount) as distinct_begins,
+                       count(x.amount) filter (where x.amount >= :min_amount) as eligible_begins
+                from (
+                       select ggo_ggo.user_id, sum(ggo_ggo.amount) as amount
+                       from ggo_ggo
+                       where ggo_ggo.stored = 't'
+                       and ggo_ggo.begin >= :begin_from
+                       and ggo_ggo.begin < :begin_to
+                       and ggo_ggo.user_id != :exclude_user_id
+                       group by ggo_ggo.user_id, ggo_ggo.begin
+                   ) AS x
+                group by 1
+                order by 2 desc
+            ) as y
+            where cast(eligible_begins as float) / distinct_begins >= :min_coverage
+            order by eligible_begins desc;
+        """
+
+        res = session.execute(sql, sql_params)
+
+        for row in res:
+            yield UserQuery(session).has_id(row[0]).one()
 
 
 class OnMeteringPointAvailableWebhook(Controller):

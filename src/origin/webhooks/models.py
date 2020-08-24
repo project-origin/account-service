@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from origin.db import ModelBase
 from origin.ggo import MappedGgo
+from origin.forecast import MappedForecast
 
 
 @dataclass
@@ -12,8 +13,15 @@ class OnGgoReceivedRequest:
     ggo: MappedGgo
 
 
+@dataclass
+class OnForecastReceivedRequest:
+    sub: str
+    forecast: MappedForecast
+
+
 class WebhookEvent(Enum):
     ON_GGO_RECEIVED = 'ON_GGO_RECEIVED'
+    ON_FORECAST_RECEIVED = 'ON_FORECAST_RECEIVED'
 
 
 class WebhookSubscription(ModelBase):

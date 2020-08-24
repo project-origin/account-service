@@ -1,2 +1,2 @@
-from .models import DateTimeRange
+from .models import DateRange, DateTimeRange
 from .emissions import EmissionValues

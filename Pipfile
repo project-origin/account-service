@@ -35,6 +35,7 @@ fire = "*"
 WeasyPrint = "*"
 plotly = "==4.8.2"
 jinja2 = "*"
+isodate = "*"
 
 [requires]
 python_version = "3.7"
