@@ -188,9 +188,12 @@ class EcoDeclarationBuilder(object):
         )
 
         for begin, measurements in measurements_sorted_and_grouped:
-            unique_sectors_this_begin = set(m.sector for m in measurements)
+            # unique_sectors_this_begin = set(m.sector for m in measurements)
+            unique_sectors = ('DK1', 'DK2')
 
-            for sector in unique_sectors_this_begin:
+            for sector in unique_sectors:
+                if sector not in general_mix_emissions[begin]:
+                    continue
                 mix = general_mix_emissions[begin][sector]
 
                 emissions.setdefault(begin, EmissionValues())
