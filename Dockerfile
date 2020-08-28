@@ -8,7 +8,7 @@ COPY Pipfile /app
 COPY Pipfile.lock /app
 WORKDIR /app
 RUN apt-get update
-RUN apt-get install curl pkg-config libsecp256k1-dev libzmq3-dev libnss3-dev  -y
+RUN apt-get install curl pkg-config libsecp256k1-dev libzmq3-dev libnss3-dev libgtk-3-0  -y
 RUN curl -sL https://deb.nodesource.com/setup_14.x  | bash -
 RUN apt-get install nodejs -y
 RUN npm install --global --unsafe-perm --save-dev electron@6.1.4 orca
