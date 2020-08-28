@@ -1,3 +1,4 @@
+import plotly.io as pio
 import plotly.graph_objects as go
 from io import BytesIO
 from jinja2 import Template
@@ -10,6 +11,9 @@ from origin.settings import (
 )
 
 from .declaration import EcoDeclaration
+
+
+pio.orca.config.use_xvfb = True
 
 
 TECHNOLOGY_COLORS_DEFAULT = 'black'

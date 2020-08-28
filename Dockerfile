@@ -10,7 +10,7 @@ WORKDIR /app
 RUN apt-get update
 RUN apt-get install pkg-config libsecp256k1-dev libzmq3-dev -y
 # Required to install/run Orca/Electron:
-RUN apt-get install curl libnss3-dev libgtk-3-0 libgconf-2-4 libx11-xcb1 libasound2  -y
+RUN apt-get install curl libnss3-dev libgtk-3-0 libgconf-2-4 libx11-xcb1 libasound2 xvfb -y
 RUN curl -sL https://deb.nodesource.com/setup_14.x  | bash -
 RUN apt-get install nodejs -y
 RUN npm install --global --unsafe-perm --save-dev electron@6.1.4 orca
