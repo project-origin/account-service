@@ -1,12 +1,13 @@
 import marshmallow
 import sqlalchemy as sa
 import origin_ledger_sdk as ols
-from datetime import timezone, timedelta
+from datetime import timedelta
 from marshmallow_dataclass import NewType
+from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy.orm import relationship
 from enum import Enum
-from typing import List
+from typing import List, Dict
 from bip32utils import BIP32Key
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from origin.db import ModelBase, Session
 from origin.auth import User, sub_exists
 from origin.common import DateTimeRange
 from origin.ledger import KeyGenerator
+from origin.settings import UNKNOWN_TECHNOLOGY_LABEL
 from origin.services.datahub import Ggo as DataHubGgo
 
 
@@ -56,6 +58,7 @@ class Ggo(ModelBase):
     technology_code = sa.Column(sa.String(), nullable=False, index=True)
     fuel_code = sa.Column(sa.String(), nullable=False, index=True)
     technology = relationship('Technology', primaryjoin='and_(foreign(Ggo.technology_code) == Technology.technology_code, foreign(Ggo.fuel_code) == Technology.fuel_code)', lazy='joined')
+    emissions = sa.Column(JSONB())
 
     # Whether or not this GGO was originally issued (False means its
     # product of a trade/split)
@@ -110,6 +113,7 @@ class Ggo(ModelBase):
             end=self.end,
             technology_code=self.technology_code,
             fuel_code=self.fuel_code,
+            emissions=self.emissions,
             amount=amount,
             issued=False,
             stored=False,
@@ -117,6 +121,16 @@ class Ggo(ModelBase):
             synchronized=False,
             locked=False,
         )
+
+    @property
+    def technology_label(self):
+        """
+        :rtype: str
+        """
+        if self.technology is not None:
+            return self.technology.technology
+        else:
+            return UNKNOWN_TECHNOLOGY_LABEL
 
     @property
     def key(self):
@@ -233,6 +247,7 @@ class MappedGgo:
     technology: GgoTechnology
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
+    emissions: Dict[str, float] = field(default=None)
 
 
 class GgoCategory(Enum):

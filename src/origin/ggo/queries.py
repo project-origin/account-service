@@ -147,6 +147,21 @@ class GgoQuery(object):
             Ggo.begin == begin.astimezone(timezone.utc),
         ))
 
+    def begins_within(self, begin_range):
+        """
+        Only include GGOs which begins within the provided datetime
+        range (both begin and end are included).
+
+        TODO test this
+
+        :param DateTimeRange begin_range:
+        :rtype: GgoQuery
+        """
+        return self.__class__(self.session, self.q.filter(sa.and_(
+            Ggo.begin >= begin_range.begin.astimezone(timezone.utc),
+            Ggo.begin <= begin_range.end.astimezone(timezone.utc),
+        )))
+
     def is_issued(self, value=True):
         """
         Include or exclude GGOs which were issued from producing energy,
@@ -215,6 +230,18 @@ class GgoQuery(object):
             Ggo.retire_gsrn == gsrn,
         ))
 
+    def is_retired_to_any_gsrn(self, gsrn):
+        """
+        Only include GGOs which have been retired to any of the
+        provided GSRN numbers.
+
+        :param list[str] gsrn:
+        :rtype: GgoQuery
+        """
+        return self.__class__(self.session, self.q.filter(
+            Ggo.retire_gsrn.in_(gsrn),
+        ))
+
     def is_expired(self, value=True):
         """
         Include or exclude GGOs which are expired.
@@ -273,6 +300,16 @@ class GgoQuery(object):
         :rtype: GgoQuery
         """
         return self.is_tradable()
+
+    def has_emissions(self):
+        """
+        Only include GGOs which have emission data.
+
+        :rtype: GgoQuery
+        """
+        return self.__class__(self.session, self.q.filter(
+            Ggo.emissions.isnot(None),
+        ))
 
     def get_total_amount(self):
         """

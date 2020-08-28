@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Any, Dict
 from datetime import datetime
 from itertools import zip_longest
 from dataclasses import dataclass, field
@@ -130,6 +130,7 @@ class Ggo:
     expire_time: datetime = field(metadata=dict(data_key='expireTime'))
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
+    emissions: Dict[str, float] = field(default=None, metadata=dict(required=False, missing=None))
 
 
 # -- GetMeasurement request and response -------------------------------------

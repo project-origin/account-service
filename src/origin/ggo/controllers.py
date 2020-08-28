@@ -463,6 +463,7 @@ class OnGgoIssuedWebhook(Controller):
             sector=imported_ggo.sector,
             technology_code=imported_ggo.technology_code,
             fuel_code=imported_ggo.fuel_code,
+            emissions=imported_ggo.emissions,
             synchronized=True,
             issued=True,
             stored=True,
