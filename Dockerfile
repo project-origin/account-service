@@ -20,5 +20,4 @@ RUN chmod +x /app/entrypoint.web.sh
 RUN chmod +x /app/entrypoint.beat.sh
 RUN chmod +x /app/entrypoint.worker.sh
 EXPOSE 8085
-CMD ["orca"]
-#CMD ["./entrypoint.web.sh"]
+CMD ["./entrypoint.web.sh"]
