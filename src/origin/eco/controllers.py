@@ -40,6 +40,7 @@ class GetEcoDeclaration(Controller):
         meteringpoints = MeteringPointQuery(session) \
             .belongs_to(user) \
             .has_any_gsrn(request.gsrn) \
+            .is_consumption() \
             .all()
 
         gsrn = [m.gsrn for m in meteringpoints]
