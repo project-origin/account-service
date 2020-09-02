@@ -15,6 +15,7 @@ resources:
     - repository: self
     - repository: templates
       type: github
+      endpoint: project-origin
       name: project-origin/pipeline-templates
 
 variables:
