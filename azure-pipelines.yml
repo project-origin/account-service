@@ -10,7 +10,6 @@ trigger:
 pr: none
 
 resources:
-
   repositories:
     - repository: self
     - repository: templates
@@ -66,6 +65,10 @@ jobs:
       kubeCon: $(kubeCon)
       namespace: $(namespace)
       releaseName: $(releaseName)
-      poolName: $(poolName)
       deploymentEnvironment: $(deploymentEnvironment)
       overrideValues: tag=$(tag)
+      pool:
+        ${{ if ne(variables['poolName'], '') }}:
+          name: $(poolName)
+        ${{ if eq(variables['poolName'], '') }}:
+          vmImage: 'ubuntu-latest'
