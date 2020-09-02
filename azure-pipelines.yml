@@ -2,6 +2,7 @@ trigger:
   branches:
     include:
     - master
+    - preprod
     - test
     - develop
 
@@ -9,17 +10,19 @@ trigger:
 pr: none
 
 resources:
-- repo: self
+
+  repositories:
+    - repository: self
+    - repository: templates
+      type: github
+      name: project-origin/pipeline-templates
 
 variables:
+- name: releaseName
+  value: 'account-service'
 - name: imageName
-  value: 'projectorigin/$(releaseName)' 
-- ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
-  - group: 'production'
-- ${{ if eq(variables['Build.SourceBranchName'], 'test') }}:
-  - group: 'preprod'
-- ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
-  - group: 'develop'
+  value: 'projectorigin/$(releaseName)'
+- template: vars.yml@templates
 
 pool:
   vmImage: 'ubuntu-latest'
