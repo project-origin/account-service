@@ -1,13 +1,12 @@
 trigger:
   branches:
     include:
-    - master
-    - preprod
-    - test
-    - develop
+    - '*'
 
-# no PR triggers
-pr: none
+pr:
+  branches:
+    include:
+    - '*'
 
 resources:
   repositories:
@@ -28,47 +27,24 @@ pool:
   vmImage: 'ubuntu-latest'
 
 jobs:
-  - job: test
-    displayName: Test
-    pool:
-      vmImage: 'ubuntu-latest'
-    variables:
-      TEST: 1
-    steps:
-      - script: sudo apt update
-        displayName: 'Update repo'
+    - template: job-run-pytest.yml@templates
+  
+  - ${{ if nq(variables['Build.Reason'], 'PullRequest') }}:
+    - template: job-docker-build.yml@templates
+      parameters:
+        imageName: $(imageName)
+        tag: $(tag)
 
-      - script: sudo apt install -y pkg-config gcc libsecp256k1-dev libzmq3-dev
-        displayName: 'Install packages'
-
-      - task: UsePythonVersion@0
-        inputs:
-          versionSpec: '3.7'
-
-      - script: pip install --upgrade twine wheel setuptools pip pipenv
-        displayName: 'Upgrading/installing Python packages'
-
-      - script: python -m pipenv install -d
-        displayName: 'Installing dependencies from Pipenv'
-
-      - script: python -m pipenv run pytest
-        displayName: 'Run tests'
-
-
-  - template: job-docker-build.yml@templates
-    parameters:
-      imageName: $(imageName)
-      tag: $(tag)
-
-  - template: job-deploy.yml@templates
-    parameters:
-      kubeCon: $(kubeCon)
-      namespace: $(namespace)
-      releaseName: $(releaseName)
-      deploymentEnvironment: $(deploymentEnvironment)
-      overrideValues: tag=$(tag)
-      pool:
-        ${{ if ne(variables['poolName'], '') }}:
-          name: $(poolName)
-        ${{ if eq(variables['poolName'], '') }}:
-          vmImage: 'ubuntu-latest'
+  - ${{ if nq(variables['Build.Reason'], 'PullRequest') }}:
+    - template: job-deploy.yml@templates
+      parameters:
+        kubeCon: $(kubeCon)
+        namespace: $(namespace)
+        releaseName: $(releaseName)
+        deploymentEnvironment: $(deploymentEnvironment)
+        overrideValues: tag=$(tag)
+        pool:
+          ${{ if ne(variables['poolName'], '') }}:
+            name: $(poolName)
+          ${{ if eq(variables['poolName'], '') }}:
+            vmImage: 'ubuntu-latest'
