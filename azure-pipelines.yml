@@ -4,7 +4,7 @@ trigger:
     - '*'
 
 pr:
-  - '*'
+- '*'
 
 resources:
   repositories:
@@ -25,24 +25,22 @@ pool:
   vmImage: 'ubuntu-latest'
 
 jobs:
-    - template: job-run-pytest.yml@templates
-  
-  - ${{ if nq(variables['Build.Reason'], 'PullRequest') }}:
-    - template: job-docker-build.yml@templates
-      parameters:
-        imageName: $(imageName)
-        tag: $(tag)
+  - template: job-run-pytest.yml@templates
 
-  - ${{ if nq(variables['Build.Reason'], 'PullRequest') }}:
-    - template: job-deploy.yml@templates
-      parameters:
-        kubeCon: $(kubeCon)
-        namespace: $(namespace)
-        releaseName: $(releaseName)
-        deploymentEnvironment: $(deploymentEnvironment)
-        overrideValues: tag=$(tag)
-        pool:
-          ${{ if ne(variables['poolName'], '') }}:
-            name: $(poolName)
-          ${{ if eq(variables['poolName'], '') }}:
-            vmImage: 'ubuntu-latest'
+  - template: job-docker-build.yml@templates
+    parameters:
+      imageName: $(imageName)
+      tag: $(tag)
+
+  - template: job-deploy.yml@templates
+    parameters:
+      kubeCon: $(kubeCon)
+      namespace: $(namespace)
+      releaseName: $(releaseName)
+      deploymentEnvironment: $(deploymentEnvironment)
+      overrideValues: tag=$(tag)
+      pool:
+        ${{ if ne(variables['poolName'], '') }}:
+          name: $(poolName)
+        ${{ if eq(variables['poolName'], '') }}:
+          vmImage: 'ubuntu-latest'
