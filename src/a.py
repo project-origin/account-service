@@ -36,6 +36,7 @@
 #
 # html = HTML('template.html', url_fetcher=url_fetcher)
 # html.write_pdf('asd.pdf')
+
 from datetime import datetime, timezone, timedelta
 from io import BytesIO
 
