@@ -157,6 +157,15 @@ class MeteringPointQuery(object):
             MeteringPoint.gsrn == gsrn,
         ))
 
+    def has_any_gsrn(self, gsrn):
+        """
+        :param list[str] gsrn:
+        :rtype: MeteringPointQuery
+        """
+        return self.__class__(self.session, self.q.filter(
+            MeteringPoint.gsrn.in_(gsrn),
+        ))
+
     def is_type(self, type):
         """
         :param MeteringPointType type:

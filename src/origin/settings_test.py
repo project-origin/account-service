@@ -24,6 +24,7 @@ DATABASE_URI = None
 
 DATAHUB_SERVICE_URL = None
 LEDGER_URL = None
+ENERGY_TYPE_SERVICE_URL = None
 
 
 # -- webhook -----------------------------------------------------------------

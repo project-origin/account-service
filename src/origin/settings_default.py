@@ -29,6 +29,7 @@ DATABASE_URI = os.environ['DATABASE_URI']
 
 DATAHUB_SERVICE_URL = os.environ['DATAHUB_SERVICE_URL']
 LEDGER_URL = os.environ['LEDGER_URL']
+ENERGY_TYPE_SERVICE_URL = os.environ['ENERGY_TYPE_SERVICE_URL']
 
 
 # -- webhook -----------------------------------------------------------------

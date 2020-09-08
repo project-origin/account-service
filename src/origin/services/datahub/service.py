@@ -16,6 +16,8 @@ from .models import (
     GetGgoListResponse,
     GetMeasurementRequest,
     GetMeasurementResponse,
+    GetMeasurementListRequest,
+    GetMeasurementListResponse,
     GetMeteringPointsResponse,
     SetKeyRequest,
     SetKeyResponse,
@@ -127,6 +129,20 @@ class DataHubService(object):
             token=token,
             path='/meteringpoints',
             response_schema=md.class_schema(GetMeteringPointsResponse),
+        )
+
+    def get_measurements(self, token, request):
+        """
+        :param GetMeasurementListRequest request:
+        :param str token:
+        :rtype: GetMeasurementListResponse
+        """
+        return self.invoke(
+            token=token,
+            path='/measurements',
+            request=request,
+            request_schema=md.class_schema(GetMeasurementListRequest),
+            response_schema=md.class_schema(GetMeasurementListResponse),
         )
 
     def get_ggo_list(self, token, request):

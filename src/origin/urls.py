@@ -1,5 +1,7 @@
 from .ggo import controllers as ggo
+from .eco import controllers as eco
 from .auth import controllers as auth
+from .forecast import controllers as forecast
 from .webhooks import controllers as webhooks
 from .webhooks import WebhookEvent
 
@@ -12,7 +14,9 @@ urls = (
 
     # Accounts
     ('/accounts', auth.GetAccounts()),
+    ('/accounts/find-suppliers', auth.FindSuppliers()),
 
+    # GGOs
     ('/ggo', ggo.GetGgoList()),
     ('/ggo/compose', ggo.ComposeGgo()),
     ('/ggo/summary', ggo.GetGgoSummary()),
@@ -22,11 +26,23 @@ urls = (
     ('/transfer/summary', ggo.GetTransferSummary()),
     ('/transfer/get-total-amount', ggo.GetTransferredAmount()),
 
+    # Eco declaration
+    ('/eco-declaration', eco.GetEcoDeclaration()),
+    ('/eco-declaration/export-pdf', eco.ExportEcoDeclarationPDF()),
+
+    # Forecasts
+    ('/forecast', forecast.GetForecast()),
+    ('/forecast/list', forecast.GetForecastList()),
+    ('/forecast/series', forecast.GetForecastSeries()),
+    ('/forecast/submit', forecast.SubmitForecast()),
+
     # Webhooks
     ('/webhook/on-ggo-issued', ggo.OnGgoIssuedWebhook()),
     ('/webhook/on-meteringpoint-available', auth.OnMeteringPointAvailableWebhook()),
     ('/webhook/on-ggo-received/subscribe', webhooks.Subscribe(WebhookEvent.ON_GGO_RECEIVED)),
     ('/webhook/on-ggo-received/unsubscribe', webhooks.Unsubscribe(WebhookEvent.ON_GGO_RECEIVED)),
+    ('/webhook/on-forecast-received/subscribe', webhooks.Subscribe(WebhookEvent.ON_FORECAST_RECEIVED)),
+    ('/webhook/on-forecast-received/unsubscribe', webhooks.Unsubscribe(WebhookEvent.ON_FORECAST_RECEIVED)),
 
     # TODO
     # Remove these once ExampleBackend is been changed to make use
