@@ -248,6 +248,7 @@ class MappedGgo:
     technology_code: str = field(default=None, metadata=dict(data_key='technologyCode'))
     fuel_code: str = field(default=None, metadata=dict(data_key='fuelCode'))
     emissions: Dict[str, float] = field(default=None)
+    issue_gsrn: str = field(default=None, metadata=dict(data_key='issueGsrn'))
 
 
 class GgoCategory(Enum):
