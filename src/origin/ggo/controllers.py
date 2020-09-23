@@ -380,6 +380,7 @@ class ComposeGgo(Controller):
         :rtype: User
         """
         return UserQuery(session) \
+            .is_active() \
             .has_sub(sub) \
             .one_or_none()
 
@@ -478,6 +479,7 @@ class OnGgoIssuedWebhook(Controller):
         :rtype: User
         """
         return UserQuery(session) \
+            .is_active() \
             .has_sub(sub) \
             .one_or_none()
 

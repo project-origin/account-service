@@ -25,6 +25,7 @@ class User(ModelBase):
     id = sa.Column(sa.Integer, primary_key=True, index=True)
     created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
     last_login = sa.Column(sa.DateTime(timezone=True))
+    active = sa.Column(sa.Boolean(), nullable=False, default=True)
 
     # Subject ID / Account number
     sub = sa.Column(sa.String(), index=True, unique=True, nullable=False)

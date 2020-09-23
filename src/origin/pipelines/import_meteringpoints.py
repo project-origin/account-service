@@ -11,7 +11,6 @@ from sqlalchemy import orm
 from celery import group, shared_task
 
 from origin import logger
-from origin.auth import UserQuery
 from origin.db import atomic, inject_session
 from origin.services.datahub import (
     DataHubService,
@@ -42,7 +41,7 @@ def start_import_meteringpoints(session):
 
     :param sqlalchemy.orm.Session session:
     """
-    for user in UserQuery(session).all():
+    for user in UserQuery(session).is_active().all():
         start_import_meteringpoints_for(user.sub)
 
 
@@ -96,6 +95,7 @@ def import_meteringpoints_and_insert_to_db(task, subject, session):
     # Get User from DB
     try:
         user = UserQuery(session) \
+            .is_active() \
             .has_sub(subject) \
             .one()
     except orm.exc.NoResultFound:
@@ -174,6 +174,7 @@ def send_key_to_datahub_service(task, subject, gsrn, session):
     # Get User from DB
     try:
         user = UserQuery(session) \
+            .is_active() \
             .has_sub(subject) \
             .one()
     except orm.exc.NoResultFound:
