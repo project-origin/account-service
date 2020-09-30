@@ -32,7 +32,7 @@ jobs:
 
   - template: job-deploy.yml@templates
     parameters:
-      dependsOn: docker_build
+      dependsOn: build_test_push
       kubeCon: $(kubeCon)
       namespace: $(namespace)
       releaseName: $(releaseName)
