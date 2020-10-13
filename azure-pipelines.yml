@@ -19,6 +19,8 @@ variables:
     value: 'account-service'
   - name: imageName
     value: 'projectorigin/$(releaseName)'
+  - name: checkoutFolder
+    value: 'account-service'
   - template: vars.yml@templates
 
 pool:
@@ -38,6 +40,7 @@ jobs:
       releaseName: $(releaseName)
       deploymentEnvironment: $(deploymentEnvironment)
       overrideValues: tag=$(tag)
+      checkoutFolder: $(checkoutFolder)
       pool:
         ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
           name: $(poolName)
