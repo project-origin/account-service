@@ -40,13 +40,13 @@ spec:
               value: "{{ .Values.workers }}"
             - name: WORKER_CONNECTIONS
               value: "{{ .Values.workerconnections }}"
-          resources:
-            requests:
-              memory: "1000Mi"
-              cpu: "250m"
-            limits:
-              memory: "2500Mi"
-              cpu: "1000m"
+#          resources:
+#            requests:
+#              memory: "1000Mi"
+#              cpu: "250m"
+#            limits:
+#              memory: "2500Mi"
+#              cpu: "1000m"
 
 ---
 apiVersion: apps/v1
@@ -84,13 +84,13 @@ spec:
           env:
             - name: SERVICE_NAME
               value: AccountServiceBeat
-          resources:
-            requests:
-              memory: "100Mi"
-              cpu: "100m"
-            limits:
-              memory: "250Mi"
-              cpu: "500m"
+#          resources:
+#            requests:
+#              memory: "100Mi"
+#              cpu: "100m"
+#            limits:
+#              memory: "250Mi"
+#              cpu: "500m"
 
 ---
 apiVersion: apps/v1
@@ -130,10 +130,10 @@ spec:
               value: AccountServiceWorker
             - name: CONCURRENCY
               value: "{{ .Values.concurrency }}"
-          resources:
-            requests:
-              memory: "250Mi"
-              cpu: "1000m"
-            limits:
-              memory: "2000Mi"
-              cpu: "2000m"
+#          resources:
+#            requests:
+#              memory: "250Mi"
+#              cpu: "1000m"
+#            limits:
+#              memory: "2000Mi"
+#              cpu: "2000m"
