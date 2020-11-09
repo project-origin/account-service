@@ -119,6 +119,7 @@ class LoginCallback(Controller):
 
         # Lookup user from "subject"
         user = UserQuery(session) \
+            .is_active() \
             .has_sub(id_token['sub']) \
             .one_or_none()
 
@@ -177,6 +178,32 @@ class LoginCallback(Controller):
         :rtype: flask.Response
         """
         return redirect(f'{return_url}?success=0&msg={msg}', code=303)
+
+
+class DisableUser(Controller):
+    """
+    Disables a user (permanently).
+    """
+
+    @require_oauth('profile')
+    @inject_token
+    def handle_request(self, token):
+        """
+        :param Token token:
+        :rtype: bool
+        """
+        self.disable_user(token.subject)
+        return True
+
+    @atomic
+    def disable_user(self, subject, session):
+        """
+        :param str subject:
+        :param sqlalchemy.orm.Session session:
+        """
+        UserQuery(session) \
+            .has_sub(subject) \
+            .update({'disabled': True})
 
 
 class GetAccounts(Controller):
@@ -276,7 +303,10 @@ class FindSuppliers(Controller):
         res = session.execute(sql, sql_params)
 
         for row in res:
-            yield UserQuery(session).has_id(row[0]).one()
+            yield UserQuery(session) \
+                .is_active() \
+                .has_id(row[0]) \
+                .one()
 
 
 class OnMeteringPointAvailableWebhook(Controller):
@@ -296,6 +326,7 @@ class OnMeteringPointAvailableWebhook(Controller):
         :rtype: bool
         """
         user = UserQuery(session) \
+            .is_active() \
             .has_sub(request.sub) \
             .one_or_none()
 
@@ -395,6 +426,7 @@ class OnMeteringPointsAvailableWebhook(Controller):
         :rtype: bool
         """
         user = UserQuery(session) \
+            .is_active() \
             .has_sub(request.sub) \
             .one_or_none()
 

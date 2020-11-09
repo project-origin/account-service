@@ -160,6 +160,7 @@ class SubmitForecast(Controller):
         :rtype: (Forecast, origin.auth.User)
         """
         recipient = UserQuery(session) \
+            .is_active() \
             .has_sub(request.account) \
             .one()
 

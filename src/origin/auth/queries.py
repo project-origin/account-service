@@ -48,6 +48,14 @@ class UserQuery(object):
     def __getattr__(self, name):
         return getattr(self.q, name)
 
+    def is_active(self):
+        """
+        :rtype: UserQuery
+        """
+        return UserQuery(self.session, self.q.filter(
+            User.disabled.is_(False),
+        ))
+
     def has_id(self, id):
         """
         Only include the user with a specific ID.
