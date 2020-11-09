@@ -36,9 +36,9 @@ def start_submit_batch_pipeline(subject, batch, success=None, error=None):
     :rtype: celery.result.AsyncResult
     """
     pipeline = chain(
-        submit_batch_to_ledger.si(subject=subject, batch_id=batch.id),
-        batch_on_submitted.s(subject=subject, batch_id=batch.id),
-        poll_batch_status.si(subject=subject, batch_id=batch.id),
+        # submit_batch_to_ledger.si(subject=subject, batch_id=batch.id),
+        # batch_on_submitted.s(subject=subject, batch_id=batch.id),
+        # poll_batch_status.si(subject=subject, batch_id=batch.id),
         batch_on_commit.si(subject=subject, batch_id=batch.id),
     )
 
