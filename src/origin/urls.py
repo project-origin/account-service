@@ -11,6 +11,7 @@ urls = (
     # Auth / Users
     ('/auth/login', auth.Login()),
     ('/auth/login/callback', auth.LoginCallback()),
+    ('/auth/disable-user', auth.DisableUser()),
 
     # Accounts
     ('/accounts', auth.GetAccounts()),
