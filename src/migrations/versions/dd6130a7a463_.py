@@ -24,6 +24,7 @@ def upgrade():
     #            existing_type=sa.BOOLEAN(),
     #            nullable=False)
     # ### end Alembic commands ###
+    pass
 
 
 def downgrade():
