@@ -203,7 +203,7 @@ class DisableUser(Controller):
         """
         UserQuery(session) \
             .has_sub(subject) \
-            .update({'active': False})
+            .update({'disabled': True})
 
 
 class GetAccounts(Controller):

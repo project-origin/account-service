@@ -53,7 +53,7 @@ class UserQuery(object):
         :rtype: UserQuery
         """
         return UserQuery(self.session, self.q.filter(
-            User.active.is_(True),
+            User.disabled.is_(False),
         ))
 
     def has_id(self, id):
