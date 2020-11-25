@@ -16,6 +16,7 @@ def sub_exists(sub, session, *args, **kwargs):
     Validates that a user exists with the provided subject.
     """
     user = UserQuery(session) \
+        .is_active() \
         .has_sub(sub) \
         .one_or_none()
 

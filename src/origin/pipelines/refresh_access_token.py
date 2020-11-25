@@ -2,6 +2,7 @@
 Asynchronous tasks for refreshing access tokens which
 are close to expiring.
 """
+from sqlalchemy import orm
 from celery import group, shared_task
 from datetime import datetime, timezone
 
@@ -59,6 +60,7 @@ def get_soon_to_expire_tokens(session):
     :param sqlalchemy.orm.Session session:
     """
     users = UserQuery(session) \
+        .is_active() \
         .should_refresh_token()
 
     tasks = [refresh_token.si(subject=user.sub) for user in users]
@@ -83,9 +85,22 @@ def refresh_token(subject, session):
     :param str subject:
     :param sqlalchemy.orm.Session session:
     """
-    user = UserQuery(session) \
-        .has_sub(subject) \
-        .one()
+    __log_extra = {
+        'subject': subject,
+        'pipeline': 'refresh_token',
+        'task': 'refresh_token',
+    }
+
+    try:
+        user = UserQuery(session) \
+            .is_active() \
+            .has_sub(subject) \
+            .one()
+    except orm.exc.NoResultFound:
+        logger.info('Could not refresh token: User not found', extra=__log_extra)
+        return
+    except Exception as e:
+        raise
 
     token = backend.refresh_token(user.refresh_token)
 
