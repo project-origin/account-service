@@ -96,7 +96,7 @@ def submit_batch_to_ledger(task, subject, batch_id, session):
     try:
         handle = ledger.execute_batch(batch.build_ledger_batch())
     except ols.LedgerConnectionError as e:
-        logger.exception('Failed to submit batch to ledger', extra=__log_extra)
+        logger.exception('Failed to submit batch to ledger, retrying...', extra=__log_extra)
         raise task.retry(exc=e)
     except ols.LedgerException as e:
         if e.code in (15, 17, 18):
@@ -193,7 +193,7 @@ def poll_batch_status(task, subject, batch_id, session):
     try:
         response = ledger.get_batch_status(batch.handle)
     except ols.LedgerConnectionError as e:
-        logger.exception('Failed to poll ledger for batch status', extra=__log_extra)
+        logger.exception('Failed to poll ledger for batch status, retrying...', extra=__log_extra)
         raise task.retry(exc=e)
 
     # Assert status
