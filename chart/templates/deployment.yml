@@ -13,7 +13,7 @@ spec:
       labels:
         app: account-deployment
     spec:
-      terminationGracePeriodSeconds: 60
+      terminationGracePeriodSeconds: 300
       containers:
         - name: account-service-api-container
           image: projectorigin/account-service:{{ .Values.tag }}
