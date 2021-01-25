@@ -18,6 +18,7 @@ tags:
   - name: Users and Accounts
   - name: GGO
   - name: Transfers
+  - name: Forecasts
   - name: Webhooks
 
 
@@ -28,7 +29,7 @@ paths:
       summary: Initiate a login flow
       description: |
         Redirects the client to the authentication server to perform authentication and grant necessary permissions (possibly signing up and activating their account for the first time). The redirect URL contains login tokens unique for, and personal to, the client, and should never be reused.
-        
+
         Upon completing the login flow, the client is redirected back to AccountService, which creates an account in its own database (if one not already exists for the user) before redirecting the client back to the provided returnUrl.
       security:
         - bearerAuth: []
@@ -51,9 +52,9 @@ paths:
       summary: Login callback from authentication server
       description: |
         Internal endpoint - should not be invoked explicitly.
-        
+
         Callback for when login flow is complete.
-    
+
         Creates an account in its own database (if one not already exists for the user) before redirecting the client back to the provided returnUrl.
       security:
         - bearerAuth: []
@@ -115,29 +116,29 @@ paths:
       summary: Get a list of GGOs
       description: |
         Returns a list of GGO objects which belongs to the account. The database contains a historical record of prioir received, sent, and retired GGOs, so this endpoint will return GGOs that are no longer available, unless filtered out.
-        
+
         ## Offset and limit (paging)
-        
+
         The client can optionally provide an "offset" and/or "limit" of how many objects to return in each request. The response JSON contains the total amount of results (independent of the provided offset and limit), and can be used to calculate total number of requests required to get all GGOs. Its adviced to keep the provided "limit" reasonable low, as JSON encoding- and decoding can be rather memory consuming.
-        
+
         ## Filtering
-        
+
         The "filters" object in the request body allows to narrow down results. All filters are optional, but can be mixed to perform complex searches. Some filters are an array of values, which filters out any GGOs not having any of the provided values (analogous to an SQL "IN" statement).
-        
+
         ### Filtering on GGO begin
-        
+
         "begin" is the time at which the energy production began. It usually have an end time which is one hour later, but only the begin is filtered upon. It is possible to filters GGOs on either one specific begin, or a range/period defined by a from- and to datetime. These two options should be considered mutually exclusive.
-        
+
         ### Filtering on category
-        
+
         "category" is the current state of a GGO. A GGO can be in multiple categories at a time depending on it's lifecycle. For instance, a GGO can be "issued" and "stored" at the same time, but can not be "retired" and "stored" at the same time. Possible categories are:
-        
+
         - issued
-        
+
         - stored
-        
+
         - retired
-        
+
         - expired
       security:
         - bearerAuth: []
@@ -190,21 +191,21 @@ paths:
       summary: Transfer and/or retire a GGO
       description: |
         Provided an address to a [parent] GGO, this endpoint will split it up into multiple new GGOs ("composing" them from the parent) and transfer the new GGOs (children) to other accounts and/or retire them to any of the user's own MeteringPoints.
-        
+
         To do this, provide one or more TransferRequests along with one or more RetireRequests.The sum of these can not exceed the parent GGO's amount, but can, however deceed it. Any remaining amount is automatically transferred back to the owner of the parent GGO.
-        
+
         ## Transfers
-        
+
         Each TransferRequests contains an amount in Wh, an account ID to transfer the given amount to, and an arbitrary reference string for future enquiry if necessary.
-        
+
         ## Retires
-        
+
         Each RetireRequests contains an amount in Wh, and a GSRN number to retire the specified amount to. The MeteringPoint, identified by the GSRN number, must belong to the user itself.
-        
+
         ## Concurrency
-        
+
         The requested transfers and retires are considered successful upon response from this endpoint if the returned value of "success" is true. This means that subsequent requests to other endpoints will immediately assume the transfers or retires valid.
-        
+
         However, due to the asynchronous nature of the blockchain ledger, this operation may be rolled back later for reasons that could not be foreseen at the time invoking this endpoint. This will result in the parent GGO being stored and available to the user's account again, thus also cancelling transfers and retires.
       security:
         - bearerAuth: []
@@ -257,27 +258,27 @@ paths:
       summary: Get a summary of GGOs
       description: |
         Returns a summary of the account's GGOs, or a subset hereof. Useful for plotting or visualizing data. GGOs are filtered in the same way as with the /ggo endpoint (above).
-        
+
         ## Time resolution
-        
+
         Data is returned in the data/time resolution specified in the request. The total amount of energy (Wh) is aggregated/summarized for each period. Available resolutions are:
-        
+
         - all
-        
+
         - year
-        
+
         - month
-        
+
         - day
-        
+
         - hour
-        
+
         ## Labels
-        
+
         The response contans an array of labels in order. Each label is a string representing a period of time according to the requested time resolution. There may be gaps in the array, depending on the source data, unless the "fill" parameter in the request is set to true.
-        
+
         ## Grouping
-        
+
         Data can be grouped by multiple different keys, much like an SQL "GROUP BY" statement.
         The returned data is split into one or more groups. Each group has an array of values, which is the aggregated energy for a period of time. The values are in same order as the returned labels. Values may be null.
       security:
@@ -391,9 +392,9 @@ paths:
       summary: Get a summary of transferred GGOs
       description: |
         This endpoint works the same way as /ggo/summary, except it only summarized transferred GGOs, either inbound or outbound (or both) depending on the "direction" parameter.
-        
+
         ## Filtering
-        
+
         In addition to the filters available for /ggo/summary, an additional filter "reference" is available to narrow down GGOs transferred with specific reference strings. These are the arbitrary string references provided when composing a transfer using the /ggo/compose endpoint.
       security:
         - bearerAuth: []
@@ -513,30 +514,246 @@ paths:
                     example: 5000
 
 
+  /forecast:
+    post:
+      summary: Get a single forecast
+      description: |
+        Returns a single forecast with the ability to provide one or more optional filters, through at least one filter is required. The parameter "atTime" filters out forecasts that is not active within the provided time.
+      security:
+        - bearerAuth: []
+      tags:
+        - Forecasts
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: Access token in the format "Bearer <access-token>"
+          schema:
+            type: string
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                id:
+                  type: string
+                  description: ID of the forecast
+                  example: '0d8664aa-2caf-4446-8b2c-2a7bf6f202e7'
+                reference:
+                  type: string
+                  description: Reference string
+                  example: 'my forecast reference'
+                atTime:
+                  type: string
+                  format: date-time
+                  description: Time forecast is active
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  forecast:
+                    $ref: '#/components/schemas/TransferFilters'
+
+
+  /forecast/list:
+    post:
+      summary: Get a list of forecasts
+      description: |
+        Returns a list of forecasts with the ability to provide one or more optional filters. The parameter "atTime" filters out forecasts that is not active within the provided time.
+      security:
+        - bearerAuth: []
+      tags:
+        - Forecasts
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: Access token in the format "Bearer <access-token>"
+          schema:
+            type: string
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                offset:
+                  type: integer
+                  description: Listing offset (default 0)
+                  example: 0
+                limit:
+                  type: integer
+                  description: Listing limit (default null)
+                  example: 20
+                reference:
+                  type: string
+                  description: Reference string
+                  example: 'my forecast reference'
+                atTime:
+                  type: string
+                  format: date-time
+                  description: Time forecast is active
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  total:
+                    type: integer
+                    description: Total number of results independent on offset and limit
+                    example: 500
+                  forecast:
+                    $ref: '#/components/schemas/TransferFilters'
+
+
+  /forecast/series:
+    post:
+      summary: Get a list of unique forecast series
+      description: |
+        Returns two lists of forecast references related to your account: one of those you have sent, and one of those you have received. These are the unique references (forecast series) available for you to filter by.
+      security:
+        - bearerAuth: []
+      tags:
+        - Forecasts
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: Access token in the format "Bearer <access-token>"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  sent:
+                    type: array
+                    description: Sent references
+                    example: ['my-refence', 'my-other-reference']
+                    items:
+                      type: string
+                  received:
+                    type: array
+                    description: Received references
+                    example: ['my-refence', 'my-other-reference']
+                    items:
+                      type: string
+
+
+  /forecast/submit:
+    post:
+      summary: Submit a forecast
+      description: |
+        Submit a forecast at a specific begin-time and with a data resolution.
+      security:
+        - bearerAuth: []
+      tags:
+        - Forecasts
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          description: Access token in the format "Bearer <access-token>"
+          schema:
+            type: string
+      requestBody:
+        description: TODO
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                account:
+                  type: string
+                  description: ID of account to send forecast to
+                  example: 'c6382a42-d29a-40e8-8e68-2df500ed00a3'
+                reference:
+                  type: string
+                  description: Reference string
+                  example: 'my forecast reference'
+                sector:
+                  type: string
+                  description: Sector (price area) the sector is valid within
+                  example: 'DK1'
+                begin:
+                  type: string
+                  format: date-time
+                  description: Time forecast begins (ie. the first value is at this time)
+                resolution:
+                  type: string
+                  format: iso8601
+                  description: Data resolution
+                  example: 'P1H'
+                forecast:
+                  type: array
+                  description: Forecast values
+                  example: [1, 2, 3, 4, 5]
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether or not the request succeeded
+                    example: true
+                  id:
+                    type: string
+                    description: ID of the newly created forecast
+                    example: 'c6382a42-d29a-40e8-8e68-2df500ed00a3'
+
+
   /webhook/on-ggo-received/subscribe:
     post:
       summary: Subscribe to webhook event ON_GGO_RECEIVED
       description: |
         Subscribe to webhook event ON_GGO_RECEIVED.
-        
+
         This event is fired every time the user receives a new GGO, either because it was issued by DataHubService, because another user transferred the GGO, or because the user composed a new GGO and there were a remainder, which was transferred back to the user itself.
-        
+
         Webhook events are expected to respond with a HTTP status 200. Any responses other than HTTP status 200 are retried every 60 seconds for up to around 24 hours. Hereafter retrying is cancelled.
-        
+
         ## Composing and Concurrency
-        
+
         Note: When a user composes a new GGO using the /ggo/compose endpoint, the asynchronous nature of the blockchain ledger delays webhooks until after the transaction has completed on the ledger. Hence, when receiving this webhook event, the receiving service can be confident that the GGO is valid.
-        
+
         ## Security using HMAC
-        
+
         When subscribing for a webhook event on behalf of a user, the service must provide a secret string. This is used when invoking the receiving service using HMAC Authentication. When firing the webhook, AccountServices provide a SHA256 encryptet hash of the body using the provided secret in the "x-hub-signature" header.
-        
+
         This implementation is a replica of how [GitHub secures their webhooks](https://developer.github.com/webhooks/securing/).
-        
+
         ## Webhook body
-        
+
         ON_GGO_RECEIVED webhooks are invoke using POST with a JSON body provided. The body contains the subject ID (sub) along with the GGO received. See example:
-        
+
         ```
         {
             "sub": "619ed366-8f3b-431b-bdea-fb489df75ebd",
@@ -576,7 +793,7 @@ paths:
                   example: 'https://my-website.com/on-ggo-issued'
                 secret:
                   type: string
-                  description: A secret which is used to 
+                  description: A secret which is used to
                   example: 'a secret string only known by my website or service'
       responses:
         '200':
@@ -596,7 +813,7 @@ paths:
       summary: Unsubscribe from webhook event ON_GGO_RECEIVED
       description: |
         Unsubscribe from webhook event ON_GGO_RECEIVED.
-        
+
         The provided URL and secret must match that used when subscribing.
       security:
         - bearerAuth: []
@@ -622,7 +839,7 @@ paths:
                   example: 'https://my-website.com/on-ggo-issued'
                 secret:
                   type: string
-                  description: A secret which is used to 
+                  description: A secret which is used to
                   example: 'a secret string only known by my website or service'
       responses:
         '200':
@@ -656,7 +873,7 @@ components:
           type: string
           description: Account ID
           example: '619ed366-8f3b-431b-bdea-fb489df75ebd'
-  
+
     Ggo:
       type: object
       description: One specific GGO
@@ -695,7 +912,7 @@ components:
           type: string
           description: The fuel code of the production MeteringPoint
           example: 'F01040100'
-  
+
     GgoCategory:
       type: string
       description: Current state/category of a GGO
@@ -704,7 +921,7 @@ components:
         - stored
         - retired
         - expired
-  
+
     GgoFilters:
       type: object
       description: Filters when selecting GGOs
@@ -776,7 +993,7 @@ components:
             - '849c0b80c72ff6aed09e7d06f9f8474b577545870973674ba364fa40f6c6e2da0a026b'
           items:
             type: string
-  
+
     TransferFilters:
       type: object
       description: Filters when selecting transferred GGOs
@@ -793,7 +1010,7 @@ components:
                 - 'My other reference'
               items:
                 type: string
-  
+
     TransferRequest:
       type: object
       description: A request to transfer a certain amount of Wh to a specific recipient account
@@ -810,7 +1027,7 @@ components:
           type: string
           description: Recipient's account number
           example: 'effb72ff-b65b-4985-8bd3-3522c6002ebd'
-  
+
     RetireRequest:
       type: object
       description: A request to retire a certain amount of Wh to a specific MeteringPoint (specified by its GSRN number)
@@ -823,7 +1040,7 @@ components:
           type: string
           description: GSRN number
           example: '123456789012345'
-  
+
     SummaryResolution:
       type: string
       description: Date/datetime resolution of returned GGO summaries
@@ -834,7 +1051,7 @@ components:
         - month
         - day
         - hour
-  
+
     SummaryGrouping:
       type: array
       description: Data grouping of returned GGO summaries
@@ -847,7 +1064,7 @@ components:
           - technology
           - technologyCode
           - fuelCode
-  
+
     SummaryGroup:
       type: object
       description: A grouping of values in a GGO summary
@@ -870,3 +1087,54 @@ components:
           type: string
           format: date-time
           example: '2020-01-03 23:00:00'
+
+    Forecast:
+      type: object
+      description: A forecast
+      properties:
+        id:
+          type: string
+          description: Unique forecast ID
+          example: '0d8664aa-2caf-4446-8b2c-2a7bf6f202e7'
+        sender:
+          type: string
+          description: ID of the account sending the forecast
+          example: '0d8664aa-2caf-4446-8b2c-2a7bf6f202e7'
+        recipient:
+          type: string
+          description: ID of the account receiving the forecast
+          example: '0d8664aa-2caf-4446-8b2c-2a7bf6f202e7'
+        created:
+          type: string
+          description: Time the forecast was submitted
+          format: date-time
+          example: '2020-01-03 23:00:00'
+        begin:
+          type: string
+          format: date-time
+          description: Time the forecast begins
+          example: '2020-01-03 23:00:00'
+        end:
+          type: string
+          format: date-time
+          description: Time the forecast ends
+          example: '2020-01-03 23:00:00'
+        sector:
+          type: string
+          description: Sector (price area) the forecasts is valid in
+          example: 'DK1'
+        reference:
+          type: string
+          description: Reference string
+          example: 'my-reference'
+        forecast:
+          type: array
+          description: Forecast values
+          example: [1, 2, 3, 4, 5]
+          items:
+            type: string
+        resolution:
+          type: string
+          format: iso8601
+          description: Data resolution
+          example: 'P1H'
